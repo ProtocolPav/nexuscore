@@ -6,7 +6,7 @@ class PoolWrapper:
     __pool: pg.Pool
 
     async def init_pool(self):
-        config = json.load(open('../thorny_data/config.json', 'r+'))
+        config = json.load(open('./config.json', 'r+'))
         self.__pool = await pg.create_pool(database=config['database']['name'],
                                            user=config['database']['user'],
                                            password=config['database']['password'],
@@ -16,7 +16,7 @@ class PoolWrapper:
                                            max_size=300,
                                            loop=None)
 
-    def connection(self):
+    def connection(self) -> pg.Connection:
         return self.__pool.acquire()
 
 
