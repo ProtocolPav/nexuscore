@@ -1,5 +1,5 @@
-from src.pool import webserver_pool
-from src.utils import recursive_dict_update
+from src.db.pool import webserver_pool
+from src.db.utils import recursive_dict_update
 
 
 async def fetch_user_by_id(thorny_id: int):
