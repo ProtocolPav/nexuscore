@@ -30,7 +30,7 @@ async def init_db_pool(application: Sanic, loop: asyncio.AbstractEventLoop):
         print(f"/{route.path:60} - {route.name:70} -  {route.methods} [{route.router}]")
 
     for key, route in app.router.routes_all.items():
-        print(f"{list(route.methods)} /{route.path}")
+        print(f"```{' | '.join(list(route.methods)):20}   /{route.path}```")
 
     # await webserver_pool.init_pool()
 

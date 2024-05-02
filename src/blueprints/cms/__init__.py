@@ -4,16 +4,23 @@ from sanic import json as sanicjson
 content_blueprint = Blueprint('content', '/cms')
 
 
-@content_blueprint.get('/<page_uid:str>')
+@content_blueprint.route('/<page_uid:str>', methods=['GET', 'PUT', 'POST'])
+async def page_data(request: Request):
+    if request.method == 'GET':
+        ...
+    elif request.method == 'POST':
+        ...
+    elif request.method == 'PUT':
+        ...
+
+
 async def get_page_data(request: Request):
     ...
 
 
-@content_blueprint.put('/<page_uid:str>')
 async def update_page_data(request: Request):
     ...
 
 
-@content_blueprint.post('/<page_uid:str>')
 async def create_page(request: Request):
     ...
