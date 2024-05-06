@@ -1,7 +1,11 @@
+import datetime
+
 from sanic import Blueprint, Request
 from sanic import json as sanicjson
+from sanic_ext import openapi
 
 from src.db.user import *
+from src.schema.user_schema import User
 
 user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
@@ -11,29 +15,54 @@ async def create_user(request: Request):
     ...
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET', 'DELETE', 'PATCH'])
+@user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET'])
+@openapi.parameter('include-profile', bool)
+@openapi.parameter('include-playtime', bool)
+@openapi.parameter('include-projects', bool)
+@openapi.parameter('include-levels', bool)
+@openapi.response(content={'application/json': User})
 async def user_thorny_id(request: Request, thorny_id: int):
-    if request.method == 'GET':
-        user = await fetch_user_by_id(thorny_id)
-        return sanicjson(user, default=str)
-    elif request.method == 'DELETE':
-        ...
-    elif request.method == 'PATCH':
-        ...
+    """
+    Get User
+
+    This returns the user based on the ThornyID provided.
+
+    Note that all playtime will be returned as seconds. You can process that manually.
+    """
+    user = await fetch_user_by_id(thorny_id)
+    return sanicjson(user, default=str)
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>/username', methods=['PATCH'])
-async def update_username(request: Request, thorny_id: int):
-    ...
+@user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
+@openapi.definition(body={'application/json': {
+                                    'username': str,
+                                    'birthday': datetime.datetime,
+                                    'is_active': bool
+                                    }})
+async def update_thorny_id(request: Request, thorny_id: int):
+    """
+    Update User
 
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/birthday', methods=['PATCH'])
-async def update_birthday(request: Request, thorny_id: int):
+    This updates a user. You may include all body arguments
+    or just one.
+    """
     ...
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/balance', methods=['PATCH'])
+@openapi.definition(body={'application/json': {
+                                    'to_add': int,
+                                    'to_remove': int,
+                                    'comment': str
+                                    }})
 async def update_balance(request: Request, thorny_id: int):
+    """
+    Update User Balance
+
+    This updates the user's balance. If you do not include a comment,
+    one will be auto-generated for you. This operation gets logged as a
+    Transaction.
+    """
     ...
 
 
@@ -142,7 +171,7 @@ async def get_user_gamertag(request: Request, guild_id: int, gamertag: str):
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<discord_id:int>', methods=['GET'])
-async def user_gamertag(request: Request, guild_id: int, discord_id: int):
+async def user_discord_id(request: Request, guild_id: int, discord_id: int):
     if request.method == 'GET':
         return await get_user_discord_id(request, guild_id, discord_id)
 
