@@ -11,8 +11,8 @@ class Project:
     description: str
     status: Union[0, 1, 2, 3]
     content: str
-    lead_id: int
-    member_ids: list[int]
+    lead_user: int
+    member_users: list[int]
     thread_id: int
     accepted_on: datetime
     completed_on: datetime | None

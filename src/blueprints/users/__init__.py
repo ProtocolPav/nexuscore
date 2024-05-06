@@ -5,7 +5,7 @@ from sanic import json as sanicjson
 from sanic_ext import openapi
 
 from src.db.user import *
-from src.schema.user_schema import User, BaseUser
+from src.schema.user_schema import User, BaseUser, Profile, Levels
 
 user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
@@ -18,10 +18,10 @@ async def create_user(request: Request):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET'])
-@openapi.parameter('exclude-profile', bool)
-@openapi.parameter('exclude-playtime', bool)
-@openapi.parameter('exclude-projects', bool)
-@openapi.parameter('exclude-levels', bool)
+@openapi.parameter('include-profile', bool)
+@openapi.parameter('include-playtime', bool)
+@openapi.parameter('include-projects', bool)
+@openapi.parameter('include-levels', bool)
 @openapi.response(status=200, content={'application/json': User}, description='Success')
 @openapi.response(status=404, description='User does not exist')
 async def user_thorny_id(request: Request, thorny_id: int):
@@ -40,7 +40,7 @@ async def user_thorny_id(request: Request, thorny_id: int):
 @openapi.definition(body={'application/json': {
                                     'username': str,
                                     'birthday': datetime.datetime,
-                                    'is_active': bool
+                                    'is_in_guild': bool
                                     }})
 async def update_thorny_id(request: Request, thorny_id: int):
     """
@@ -70,87 +70,49 @@ async def update_balance(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['GET'])
+@openapi.response(content={"application/json": Profile})
 async def get_profile(request: Request, thorny_id: int):
+    """
+    Get User Profile
+
+    This returns only the user's profile.
+    """
     ...
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/slogan', methods=['PATCH'])
-async def update_profile_slogan(request: Request, thorny_id: int):
+@user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['PATCH'])
+@openapi.body(content={"application/json": Profile})
+async def update_profile(request: Request, thorny_id: int):
+    """
+    Update User Profile
+
+    This updates a user's profile. Include only the request body fields
+    that you want to update.
+    """
     ...
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/gamertag', methods=['PATCH'])
-async def update_profile_gamertag(request: Request, thorny_id: int):
+@user_blueprint.route('/thorny-id/<thorny_id:int>/levels', methods=['GET'])
+@openapi.response(content={"application/json": Levels})
+async def get_levels(request: Request, thorny_id: int):
+    """
+    Get User Levels
+
+    This returns only the user's levels and info about it.
+    """
     ...
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/gamertag/whitelist', methods=['PATCH'])
-async def update_profile_whitelist(request: Request, thorny_id: int):
-    ...
+@user_blueprint.route('/thorny-id/<thorny_id:int>/levels', methods=['PATCH'])
+@openapi.body(content={"application/json": Levels})
+async def update_levels(request: Request, thorny_id: int):
+    """
+    Update User Levels
 
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/about', methods=['PATCH'])
-async def update_profile_about(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/character/lore', methods=['PATCH'])
-async def update_profile_lore(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/character/name', methods=['PATCH'])
-async def update_profile_name(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/character/age', methods=['PATCH'])
-async def update_profile_age(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/character/race', methods=['PATCH'])
-async def update_profile_race(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/character/role', methods=['PATCH'])
-async def update_profile_role(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/character/origin', methods=['PATCH'])
-async def update_profile_origin(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/character/beliefs', methods=['PATCH'])
-async def update_profile_beliefs(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/profile/character/stats', methods=['PATCH'])
-async def update_profile_stats(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/levels/level', methods=['PATCH'])
-async def update_levels_level(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/levels/xp', methods=['PATCH'])
-async def update_levels_xp(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/levels/xp/required', methods=['PATCH'])
-async def update_levels_required_xp(request: Request, thorny_id: int):
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/levels/message', methods=['PATCH'])
-async def update_levels_message(request: Request, thorny_id: int):
+    This updates a user's levels. Note that there is no logic on the
+    webserver for this, the logic is expected to be handled by the
+    application.
+    """
     ...
 
 
@@ -164,21 +126,23 @@ async def update_user_thorny_id(request: Request, thorny_id: int):
 
 @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
 async def user_gamertag(request: Request, guild_id: int, gamertag: str):
-    if request.method == 'GET':
-        return await get_user_gamertag(request, guild_id, gamertag)
+    """
+    Get User by Gamertag
 
-
-async def get_user_gamertag(request: Request, guild_id: int, gamertag: str):
+    This returns a bare-bones user object based on the gamertag and
+    guild ID provided. Note, that this checks the whitelisted gamertag only.
+    """
     user = await fetch_user_by_gamertag(guild_id, gamertag)
     return sanicjson(user, default=str)
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<discord_id:int>', methods=['GET'])
 async def user_discord_id(request: Request, guild_id: int, discord_id: int):
-    if request.method == 'GET':
-        return await get_user_discord_id(request, guild_id, discord_id)
+    """
+    Get User by Discord ID
 
-
-async def get_user_discord_id(request: Request, guild_id: int, discord_id: int):
+    This returns a bare-bones user object based on the discord user ID and
+    guild ID provided.
+    """
     user = await fetch_user_by_discord_id(guild_id, discord_id)
     return sanicjson(user, default=str)
