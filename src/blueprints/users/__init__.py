@@ -5,22 +5,25 @@ from sanic import json as sanicjson
 from sanic_ext import openapi
 
 from src.db.user import *
-from src.schema.user_schema import User
+from src.schema.user_schema import User, BaseUser
 
 user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
 
 @user_blueprint.route('/', methods=['POST'])
+@openapi.response(status=200, content={'application/json': BaseUser}, description='Success')
+@openapi.response(status=500, description='Error with creating user')
 async def create_user(request: Request):
     ...
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET'])
-@openapi.parameter('include-profile', bool)
-@openapi.parameter('include-playtime', bool)
-@openapi.parameter('include-projects', bool)
-@openapi.parameter('include-levels', bool)
-@openapi.response(content={'application/json': User})
+@openapi.parameter('exclude-profile', bool)
+@openapi.parameter('exclude-playtime', bool)
+@openapi.parameter('exclude-projects', bool)
+@openapi.parameter('exclude-levels', bool)
+@openapi.response(status=200, content={'application/json': User}, description='Success')
+@openapi.response(status=404, description='User does not exist')
 async def user_thorny_id(request: Request, thorny_id: int):
     """
     Get User

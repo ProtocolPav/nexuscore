@@ -58,7 +58,7 @@ class Playtime:
 
 
 @dataclass
-class User:
+class BaseUser:
     thorny_id: int
     discord_id: int
     guild_id: int
@@ -67,6 +67,14 @@ class User:
     birthday: datetime
     balance: int
     is_in_guild: bool
+    profile: None
+    levels: None
+    playtime: None
+    projects: None
+
+
+@dataclass
+class User(BaseUser):
     profile: Profile
     levels: Levels
     playtime: Playtime
