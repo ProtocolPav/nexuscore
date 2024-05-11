@@ -25,8 +25,7 @@ async def test(request: Request):
 
 @app.listener('after_server_start')
 async def init_db_pool(application: Sanic, loop: asyncio.AbstractEventLoop):
-    # await webserver_pool.init_pool()
-    ...
+    await webserver_pool.init_pool()
 
 app.blueprint(blueprint_group)
 

@@ -1,8 +1,9 @@
 from src.db.pool import webserver_pool
 from src.db.utils import recursive_dict_update
+from src.schema.user_schema import User
 
 
-async def fetch_user_by_id(thorny_id: int):
+async def fetch_user_by_id(thorny_id: int, included: list[str]):
     async with webserver_pool.connection() as conn:
         user_data = await conn.fetchrow("""
                                         SELECT * FROM thorny.user
@@ -11,134 +12,90 @@ async def fetch_user_by_id(thorny_id: int):
                                         thorny_id
                                         )
 
-        profile_data = await conn.fetchrow("""
-                                           SELECT * FROM thorny.profile
-                                           WHERE thorny.profile.thorny_user_id = $1
-                                           """,
-                                           thorny_id
-                                           )
+        if 'profile' in included:
+            profile_data = await conn.fetchrow("""
+                                               SELECT * FROM thorny.profile
+                                               WHERE thorny.profile.thorny_user_id = $1
+                                               """,
+                                               thorny_id
+                                               )
+        else:
+            profile_data = None
 
-        monthly_playtime = await conn.fetch("""
-                                            SELECT t.year, t.month, sum(t.playtime) as playtime
-                                            FROM (SELECT sum(playtime) as playtime, 
-                                                         date_part('month', connect_time) as month, 
-                                                         date_part('year', connect_time) as year
-                                                  FROM thorny.playtime
-                                                  INNER JOIN thorny.user 
-                                                    ON thorny.playtime.thorny_user_id = thorny.user.thorny_user_id 
-                                                  WHERE thorny.playtime.thorny_user_id = $1
-                                                  GROUP BY connect_time 
-                                                  ) as t
-                                            GROUP BY t.year, t.month
-                                            ORDER BY t.year DESC, t.month DESC
-                                            """,
-                                            thorny_id
-                                            )
+        if 'playtime' in included:
+            monthly_playtime = await conn.fetch("""
+                                                SELECT t.year, t.month, sum(t.playtime) as playtime
+                                                FROM (SELECT sum(playtime) as playtime, 
+                                                             date_part('month', connect_time) as month, 
+                                                             date_part('year', connect_time) as year
+                                                      FROM thorny.playtime
+                                                      INNER JOIN thorny.user 
+                                                        ON thorny.playtime.thorny_user_id = thorny.user.thorny_user_id 
+                                                      WHERE thorny.playtime.thorny_user_id = $1
+                                                      GROUP BY connect_time 
+                                                      ) as t
+                                                GROUP BY t.year, t.month
+                                                ORDER BY t.year DESC, t.month DESC
+                                                """,
+                                                thorny_id
+                                                )
 
-        daily_playtime = await conn.fetch("""
-                                          SELECT t.day, sum(t.playtime) as playtime 
-                                          FROM (SELECT sum(playtime) as playtime, 
-                                                       date(connect_time) as day
-                                                FROM thorny.playtime
-                                                INNER JOIN thorny.user
-                                                    ON thorny.playtime.thorny_user_id = thorny.user.thorny_user_id 
-                                                WHERE thorny.playtime.thorny_user_id = $1
-                                                GROUP BY day 
-                                                ) as t
-                                          GROUP BY t.day
-                                          ORDER BY t.day DESC
-                                          """,
-                                          thorny_id
-                                          )
-
-        total_playtime = await conn.fetchrow("""
-                                             SELECT SUM(playtime) as total_playtime
-                                             FROM thorny.playtime
-                                             WHERE thorny_user_id = $1
-                                             GROUP BY thorny_user_id
-                                             """,
-                                             thorny_id
-                                             )
-
-        current_session = await conn.fetchrow("""
-                                              SELECT * FROM thorny.playtime
-                                              WHERE thorny_user_id = $1
-                                              AND disconnect_time is null
-                                              ORDER BY connect_time desc
-                                              LIMIT 1
+            daily_playtime = await conn.fetch("""
+                                              SELECT t.day, sum(t.playtime) as playtime 
+                                              FROM (SELECT sum(playtime) as playtime, 
+                                                           date(connect_time) as day
+                                                    FROM thorny.playtime
+                                                    INNER JOIN thorny.user
+                                                        ON thorny.playtime.thorny_user_id = thorny.user.thorny_user_id 
+                                                    WHERE thorny.playtime.thorny_user_id = $1
+                                                    GROUP BY day 
+                                                    ) as t
+                                              GROUP BY t.day
+                                              ORDER BY t.day DESC
                                               """,
                                               thorny_id
                                               )
 
-        projects = await conn.fetch("""
-                                    SELECT project_id, name FROM thorny.projects
-                                    WHERE owner_id = $1
-                                    """,
-                                    thorny_id
-                                    )
+            total_playtime = await conn.fetchrow("""
+                                                 SELECT SUM(playtime) as total_playtime
+                                                 FROM thorny.playtime
+                                                 WHERE thorny_user_id = $1
+                                                 GROUP BY thorny_user_id
+                                                 """,
+                                                 thorny_id
+                                                 )
 
-        levels = await conn.fetchrow("""
-                                     SELECT * FROM thorny.levels
-                                     WHERE thorny_user_id = $1
-                                     """,
-                                     thorny_id
-                                     )
+            current_session = await conn.fetchrow("""
+                                                  SELECT * FROM thorny.playtime
+                                                  WHERE thorny_user_id = $1
+                                                  AND disconnect_time is null
+                                                  ORDER BY connect_time desc
+                                                  LIMIT 1
+                                                  """,
+                                                  thorny_id
+                                                  )
 
-    user = {
-        "thorny_id": user_data['thorny_user_id'],
-        "discord_id": user_data['user_id'],
-        "guild_id": user_data['guild_id'],
-        "username": user_data['username'],
-        "guild_join_date": user_data['join_date'],
-        "birthday": user_data['birthday'],
-        "balance": user_data['balance'],
-        "is_in_guild": user_data['active'],
-        "profile": {
-            "slogan": profile_data['slogan'],
-            "gamertag": profile_data['gamertag'],
-            "whitelisted_gamertag": profile_data['whitelisted_gamertag'],
-            "aboutme": profile_data['aboutme'],
-            "character": {
-                "lore": profile_data['lore'],
-                "name": profile_data['character_name'],
-                "age": profile_data['character_age'],
-                "race": profile_data['character_race'],
-                "role": profile_data['character_role'],
-                "origin": profile_data['character_origin'],
-                "beliefs": profile_data['character_beliefs'],
-                "agility": profile_data['agility'],
-                "valor": profile_data['valor'],
-                "strength": profile_data['strength'],
-                "charisma": profile_data['charisma'],
-                "creativity": profile_data['creativity'],
-                "ingenuity": profile_data['ingenuity']
-            }
-        },
-        "levels": {
-            "level": levels['user_level'],
-            "xp": levels['xp'],
-            "required_xp": levels['required_xp'],
-            "last_message": levels['last_message']
-        },
-        "read_only": {
-            "playtime": {
-                "monthly": [{"year": month['year'],
-                             "month": month['month'],
-                             "playtime": month['playtime']
-                             } for month in monthly_playtime],
-                "daily": [{"day": day['day'],
-                           "playtime": day['playtime']
-                           } for day in daily_playtime],
-                "total": total_playtime['total_playtime'],
-                "current_connection": current_session
-            },
-            "projects": [{"id": project['project_id'],
-                          "name": project['name']
-                          } for project in projects]
-        }
-    }
+        if 'projects' in included:
+            projects_data = await conn.fetch("""
+                                             SELECT * FROM thorny.projects
+                                             WHERE owner_id = $1
+                                             """,
+                                             thorny_id
+                                             )
+        else:
+            projects_data = None
 
-    return user
+        if 'levels' in included:
+            levels_data = await conn.fetchrow("""
+                                              SELECT * FROM thorny.levels
+                                              WHERE thorny_user_id = $1
+                                              """,
+                                              thorny_id
+                                              )
+        else:
+            levels_data = None
+
+    return User.build(user_data, profile_data, levels_data, None, projects_data)
 
 
 async def fetch_user_by_gamertag(guild_id: int, gamertag: str):
@@ -206,4 +163,3 @@ async def update_user(user: dict, updates: dict):
                            user['thorny_id'], levels['level'], levels['xp'], levels['required_xp'], levels['last_message'])
 
     return user
-
