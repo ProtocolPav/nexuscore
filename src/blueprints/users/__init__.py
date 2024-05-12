@@ -4,14 +4,13 @@ from sanic import Blueprint, Request
 from sanic import json as sanicjson
 from sanic_ext import openapi
 
-from src.db.user import *
-from src.schema.user_schema import User, BaseUser, Profile, Levels
+from src import model_factory
 
 user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
 
 @user_blueprint.route('/', methods=['POST'])
-@openapi.response(status=200, content={'application/json': BaseUser}, description='Success')
+@openapi.response(status=200, content={'application/json': {}}, description='Success')
 @openapi.response(status=500, description='Error with creating user')
 async def create_user(request: Request):
     ...
@@ -19,7 +18,7 @@ async def create_user(request: Request):
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET'])
 @openapi.parameter('include', str)
-@openapi.response(status=200, content={'application/json': User}, description='Success')
+@openapi.response(status=200, content={'application/json': {}}, description='Success')
 @openapi.response(status=404, description='Error')
 async def user_thorny_id(request: Request, thorny_id: int):
     """
@@ -29,7 +28,6 @@ async def user_thorny_id(request: Request, thorny_id: int):
 
     In the include parameters, you can specify any of:
     - profile
-    - levels
     - projects
     - playtime
 
@@ -37,9 +35,9 @@ async def user_thorny_id(request: Request, thorny_id: int):
 
     Note that all playtime will be returned as seconds. You can process that manually.
     """
-    arguments = request.args.get('include', [])
-    user = await fetch_user_by_id(thorny_id, arguments)
-    return sanicjson(user, default=str)
+    user_model = await model_factory.UserFactory.build_user_model(thorny_id)
+    profile_model = await model_factory.UserFactory.build_profile_model(thorny_id)
+    return sanicjson([user_model, profile_model], default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
@@ -82,7 +80,7 @@ async def update_balance(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['GET'])
-@openapi.response(content={"application/json": Profile})
+@openapi.response(content={"application/json": {}})
 async def get_profile(request: Request, thorny_id: int):
     """
     Get User Profile
@@ -93,7 +91,7 @@ async def get_profile(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['PATCH'])
-@openapi.body(content={"application/json": Profile})
+@openapi.body(content={"application/json": {}})
 async def update_profile(request: Request, thorny_id: int):
     """
     Update User Profile
@@ -105,7 +103,7 @@ async def update_profile(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/levels', methods=['GET'])
-@openapi.response(content={"application/json": Levels})
+@openapi.response(content={"application/json": {}})
 async def get_levels(request: Request, thorny_id: int):
     """
     Get User Levels
@@ -116,7 +114,7 @@ async def get_levels(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/levels', methods=['PATCH'])
-@openapi.body(content={"application/json": Levels})
+@openapi.body(content={"application/json": {}})
 async def update_levels(request: Request, thorny_id: int):
     """
     Update User Levels

@@ -1,6 +1,6 @@
 from sanic import Sanic, Request
 from sanic.response import json as sanicjson
-from src.db.pool import webserver_pool
+from src.model_factory import Factory
 import asyncio
 
 from src.blueprints import blueprint_group
@@ -25,7 +25,7 @@ async def test(request: Request):
 
 @app.listener('after_server_start')
 async def init_db_pool(application: Sanic, loop: asyncio.AbstractEventLoop):
-    await webserver_pool.init_pool()
+    await Factory.init_pool()
 
 app.blueprint(blueprint_group)
 
