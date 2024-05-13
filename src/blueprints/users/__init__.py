@@ -37,7 +37,8 @@ async def user_thorny_id(request: Request, thorny_id: int):
     """
     user_model = await model_factory.UserFactory.build_user_model(thorny_id)
     profile_model = await model_factory.UserFactory.build_profile_model(thorny_id)
-    return sanicjson([user_model, profile_model], default=str)
+    playtime_report = await model_factory.UserFactory.build_playtime_report(thorny_id)
+    return sanicjson(user_model | {'profile': profile_model} | {'playtime': playtime_report}, default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
