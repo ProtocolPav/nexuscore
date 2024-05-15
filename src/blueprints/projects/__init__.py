@@ -1,3 +1,5 @@
+import json
+
 from sanic import Blueprint, Request
 from sanic import json as sanicjson
 from sanic_ext import openapi
@@ -14,7 +16,7 @@ async def create_project(request: Request):
 
 
 @project_blueprint.route('/', methods=['GET'])
-@openapi.parameter('users_as_object', bool)
+@openapi.parameter('users-as-object', bool)
 async def get_all_projects(request: Request):
     """
     Get All Projects
@@ -29,6 +31,8 @@ async def get_all_projects(request: Request):
 
 
 @project_blueprint.route('/<project_id:str>', methods=['GET'])
+@openapi.response(status=200, description='Return Project',
+                  content={'application/json': objects.ProjectObject.model_json_schema()})
 @openapi.parameter('users-as-object', bool)
 async def get_project(request: Request, project_id: str):
     """
@@ -37,9 +41,8 @@ async def get_project(request: Request, project_id: str):
     Get the project and its info based on the ID provided.
     Project IDs are strings.
 
-    By default, the `lead` and `members` of the project are
-    returned as ThornyIDs, however you can specify in the URL
-    parameter to get a bare-bones User object for each member instead.
+    By default, users are returned as ThornyIDs (`int`), but you can specify
+    using `users-as-object=true` to return them as User Objects instead
     """
     project_model = await model_factory.ProjectFactory.build_project_model(project_id)
     content_model = await model_factory.ProjectFactory.build_content_model(project_id)
