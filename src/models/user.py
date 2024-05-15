@@ -62,3 +62,22 @@ class UserQuestModel(BaseModel):
     started_on: NaiveDatetime
     completion_count: int
     status: bool | None
+
+
+class UserUpdateModel(UserModel):
+    thorny_id: int = None
+    user_id: int = None
+    guild_id: int = None
+    username: str = None
+    join_date: NaiveDatetime = None
+    birthday: NaiveDatetime = None
+    balance: int = None
+    active: bool = None
+    role: str = None
+    patron: bool = None
+    level: int = None
+    xp: int = None
+    required_xp: int = None
+    last_message: NaiveDatetime = None
+    gamertag: str = None
+    whitelist: str = None

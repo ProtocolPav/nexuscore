@@ -1,6 +1,5 @@
 from src.models.user import UserModel, ProfileModel, PlaytimeReport
 from src.models.project import ProjectModel, MembersModel, ContentModel, StatusModel
-from src.models.objects import UserObject, ProjectObject
 from asyncpg import Pool, create_pool
 import json
 
@@ -108,6 +107,28 @@ class UserFactory(Factory):
                           'session': data['session']}
 
         return dict(PlaytimeReport.parse_obj(processed_dict))
+
+    @classmethod
+    async def update_user_model(cls, thorny_id: int, model: UserModel):
+        await cls.pool.execute("""
+                               UPDATE users.user
+                               SET username = $1,
+                                   birthday = $2,
+                                   balance = $3,
+                                   active = $4,
+                                   role = $5,
+                                   patron = $6,
+                                   level = $7,
+                                   xp = $8,
+                                   required_xp = $9,
+                                   last_message = $10,
+                                   gamertag = $11,
+                                   whitelist = $12
+                               WHERE thorny_id = $13
+                               """,
+                               model.username, model.birthday, model.balance, model.active,
+                               model.role, model.patron, model.level, model.xp, model.required_xp,
+                               model.last_message, model.gamertag, model.whitelist, thorny_id)
 
 
 class ProjectFactory(Factory):

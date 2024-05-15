@@ -5,7 +5,7 @@ from sanic import json as sanicjson
 from sanic_ext import openapi
 
 from src import model_factory
-from src.models import objects
+from src.models import objects, user
 
 user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
@@ -47,25 +47,30 @@ async def user_thorny_id(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
-@openapi.definition(body={'application/json': {
-    'username': str,
-    'birthday': datetime.datetime,
-    'is_in_guild': bool,
-    'patron': bool,
-    'role': str
-}})
+@openapi.definition(body={'application/json': objects.UserModel.model_json_schema()})
 async def update_thorny_id(request: Request, thorny_id: int):
     """
     Update User
 
-    This updates a user. You may include all body arguments
-    or just one.
-    """
-    data = request.json
-    user = await fetch_user_by_id(thorny_id)
-    user.update(data)
+    This updates a user. You can omit the fields that you do not want to update.
 
-    return sanicjson(user, default=str)
+    Note: ThornyID, UserID, GuildID and Join Date will not update even if specified.
+    Note: Balance updates will trigger a `Transaction` Event. It is preferred to use the `/balance`
+    route to be able to enter comments, otherwise, a default comment will be added to the `Transaction`.
+    """
+    model = user.UserUpdateModel.parse_obj(request.json).dict()
+
+    model['thorny_id'], model['user_id'], model['guild_id'], model['join_date'] = None, None, None, None
+
+    user_existing = await model_factory.UserFactory.build_user_model(thorny_id)
+
+    user_existing.update([k, v] for k, v in model.items() if v is not None)
+
+    updated_user = objects.UserObject(**user_existing)
+
+    await model_factory.UserFactory.update_user_model(thorny_id, updated_user)
+
+    return sanicjson(updated_user.dict(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/balance', methods=['PATCH'])
