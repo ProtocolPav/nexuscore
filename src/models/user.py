@@ -49,10 +49,6 @@ class PlaytimeReport(BaseModel):
     monthly: list[dict]
 
 
-class UserProjectReport(BaseModel):
-    ...
-
-
 class ServerEventsReport(BaseModel):
     total_placed: int
     total_broken: int

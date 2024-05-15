@@ -2,7 +2,8 @@ from sanic import Blueprint, Request
 from sanic import json as sanicjson
 from sanic_ext import openapi
 
-from src.schema.project_schema import Project
+from src import model_factory
+from src.models.objects import ProjectObject
 
 project_blueprint = Blueprint("project_routes", url_prefix='/projects')
 
@@ -40,11 +41,25 @@ async def get_project(request: Request, project_id: str):
     returned as ThornyIDs, however you can specify in the URL
     parameter to get a bare-bones User object for each member instead.
     """
-    ...
+    project_model = await model_factory.ProjectFactory.build_project_model(project_id)
+    content_model = await model_factory.ProjectFactory.build_content_model(project_id)
+    status_model = await model_factory.ProjectFactory.build_status_model(project_id)
+    members_model = await model_factory.ProjectFactory.build_members_model(project_id)
+
+    if request.args.get('users_as_object', False):
+        members_dict = {'members': []}
+        for member in members_model['members']:
+            members_dict['members'].append(await model_factory.UserFactory.build_user_model(member))
+
+        project_model['owner_id'] = await model_factory.UserFactory.build_user_model(project_model['owner_id'])
+
+        members_model = members_dict
+
+    return sanicjson(project_model | content_model | status_model | members_model, default=str)
 
 
 @project_blueprint.route('/<project_id:str>', methods=['PATCH'])
-@openapi.body(content={'application/json': Project})
+@openapi.body(content={'application/json': {}})
 async def update_project(request: Request, project_id: str):
     """
     Update Project

@@ -5,6 +5,7 @@ from sanic import json as sanicjson
 from sanic_ext import openapi
 
 from src import model_factory
+from src.models import objects
 
 user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
@@ -18,7 +19,8 @@ async def create_user(request: Request):
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET'])
 @openapi.parameter('include', str)
-@openapi.response(status=200, content={'application/json': {}}, description='Success')
+@openapi.response(status=200, content={'application/json': objects.UserObject.model_json_schema()['$defs']},
+                  description='Success')
 @openapi.response(status=404, description='Error')
 async def user_thorny_id(request: Request, thorny_id: int):
     """
@@ -38,17 +40,19 @@ async def user_thorny_id(request: Request, thorny_id: int):
     user_model = await model_factory.UserFactory.build_user_model(thorny_id)
     profile_model = await model_factory.UserFactory.build_profile_model(thorny_id)
     playtime_report = await model_factory.UserFactory.build_playtime_report(thorny_id)
+
+    print(objects.UserObject.model_json_schema())
     return sanicjson(user_model | {'profile': profile_model} | {'playtime': playtime_report}, default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
 @openapi.definition(body={'application/json': {
-                                    'username': str,
-                                    'birthday': datetime.datetime,
-                                    'is_in_guild': bool,
-                                    'patron': bool,
-                                    'role': str
-                                    }})
+    'username': str,
+    'birthday': datetime.datetime,
+    'is_in_guild': bool,
+    'patron': bool,
+    'role': str
+}})
 async def update_thorny_id(request: Request, thorny_id: int):
     """
     Update User
@@ -65,10 +69,10 @@ async def update_thorny_id(request: Request, thorny_id: int):
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/balance', methods=['PATCH'])
 @openapi.definition(body={'application/json': {
-                                    'to_add': int,
-                                    'to_remove': int,
-                                    'comment': str
-                                    }})
+    'to_add': int,
+    'to_remove': int,
+    'comment': str
+}})
 async def update_balance(request: Request, thorny_id: int):
     """
     Update User Balance

@@ -1,4 +1,6 @@
 from src.models.user import UserModel, ProfileModel, PlaytimeReport
+from src.models.project import ProjectModel, MembersModel, ContentModel, StatusModel
+from src.models.objects import UserObject, ProjectObject
 from asyncpg import Pool, create_pool
 import json
 
@@ -24,7 +26,7 @@ class UserFactory(Factory):
     async def build_user_model(cls, thorny_id: int):
         data = await cls.pool.fetchrow("""
                                        SELECT * FROM users.user
-                                       WHERE users.user.thorny_id = $1
+                                       WHERE thorny_id = $1
                                        """,
                                        thorny_id)
 
@@ -34,7 +36,7 @@ class UserFactory(Factory):
     async def build_profile_model(cls, thorny_id: int):
         data = await cls.pool.fetchrow("""
                                        SELECT * FROM users.profile
-                                       WHERE users.profile.thorny_id = $1
+                                       WHERE thorny_id = $1
                                        """,
                                        thorny_id)
 
@@ -106,3 +108,49 @@ class UserFactory(Factory):
                           'session': data['session']}
 
         return dict(PlaytimeReport.parse_obj(processed_dict))
+
+
+class ProjectFactory(Factory):
+    @classmethod
+    async def build_project_model(cls, project_id: str):
+        data = await cls.pool.fetchrow("""
+                                       SELECT * FROM projects.project
+                                       WHERE project_id = $1
+                                       """,
+                                       project_id)
+
+        return dict(ProjectModel.parse_obj(dict(data)))
+
+    @classmethod
+    async def build_members_model(cls, project_id: str):
+        data = await cls.pool.fetchrow("""
+                                       SELECT ARRAY_AGG(user_id) as members FROM projects.members
+                                       WHERE project_id = $1
+                                       """,
+                                       project_id)
+
+        if not data['members']:
+            return dict(MembersModel.parse_obj({'members': []}))
+        return dict(MembersModel.parse_obj(dict(data)))
+
+    @classmethod
+    async def build_content_model(cls, project_id: str):
+        data = await cls.pool.fetchrow("""
+                                       SELECT content, since AS content_since, user_id AS content_edited_by
+                                       FROM projects.content
+                                       WHERE project_id = $1
+                                       """,
+                                       project_id)
+
+        return dict(ContentModel.parse_obj(dict(data)))
+
+    @classmethod
+    async def build_status_model(cls, project_id: str):
+        data = await cls.pool.fetchrow("""
+                                       SELECT status, since AS status_since
+                                       FROM projects.status
+                                       WHERE project_id = $1
+                                       """,
+                                       project_id)
+
+        return dict(StatusModel.parse_obj(dict(data)))
