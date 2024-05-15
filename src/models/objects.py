@@ -4,11 +4,11 @@ from src.models.project import ProjectModel, MembersModel, ContentModel, StatusM
 
 
 class UserObject(UserModel):
-    profile: Optional[ProfileModel]
-    playtime: Optional[PlaytimeReport]
+    profile: Optional[ProfileModel] = None
+    playtime: Optional[PlaytimeReport] = None
 
 
 class ProjectObject(ProjectModel, MembersModel, ContentModel, StatusModel):
-    owner_id: UserObject
-    members: list[UserObject]
-    content_edited_by: UserObject
+    owner_id: UserObject | int = None
+    members: list[Optional[UserObject | int]] = None
+    content_edited_by: UserObject | int = None

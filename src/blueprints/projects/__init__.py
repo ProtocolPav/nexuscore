@@ -3,7 +3,7 @@ from sanic import json as sanicjson
 from sanic_ext import openapi
 
 from src import model_factory
-from src.models.objects import ProjectObject
+from src.models import objects
 
 project_blueprint = Blueprint("project_routes", url_prefix='/projects')
 
@@ -29,7 +29,7 @@ async def get_all_projects(request: Request):
 
 
 @project_blueprint.route('/<project_id:str>', methods=['GET'])
-@openapi.parameter('users_as_object', bool)
+@openapi.parameter('users-as-object', bool)
 async def get_project(request: Request, project_id: str):
     """
     Get Project
@@ -46,16 +46,17 @@ async def get_project(request: Request, project_id: str):
     status_model = await model_factory.ProjectFactory.build_status_model(project_id)
     members_model = await model_factory.ProjectFactory.build_members_model(project_id)
 
-    if request.args.get('users_as_object', False):
-        members_dict = {'members': []}
+    project_data = project_model | content_model | status_model
+
+    if request.args.get('users-as-object', 'false').lower() == 'true':
+        project_data['members'] = []
         for member in members_model['members']:
-            members_dict['members'].append(await model_factory.UserFactory.build_user_model(member))
+            project_data['members'].append(await model_factory.UserFactory.build_user_model(member))
 
-        project_model['owner_id'] = await model_factory.UserFactory.build_user_model(project_model['owner_id'])
+        project_data['owner_id'] = await model_factory.UserFactory.build_user_model(project_model['owner_id'])
+        project_data['content_edited_by'] = await model_factory.UserFactory.build_user_model(content_model['content_edited_by'])
 
-        members_model = members_dict
-
-    return sanicjson(project_model | content_model | status_model | members_model, default=str)
+    return sanicjson(objects.ProjectObject(**project_data).dict(), default=str)
 
 
 @project_blueprint.route('/<project_id:str>', methods=['PATCH'])

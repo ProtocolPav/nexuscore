@@ -18,8 +18,9 @@ async def create_user(request: Request):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET'])
-@openapi.parameter('include', str)
-@openapi.response(status=200, content={'application/json': objects.UserObject.model_json_schema()['$defs']},
+@openapi.parameter('include-profile', bool)
+@openapi.parameter('include-playtime', bool)
+@openapi.response(status=200, content={'application/json': objects.UserObject.model_json_schema()},
                   description='Success')
 @openapi.response(status=404, description='Error')
 async def user_thorny_id(request: Request, thorny_id: int):
@@ -28,21 +29,21 @@ async def user_thorny_id(request: Request, thorny_id: int):
 
     This returns the user based on the ThornyID provided.
 
-    In the include parameters, you can specify any of:
-    - profile
-    - projects
-    - playtime
-
-    These are not automatically included in the response object and must be manually selected.
-
     Note that all playtime will be returned as seconds. You can process that manually.
     """
     user_model = await model_factory.UserFactory.build_user_model(thorny_id)
-    profile_model = await model_factory.UserFactory.build_profile_model(thorny_id)
-    playtime_report = await model_factory.UserFactory.build_playtime_report(thorny_id)
 
-    print(objects.UserObject.model_json_schema())
-    return sanicjson(user_model | {'profile': profile_model} | {'playtime': playtime_report}, default=str)
+    user_data = user_model
+
+    if request.args.get('include-profile', 'false').lower() == 'true':
+        profile_model = await model_factory.UserFactory.build_profile_model(thorny_id)
+        user_data['profile'] = profile_model
+
+    if request.args.get('include-playtime', 'false').lower() == 'true':
+        playtime_report = await model_factory.UserFactory.build_playtime_report(thorny_id)
+        user_data['playtime'] = playtime_report
+
+    return sanicjson(objects.UserObject(**user_data).dict(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])

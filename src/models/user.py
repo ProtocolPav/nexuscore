@@ -54,3 +54,11 @@ class ServerEventsReport(BaseModel):
     total_broken: int
     total_kills: int
     total_player_kills: int
+
+
+class UserQuestModel(BaseModel):
+    quest_id: int
+    accepted_on: NaiveDatetime
+    started_on: NaiveDatetime
+    completion_count: int
+    status: bool | None
