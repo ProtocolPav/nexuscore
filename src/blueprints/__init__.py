@@ -6,4 +6,4 @@ from src.blueprints.users import user_blueprint
 from src.blueprints.projects import project_blueprint
 
 blueprints = [user_blueprint, project_blueprint]
-blueprint_group = Blueprint.group(url_prefix='/', *blueprints, version=1, version_prefix='/api/v')
+blueprint_group = Blueprint.group(url_prefix='/', *blueprints, version=0.1, version_prefix='/api/v')
