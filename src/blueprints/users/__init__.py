@@ -1,5 +1,3 @@
-import datetime
-
 from sanic import Blueprint, Request
 from sanic import json as sanicjson
 from sanic_ext import openapi
@@ -79,10 +77,7 @@ async def update_thorny_id(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/balance', methods=['PATCH'])
-@openapi.definition(body={'application/json': {
-    'balance': int,
-    'comment': str
-}})
+@openapi.definition(body={'application/json': {'balance': int, 'comment': str}})
 async def update_balance(request: Request, thorny_id: int):
     """
     Update User Balance
@@ -118,12 +113,17 @@ async def update_profile(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
+@openapi.response(status=200, content={'application/json': objects.UserObject.model_json_schema()},
+                  description='Success')
+@openapi.response(status=404, description='Error')
 async def user_gamertag(request: Request, guild_id: int, gamertag: str):
     """
     Get User by Gamertag
 
     This returns a bare-bones user object based on the gamertag and
-    guild ID provided. Note, that this checks the whitelisted gamertag only.
+    guild ID provided.
+
+    This will check either the whitelisted gamertag or the user-entered gamertag.
     """
     user_model = await model_factory.UserFactory.build_user_model(gamertag=gamertag, guild_id=guild_id)
 
@@ -131,6 +131,9 @@ async def user_gamertag(request: Request, guild_id: int, gamertag: str):
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<discord_id:int>', methods=['GET'])
+@openapi.response(status=200, content={'application/json': objects.UserObject.model_json_schema()},
+                  description='Success')
+@openapi.response(status=404, description='Error')
 async def user_discord_id(request: Request, guild_id: int, discord_id: int):
     """
     Get User by Discord ID

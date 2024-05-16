@@ -5,18 +5,20 @@ from sanic import json as sanicjson
 from sanic_ext import openapi
 
 from src import model_factory
-from src.models import objects
+from src.models import objects, project
 
 project_blueprint = Blueprint("project_routes", url_prefix='/projects')
 
 
 @project_blueprint.route('/', methods=['POST'])
+@openapi.response(status=501)
 async def create_project(request: Request):
     ...
 
 
 @project_blueprint.route('/', methods=['GET'])
 @openapi.parameter('users-as-object', bool)
+@openapi.response(status=501)
 async def get_all_projects(request: Request):
     """
     Get All Projects
@@ -63,15 +65,29 @@ async def get_project(request: Request, project_id: str):
 
 
 @project_blueprint.route('/<project_id:str>', methods=['PATCH'])
-@openapi.body(content={'application/json': {}})
+@openapi.body(content={'application/json': project.ProjectModel.model_json_schema()})
 async def update_project(request: Request, project_id: str):
     """
     Update Project
 
-    Update the project. You can include only the fields
-    that you are updating in the request body.
+    Update the project. You do not have to include every field in
+    the body, only those that you wish to update.
+
+    Note: ProjectID will not update even if specified.
     """
-    ...
+    model = project.ProjectUpdateModel.parse_obj(request.json).dict()
+
+    model['project_id'] = None
+
+    project_existing = await model_factory.ProjectFactory.build_project_model(project_id)
+
+    project_existing.update([k, v] for k, v in model.items() if v is not None)
+
+    updated_project = objects.ProjectModel(**project_existing)
+
+    await model_factory.ProjectFactory.update_project_model(project_id, updated_project)
+
+    return sanicjson(updated_project.dict(), default=str)
 
 
 @project_blueprint.route('/<project_id:str>/status', methods=['PATCH'])

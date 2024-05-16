@@ -193,3 +193,21 @@ class ProjectFactory(Factory):
                                        project_id)
 
         return dict(StatusModel.parse_obj(dict(data)))
+
+    @classmethod
+    async def update_project_model(cls, project_id: str, model: ProjectModel):
+        await cls.pool.execute("""
+                               UPDATE projects.project
+                               SET name = $1,
+                                   thread_id = $2,
+                                   coordinates_x = $3,
+                                   coordinates_y = $4,
+                                   coordinates_z = $5,
+                                   description = $6,
+                                   accepted_on = $7,
+                                   completed_on = $8,
+                                   owner_id = $9
+                               WHERE project_id = $10
+                               """,
+                               model.name, model.thread_id, model.coordinates_x, model.coordinates_y, model.coordinates_z,
+                               model.description, model.accepted_on, model.completed_on, model.owner_id, project_id)
