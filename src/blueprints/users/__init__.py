@@ -15,12 +15,22 @@ user_blueprint = Blueprint("user_routes", url_prefix='/users')
 @openapi.response(status=500, description='Error with creating user')
 @openapi.definition(body={'application/json': {'guild_id': int, 'discord_user_id': int, 'username': str}})
 async def create_user(request: Request):
-    await model_factory.UserFactory.create_user(int(request.json['guild_id']),
-                                                int(request.json['discord_user_id']),
-                                                request.json.get('username', None))
+    """
+    Create New User
 
-    new_user = await model_factory.UserFactory.build_user_model(guild_id=int(request.json['guild_id']),
-                                                                user_id=int(request.json['discord_user_id']))
+    Creates a user based on the discord UserID and GuildID provided.
+    If a user with these ID's already exists, it returns it.
+    """
+    try:
+        new_user = await model_factory.UserFactory.build_user_model(guild_id=int(request.json['guild_id']),
+                                                                    user_id=int(request.json['discord_user_id']))
+    except TypeError:
+        await model_factory.UserFactory.create_user(int(request.json['guild_id']),
+                                                    int(request.json['discord_user_id']),
+                                                    request.json.get('username', None))
+
+        new_user = await model_factory.UserFactory.build_user_model(guild_id=int(request.json['guild_id']),
+                                                                    user_id=int(request.json['discord_user_id']))
 
     return sanic.json(status=201, body=objects.UserObjectWithNoOptionals(**new_user).dict(), default=str)
 
