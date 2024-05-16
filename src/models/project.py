@@ -1,7 +1,10 @@
 from pydantic import NaiveDatetime, BaseModel
 from typing import Optional
 
+from sanic_ext import openapi
 
+
+@openapi.component
 class ProjectModel(BaseModel):
     project_id: str
     name: str
@@ -15,16 +18,19 @@ class ProjectModel(BaseModel):
     owner_id: int
 
 
+@openapi.component
 class MembersModel(BaseModel):
     members: list[Optional[int]]
 
 
+@openapi.component
 class ContentModel(BaseModel):
     content: Optional[str]
     content_since: Optional[NaiveDatetime]
     content_edited_by: Optional[int]
 
 
+@openapi.component
 class StatusModel(BaseModel):
     status: str
     status_since: NaiveDatetime

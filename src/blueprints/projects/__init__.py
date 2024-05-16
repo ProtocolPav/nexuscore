@@ -34,7 +34,7 @@ async def get_all_projects(request: Request):
 
 @project_blueprint.route('/<project_id:str>', methods=['GET'])
 @openapi.response(status=200, description='Return Project',
-                  content={'application/json': objects.ProjectObject.model_json_schema()})
+                  content={'application/json': objects.ProjectObject.model_json_schema(ref_template="#/components/schemas/{model}")})
 @openapi.parameter('users-as-object', bool)
 async def get_project(request: Request, project_id: str):
     """
