@@ -11,9 +11,9 @@ class UserModel(BaseModel):
     thorny_id: int
     user_id: int
     guild_id: int
-    username: str
+    username: Optional[str]
     join_date: NaiveDatetime
-    birthday: NaiveDatetime
+    birthday: Optional[NaiveDatetime]
     balance: int
     active: bool
     role: str
@@ -22,8 +22,8 @@ class UserModel(BaseModel):
     xp: int
     required_xp: int
     last_message: NaiveDatetime
-    gamertag: str
-    whitelist: str
+    gamertag: Optional[str]
+    whitelist: Optional[str]
 
 
 # noinspection PyTypeHints

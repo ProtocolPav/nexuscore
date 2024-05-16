@@ -174,6 +174,20 @@ class UserFactory(Factory):
                                model.character_beliefs, model.agility, model.valor, model.strength, model.charisma,
                                model.creativity, model.ingenuity, thorny_id)
 
+    @classmethod
+    async def create_user(cls, guild_id: int, discord_id: int, username: str):
+        await cls.pool.execute("""
+                                with user_table as (
+                                    insert into users.user(user_id, guild_id, username)
+                                    values($1, $2, $3)
+                                    
+                                    returning thorny_id
+                                )
+                                insert into users.profile(thorny_id)
+                                select thorny_id from user_table
+                               """,
+                               discord_id, guild_id, username)
+
 
 class ProjectFactory(Factory):
     @classmethod

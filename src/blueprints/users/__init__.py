@@ -1,5 +1,5 @@
 from sanic import Blueprint, Request
-from sanic import json as sanicjson
+import sanic
 from sanic_ext import openapi
 
 from src import model_factory
@@ -9,10 +9,20 @@ user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
 
 @user_blueprint.route('/', methods=['POST'])
-@openapi.response(status=200, content={'application/json': {}}, description='Success')
+@openapi.response(status=201, content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
+                                                            ref_template="#/components/schemas/{model}")},
+                  description='Creation Successful')
 @openapi.response(status=500, description='Error with creating user')
+@openapi.definition(body={'application/json': {'guild_id': int, 'discord_user_id': int, 'username': str}})
 async def create_user(request: Request):
-    ...
+    await model_factory.UserFactory.create_user(int(request.json['guild_id']),
+                                                int(request.json['discord_user_id']),
+                                                request.json.get('username', None))
+
+    new_user = await model_factory.UserFactory.build_user_model(guild_id=int(request.json['guild_id']),
+                                                                user_id=int(request.json['discord_user_id']))
+
+    return sanic.json(status=201, body=objects.UserObjectWithNoOptionals(**new_user).dict(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET'])
@@ -42,7 +52,7 @@ async def user_thorny_id(request: Request, thorny_id: int):
         playtime_report = await model_factory.UserFactory.build_playtime_report(thorny_id)
         user_data['playtime'] = playtime_report
 
-    return sanicjson(objects.UserObject(**user_data).dict(), default=str)
+    return sanic.json(objects.UserObject(**user_data).dict(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
@@ -75,7 +85,7 @@ async def update_thorny_id(request: Request, thorny_id: int):
 
     await model_factory.UserFactory.update_user_model(thorny_id, updated_user)
 
-    return sanicjson(updated_user.dict(), default=str)
+    return sanic.json(updated_user.dict(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/balance', methods=['PATCH'])
@@ -102,7 +112,7 @@ async def get_profile(request: Request, thorny_id: int):
     """
     profile_model = await model_factory.UserFactory.build_profile_model(thorny_id)
 
-    return sanicjson(profile_model, default=str)
+    return sanic.json(profile_model, default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['PATCH'])
@@ -124,7 +134,7 @@ async def update_profile(request: Request, thorny_id: int):
 
     await model_factory.UserFactory.update_profile_model(thorny_id, updated_profile)
 
-    return sanicjson(updated_profile.dict(), default=str)
+    return sanic.json(updated_profile.dict(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/playtime', methods=['GET'])
@@ -138,7 +148,7 @@ async def get_playtime(request: Request, thorny_id: int):
     """
     playtime_report = await model_factory.UserFactory.build_playtime_report(thorny_id)
 
-    return sanicjson(objects.PlaytimeReport(**playtime_report).dict(), default=str)
+    return sanic.json(objects.PlaytimeReport(**playtime_report).dict(), default=str)
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
@@ -158,7 +168,7 @@ async def user_gamertag(request: Request, guild_id: int, gamertag: str):
     user_model = await model_factory.UserFactory.build_user_model(gamertag=gamertag, guild_id=guild_id)
     print(objects.UserObjectWithNoOptionals(**user_model).dict())
 
-    return sanicjson(objects.UserObjectWithNoOptionals(**user_model).dict(), default=str)
+    return sanic.json(objects.UserObjectWithNoOptionals(**user_model).dict(), default=str)
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<discord_id:int>', methods=['GET'])
@@ -175,4 +185,4 @@ async def user_discord_id(request: Request, guild_id: int, discord_id: int):
     """
     user_model = await model_factory.UserFactory.build_user_model(user_id=discord_id, guild_id=guild_id)
 
-    return sanicjson(objects.UserObjectWithNoOptionals(**user_model).dict(), default=str)
+    return sanic.json(objects.UserObjectWithNoOptionals(**user_model).dict(), default=str)
