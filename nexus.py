@@ -20,6 +20,8 @@ DELETE delete a resource
 @app.route('/healthcheck')
 async def health_check(request: Request):
     """
+    Healthcheck
+
     Used by GCP to check for instance health,
     GCP will automatically restart the instance if this health check
     returns a 404 3 times in a row

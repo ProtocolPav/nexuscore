@@ -148,6 +148,32 @@ class UserFactory(Factory):
                                model.role, model.patron, model.level, model.xp, model.required_xp,
                                model.last_message, model.gamertag, model.whitelist, thorny_id)
 
+    @classmethod
+    async def update_profile_model(cls, thorny_id: int, model: ProfileModel):
+        await cls.pool.execute("""
+                               UPDATE users.profile
+                               SET slogan = $1,
+                                   aboutme = $2,
+                                   lore = $3,
+                                   character_name = $4,
+                                   character_age = $5,
+                                   character_race = $6,
+                                   character_role = $7,
+                                   character_origin = $8,
+                                   character_beliefs = $9,
+                                   agility = $10,
+                                   valor = $11,
+                                   strength = $12,
+                                   charisma = $13,
+                                   creativity = $14,
+                                   ingenuity = $15
+                               WHERE thorny_id = $16
+                               """,
+                               model.slogan, model.aboutme, model.lore, model.character_name,
+                               model.character_age, model.character_race, model.character_role, model.character_origin,
+                               model.character_beliefs, model.agility, model.valor, model.strength, model.charisma,
+                               model.creativity, model.ingenuity, thorny_id)
+
 
 class ProjectFactory(Factory):
     @classmethod

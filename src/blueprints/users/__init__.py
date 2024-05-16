@@ -100,11 +100,13 @@ async def get_profile(request: Request, thorny_id: int):
 
     This returns only the user's profile.
     """
-    ...
+    profile_model = await model_factory.UserFactory.build_profile_model(thorny_id)
+
+    return sanicjson(profile_model, default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['PATCH'])
-@openapi.body(content={"application/json": {}})
+@openapi.definition(body={'application/json': objects.ProfileModel.model_json_schema()})
 async def update_profile(request: Request, thorny_id: int):
     """
     Update User Profile
@@ -112,7 +114,17 @@ async def update_profile(request: Request, thorny_id: int):
     This updates a user's profile. Include only the request body fields
     that you want to update.
     """
-    ...
+    model = user.ProfileUpdateModel.parse_obj(request.json).dict()
+
+    profile_existing = await model_factory.UserFactory.build_profile_model(thorny_id)
+
+    profile_existing.update([k, v] for k, v in model.items() if v is not None)
+
+    updated_profile = objects.ProfileModel(**profile_existing)
+
+    await model_factory.UserFactory.update_profile_model(thorny_id, updated_profile)
+
+    return sanicjson(updated_profile.dict(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/playtime', methods=['GET'])
@@ -124,7 +136,9 @@ async def get_playtime(request: Request, thorny_id: int):
 
     This returns only the user's playtime.
     """
-    ...
+    playtime_report = await model_factory.UserFactory.build_playtime_report(thorny_id)
+
+    return sanicjson(objects.PlaytimeReport(**playtime_report).dict(), default=str)
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
@@ -142,12 +156,13 @@ async def user_gamertag(request: Request, guild_id: int, gamertag: str):
     This will check either the whitelisted gamertag or the user-entered gamertag.
     """
     user_model = await model_factory.UserFactory.build_user_model(gamertag=gamertag, guild_id=guild_id)
+    print(objects.UserObjectWithNoOptionals(**user_model).dict())
 
     return sanicjson(objects.UserObjectWithNoOptionals(**user_model).dict(), default=str)
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<discord_id:int>', methods=['GET'])
-@openapi.response(status=200, content={'application/json': objects.UserObject.model_json_schema(
+@openapi.response(status=200, content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
                                                             ref_template="#/components/schemas/{model}")},
                   description='Success')
 @openapi.response(status=404, description='Error')

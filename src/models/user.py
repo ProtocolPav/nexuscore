@@ -100,3 +100,22 @@ class UserUpdateModel(UserModel):
     last_message: NaiveDatetime = None
     gamertag: str = None
     whitelist: str = None
+
+
+# noinspection PyTypeHints
+class ProfileUpdateModel(ProfileModel):
+    slogan: Annotated[str, StringConstraints(max_length=35)] = None
+    aboutme: Annotated[str, StringConstraints(max_length=300)] = None
+    lore: Annotated[str, StringConstraints(max_length=300)] = None
+    character_name: Annotated[str, StringConstraints(max_length=40)] = None
+    character_age: Optional[int] = None
+    character_race: Annotated[str, StringConstraints(max_length=40)] = None
+    character_role: Annotated[str, StringConstraints(max_length=40)] = None
+    character_origin: Annotated[str, StringConstraints(max_length=40)] = None
+    character_beliefs: Annotated[str, StringConstraints(max_length=40)] = None
+    agility: int = None
+    valor: int = None
+    strength: int = None
+    charisma: int = None
+    creativity: int = None
+    ingenuity: int = None
