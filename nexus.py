@@ -1,5 +1,4 @@
 from sanic import Sanic, Request, HTTPResponse
-from sanic.response import json as sanicjson
 from src.model_factory import Factory
 import asyncio
 

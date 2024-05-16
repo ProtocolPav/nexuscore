@@ -2,6 +2,7 @@ from src.models.user import UserModel, ProfileModel, PlaytimeReport
 from src.models.project import ProjectModel, MembersModel, ContentModel, StatusModel
 from asyncpg import Pool, create_pool
 import json
+from sanic import BadRequest
 
 
 class Factory:
@@ -22,12 +23,29 @@ class Factory:
 
 class UserFactory(Factory):
     @classmethod
-    async def build_user_model(cls, thorny_id: int):
-        data = await cls.pool.fetchrow("""
-                                       SELECT * FROM users.user
-                                       WHERE thorny_id = $1
-                                       """,
-                                       thorny_id)
+    async def build_user_model(cls, thorny_id: int = None, gamertag: str = None, guild_id: int = None, user_id: int = None):
+        if thorny_id:
+            data = await cls.pool.fetchrow("""
+                                           SELECT * FROM users.user
+                                           WHERE thorny_id = $1
+                                           """,
+                                           thorny_id)
+        elif gamertag and guild_id:
+            data = await cls.pool.fetchrow("""
+                                           SELECT * FROM users.user
+                                           WHERE guild_id = $1
+                                           AND (whitelist = $2 OR gamertag = $2)
+                                           """,
+                                           guild_id, gamertag)
+        elif guild_id and user_id:
+            data = await cls.pool.fetchrow("""
+                                           SELECT * FROM users.user
+                                           WHERE guild_id = $1
+                                           AND user_id = $2
+                                           """,
+                                           guild_id, user_id)
+        else:
+            raise BadRequest('Include either: The ThornyID, the GuildID and Gamertag, or the GuildID and user DiscordID')
 
         return dict(UserModel.parse_obj(dict(data)))
 

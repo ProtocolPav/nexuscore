@@ -48,6 +48,9 @@ async def user_thorny_id(request: Request, thorny_id: int):
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
 @openapi.definition(body={'application/json': objects.UserModel.model_json_schema()})
+@openapi.response(status=200, content={'application/json': objects.UserObject.model_json_schema()},
+                  description='Update Successful')
+@openapi.response(status=404, description='Error')
 async def update_thorny_id(request: Request, thorny_id: int):
     """
     Update User
@@ -56,13 +59,15 @@ async def update_thorny_id(request: Request, thorny_id: int):
 
     Note: ThornyID, UserID, GuildID and Join Date will not update even if specified.
     Note: Balance updates will trigger a `Transaction` Event. It is preferred to use the `/balance`
-    route to be able to enter comments, otherwise, a default comment will be added to the `Transaction`.
+    route to be able to enter comments, otherwise, a default comment will be generated to the `Transaction`.
     """
     model = user.UserUpdateModel.parse_obj(request.json).dict()
 
     model['thorny_id'], model['user_id'], model['guild_id'], model['join_date'] = None, None, None, None
 
     user_existing = await model_factory.UserFactory.build_user_model(thorny_id)
+
+    # Log balance transaction here.
 
     user_existing.update([k, v] for k, v in model.items() if v is not None)
 
@@ -75,8 +80,7 @@ async def update_thorny_id(request: Request, thorny_id: int):
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/balance', methods=['PATCH'])
 @openapi.definition(body={'application/json': {
-    'to_add': int,
-    'to_remove': int,
+    'balance': int,
     'comment': str
 }})
 async def update_balance(request: Request, thorny_id: int):
@@ -113,38 +117,6 @@ async def update_profile(request: Request, thorny_id: int):
     ...
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>/levels', methods=['GET'])
-@openapi.response(content={"application/json": {}})
-async def get_levels(request: Request, thorny_id: int):
-    """
-    Get User Levels
-
-    This returns only the user's levels and info about it.
-    """
-    ...
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/levels', methods=['PATCH'])
-@openapi.body(content={"application/json": {}})
-async def update_levels(request: Request, thorny_id: int):
-    """
-    Update User Levels
-
-    This updates a user's levels. Note that there is no logic on the
-    webserver for this, the logic is expected to be handled by the
-    application.
-    """
-    ...
-
-
-async def update_user_thorny_id(request: Request, thorny_id: int):
-    data = request.json
-    user = await fetch_user_by_id(thorny_id)
-    user = await user.update_user(user, data)
-
-    return sanicjson(user, default=str)
-
-
 @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
 async def user_gamertag(request: Request, guild_id: int, gamertag: str):
     """
@@ -153,8 +125,9 @@ async def user_gamertag(request: Request, guild_id: int, gamertag: str):
     This returns a bare-bones user object based on the gamertag and
     guild ID provided. Note, that this checks the whitelisted gamertag only.
     """
-    user = await fetch_user_by_gamertag(guild_id, gamertag)
-    return sanicjson(user, default=str)
+    user_model = await model_factory.UserFactory.build_user_model(gamertag=gamertag, guild_id=guild_id)
+
+    return sanicjson(objects.UserObject(**user_model).dict(), default=str)
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<discord_id:int>', methods=['GET'])
@@ -165,5 +138,6 @@ async def user_discord_id(request: Request, guild_id: int, discord_id: int):
     This returns a bare-bones user object based on the discord user ID and
     guild ID provided.
     """
-    user = await fetch_user_by_discord_id(guild_id, discord_id)
-    return sanicjson(user, default=str)
+    user_model = await model_factory.UserFactory.build_user_model(user_id=discord_id, guild_id=guild_id)
+
+    return sanicjson(objects.UserObject(**user_model).dict(), default=str)

@@ -9,6 +9,6 @@ class UserObject(UserModel):
 
 
 class ProjectObject(ProjectModel, MembersModel, ContentModel, StatusModel):
-    owner_id: UserObject | int = None
+    owner_id: UserObject | int = 0
     members: list[Optional[UserObject | int]] = None
-    content_edited_by: UserObject | int = None
+    content_edited_by: UserObject | int = 0
