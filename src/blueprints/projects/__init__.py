@@ -5,13 +5,38 @@ from sanic_ext import openapi
 from src import model_factory
 from src.models import objects, project
 
+import re
+
 project_blueprint = Blueprint("project_routes", url_prefix='/projects')
 
 
 @project_blueprint.route('/', methods=['POST'])
-@openapi.response(status=501)
+@openapi.definition(body={'application/json': project.ProjectCreateModel.model_json_schema()})
+@openapi.response(status=200,
+                  description='Return Project',
+                  content={'application/json': objects.ProjectObject.model_json_schema(
+                      ref_template="#/components/schemas/{model}"
+                    )
+                  })
 async def create_project(request: Request):
-    ...
+    model = project.ProjectCreateModel(**request.json)
+
+    # Transform project name into an ID string,
+    # which has the following limits:
+    # - Must be lowercase
+    # - Only alphanumeric characters and underscores
+    project_id = re.sub(r'[^a-z0-9_]', '', model.name.lower().replace(' ', '_'))
+
+    await model_factory.ProjectFactory.create_project(project_id, model)
+
+    project_model = await model_factory.ProjectFactory.build_project_model(project_id)
+    content_model = await model_factory.ProjectFactory.build_content_model(project_id)
+    status_model = await model_factory.ProjectFactory.build_status_model(project_id)
+    members_model = await model_factory.ProjectFactory.build_members_model(project_id)
+
+    project_data = project_model | content_model | status_model | members_model
+
+    return sanicjson(objects.ProjectObject(**project_data).dict(), default=str)
 
 
 @project_blueprint.route('/', methods=['GET'])
@@ -31,9 +56,12 @@ async def get_all_projects(request: Request):
 
 
 @project_blueprint.route('/<project_id:str>', methods=['GET'])
-@openapi.response(status=200, description='Return Project',
+@openapi.response(status=200,
+                  description='Return Project',
                   content={'application/json': objects.ProjectObject.model_json_schema(
-                                                ref_template="#/components/schemas/{model}")})
+                      ref_template="#/components/schemas/{model}"
+                    )
+                  })
 @openapi.parameter('users-as-object', bool)
 async def get_project(request: Request, project_id: str):
     """

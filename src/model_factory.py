@@ -1,5 +1,5 @@
 from src.models.user import UserModel, ProfileModel, PlaytimeReport
-from src.models.project import ProjectModel, MembersModel, ContentModel, StatusModel
+from src.models.project import ProjectModel, MembersModel, ContentModel, StatusModel, ProjectCreateModel
 from asyncpg import Pool, create_pool
 import json
 from sanic import BadRequest
@@ -270,3 +270,30 @@ class ProjectFactory(Factory):
                                VALUES($1, $2, NOW(), $3)
                                """,
                                project_id, content, edited_by_user)
+
+    @classmethod
+    async def create_project(cls, project_id: str, model: ProjectCreateModel):
+        await cls.pool.execute("""
+                                with project_table as (
+                                    insert into projects.project(project_id,
+                                                                 name, 
+                                                                 description, 
+                                                                 coordinates_x, 
+                                                                 coordinates_y, 
+                                                                 coordinates_z,
+                                                                 owner_id)
+                                    values($1, $2, $3, $4, $5, $6, $7)
+                                ),
+                                members_table as (
+                                    insert into projects.members(project_id, user_id)
+                                    values($1, $7)
+                                ),
+                                status_table as (
+                                    insert into projects.status(project_id, status)
+                                    values($1, 'pending')
+                                )
+                                insert into projects.content(project_id, content, user_id)
+                                values($1, '<p>Looking really empty in here. You should totally write up this page, yo!</p>', $7)
+                               """,
+                               project_id, model.name, model.description, model.coordinates_x,
+                               model.coordinates_y, model.coordinates_z, model.owner_id)

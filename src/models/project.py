@@ -13,7 +13,7 @@ class ProjectModel(BaseModel):
     coordinates_y: int
     coordinates_z: int
     thread_id: Optional[int]
-    accepted_on: Optional[NaiveDatetime]
+    started_on: Optional[NaiveDatetime]
     completed_on: Optional[NaiveDatetime]
     owner_id: int
 
@@ -44,6 +44,16 @@ class ProjectUpdateModel(ProjectModel):
     coordinates_y: int = None
     coordinates_z: int = None
     thread_id: Optional[int] = None
-    accepted_on: Optional[NaiveDatetime] = None
+    started_on: Optional[NaiveDatetime] = None
     completed_on: Optional[NaiveDatetime] = None
     owner_id: int = None
+
+
+class ProjectCreateModel(BaseModel):
+    name: str
+    description: str
+    coordinates_x: int
+    coordinates_y: int
+    coordinates_z: int
+    owner_id: int
+    members: list[int]
