@@ -91,10 +91,10 @@ class UserFactory(Factory):
         limit 1
     ),
     monthly_playtime AS (
-        SELECT t.year || '-' || t.month AS month, SUM(t.playtime) AS playtime
+        SELECT t.year || '-' || t.month || '-' || '01' AS month, SUM(t.playtime) AS playtime
         FROM (
             SELECT SUM(playtime) AS playtime, 
-                   DATE_PART('month', connect_time) AS month, 
+                   LPAD(extract(month from connect_time)::text, 2, '0') AS month, 
                    DATE_PART('year', connect_time) AS year
             FROM thorny.playtime
             INNER JOIN thorny.user ON thorny.playtime.thorny_user_id = thorny.user.thorny_user_id 

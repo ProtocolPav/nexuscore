@@ -34,7 +34,8 @@ async def get_all_projects(request: Request):
 
 @project_blueprint.route('/<project_id:str>', methods=['GET'])
 @openapi.response(status=200, description='Return Project',
-                  content={'application/json': objects.ProjectObject.model_json_schema()})
+                  content={'application/json': objects.ProjectObject.model_json_schema(
+                                                ref_template="#/components/schemas/{model}")})
 @openapi.parameter('users-as-object', bool)
 async def get_project(request: Request, project_id: str):
     """
@@ -65,7 +66,8 @@ async def get_project(request: Request, project_id: str):
 
 
 @project_blueprint.route('/<project_id:str>', methods=['PATCH'])
-@openapi.body(content={'application/json': project.ProjectModel.model_json_schema()})
+@openapi.body(content={'application/json': project.ProjectModel.model_json_schema(
+                                            ref_template="#/components/schemas/{model}")})
 async def update_project(request: Request, project_id: str):
     """
     Update Project

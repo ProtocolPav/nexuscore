@@ -1,9 +1,12 @@
 from datetime import datetime
 
 from pydantic import NaiveDatetime, StringConstraints, BaseModel
-from typing import Annotated, Optional
+from typing_extensions import Annotated, Optional, TypedDict
+
+from sanic_ext import openapi
 
 
+@openapi.component
 class UserModel(BaseModel):
     thorny_id: int
     user_id: int
@@ -24,6 +27,7 @@ class UserModel(BaseModel):
 
 
 # noinspection PyTypeHints
+@openapi.component
 class ProfileModel(BaseModel):
     slogan: Annotated[str, StringConstraints(max_length=35)]
     aboutme: Annotated[str, StringConstraints(max_length=300)]
@@ -42,13 +46,27 @@ class ProfileModel(BaseModel):
     ingenuity: int
 
 
+@openapi.component
+class DailyPlaytimeDict(BaseModel):
+    day: NaiveDatetime
+    playtime: int
+
+
+@openapi.component
+class MonthlyPlaytimeDict(BaseModel):
+    month: NaiveDatetime
+    playtime: int
+
+
+@openapi.component
 class PlaytimeReport(BaseModel):
     total: int
     session: datetime
-    daily: list[dict]
-    monthly: list[dict]
+    daily: list[DailyPlaytimeDict]
+    monthly: list[MonthlyPlaytimeDict]
 
 
+@openapi.component
 class ServerEventsReport(BaseModel):
     total_placed: int
     total_broken: int
@@ -56,6 +74,7 @@ class ServerEventsReport(BaseModel):
     total_player_kills: int
 
 
+@openapi.component
 class UserQuestModel(BaseModel):
     quest_id: int
     accepted_on: NaiveDatetime
