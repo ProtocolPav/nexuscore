@@ -9,21 +9,26 @@ user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
 
 @user_blueprint.route('/', methods=['POST'])
-@openapi.response(status=201, content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
-                                                            ref_template="#/components/schemas/{model}")},
-                  description='Creation Successful')
-@openapi.response(status=500, description='Error with creating user')
+@openapi.response(status=201,
+                  content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
+                      ref_template="#/components/schemas/{model}"
+                    )
+                  },
+                  description='Success')
+@openapi.response(status=500, description='User Already Exists')
 @openapi.definition(body={'application/json': {'guild_id': int, 'discord_user_id': int, 'username': str}})
 async def create_user(request: Request):
     """
     Create New User
 
     Creates a user based on the discord UserID and GuildID provided.
-    If a user with these ID's already exists, it returns it.
+    If a user with these ID's already exists, it returns a 500.
     """
     try:
         new_user = await model_factory.UserFactory.build_user_model(guild_id=int(request.json['guild_id']),
                                                                     user_id=int(request.json['discord_user_id']))
+
+        return sanic.HTTPResponse(status=500, body="User Already Exists!")
     except TypeError:
         await model_factory.UserFactory.create_user(int(request.json['guild_id']),
                                                     int(request.json['discord_user_id']),
@@ -38,8 +43,8 @@ async def create_user(request: Request):
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET'])
 @openapi.parameter('include-profile', bool)
 @openapi.parameter('include-playtime', bool)
-@openapi.response(status=200, content={'application/json': objects.UserObject.model_json_schema(
-                                                            ref_template="#/components/schemas/{model}")},
+@openapi.response(status=200,
+                  content={'application/json': objects.UserObject.model_json_schema(ref_template="#/components/schemas/{model}")},
                   description='Success')
 @openapi.response(status=404, description='Error')
 async def user_thorny_id(request: Request, thorny_id: int):
@@ -67,9 +72,12 @@ async def user_thorny_id(request: Request, thorny_id: int):
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
 @openapi.definition(body={'application/json': objects.UserModel.model_json_schema()})
-@openapi.response(status=200, content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
-                                                            ref_template="#/components/schemas/{model}")},
-                  description='Update Successful')
+@openapi.response(status=200,
+                  content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
+                      ref_template="#/components/schemas/{model}"
+                    )
+                  },
+                  description='Success')
 @openapi.response(status=404, description='Error')
 async def update_thorny_id(request: Request, thorny_id: int):
     """
@@ -100,6 +108,7 @@ async def update_thorny_id(request: Request, thorny_id: int):
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/balance', methods=['PATCH'])
 @openapi.definition(body={'application/json': {'balance': int, 'comment': str}})
+@openapi.response(status=501, description='Not Implemented')
 async def update_balance(request: Request, thorny_id: int):
     """
     Update User Balance
@@ -108,7 +117,7 @@ async def update_balance(request: Request, thorny_id: int):
     one will be auto-generated for you. This operation gets logged as a
     Transaction.
     """
-    ...
+    return sanic.HTTPResponse(status=501)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['GET'])
@@ -127,6 +136,12 @@ async def get_profile(request: Request, thorny_id: int):
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['PATCH'])
 @openapi.definition(body={'application/json': objects.ProfileModel.model_json_schema()})
+@openapi.response(status=200,
+                  content={'application/json': objects.ProfileModel.model_json_schema(
+                      ref_template="#/components/schemas/{model}"
+                    )
+                  },
+                  description='Success')
 async def update_profile(request: Request, thorny_id: int):
     """
     Update User Profile
@@ -148,8 +163,12 @@ async def update_profile(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/playtime', methods=['GET'])
-@openapi.response(content={"application/json": objects.PlaytimeReport.model_json_schema(
-                                                ref_template="#/components/schemas/{model}")})
+@openapi.response(status=200,
+                  content={'application/json': objects.PlaytimeReport.model_json_schema(
+                      ref_template="#/components/schemas/{model}"
+                    )
+                  },
+                  description='Success')
 async def get_playtime(request: Request, thorny_id: int):
     """
     Get User Playtime
@@ -162,8 +181,11 @@ async def get_playtime(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
-@openapi.response(status=200, content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
-                                                            ref_template="#/components/schemas/{model}")},
+@openapi.response(status=200,
+                  content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
+                      ref_template="#/components/schemas/{model}"
+                    )
+                  },
                   description='Success')
 @openapi.response(status=404, description='Error')
 async def user_gamertag(request: Request, guild_id: int, gamertag: str):
@@ -182,8 +204,11 @@ async def user_gamertag(request: Request, guild_id: int, gamertag: str):
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<discord_id:int>', methods=['GET'])
-@openapi.response(status=200, content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
-                                                            ref_template="#/components/schemas/{model}")},
+@openapi.response(status=200,
+                  content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
+                      ref_template="#/components/schemas/{model}"
+                    )
+                  },
                   description='Success')
 @openapi.response(status=404, description='Error')
 async def user_discord_id(request: Request, guild_id: int, discord_id: int):
