@@ -90,7 +90,7 @@ async def update_balance(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['GET'])
-@openapi.response(content={"application/json": {}})
+@openapi.response(content={"application/json": objects.ProfileModel.model_json_schema()})
 async def get_profile(request: Request, thorny_id: int):
     """
     Get User Profile
@@ -108,6 +108,17 @@ async def update_profile(request: Request, thorny_id: int):
 
     This updates a user's profile. Include only the request body fields
     that you want to update.
+    """
+    ...
+
+
+@user_blueprint.route('/thorny-id/<thorny_id:int>/playtime', methods=['GET'])
+@openapi.response(content={"application/json": objects.PlaytimeReport.model_json_schema()})
+async def get_playtime(request: Request, thorny_id: int):
+    """
+    Get User Playtime
+
+    This returns only the user's playtime.
     """
     ...
 
