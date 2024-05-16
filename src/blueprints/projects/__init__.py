@@ -1,6 +1,4 @@
-import json
-
-from sanic import Blueprint, Request
+from sanic import Blueprint, Request, HTTPResponse
 from sanic import json as sanicjson
 from sanic_ext import openapi
 
@@ -52,7 +50,7 @@ async def get_project(request: Request, project_id: str):
     status_model = await model_factory.ProjectFactory.build_status_model(project_id)
     members_model = await model_factory.ProjectFactory.build_members_model(project_id)
 
-    project_data = project_model | content_model | status_model
+    project_data = project_model | content_model | status_model | members_model
 
     if request.args.get('users-as-object', 'false').lower() == 'true':
         project_data['members'] = []
@@ -68,6 +66,9 @@ async def get_project(request: Request, project_id: str):
 @project_blueprint.route('/<project_id:str>', methods=['PATCH'])
 @openapi.body(content={'application/json': project.ProjectModel.model_json_schema(
                                             ref_template="#/components/schemas/{model}")})
+@openapi.response(status=200, description='Returns Bare Project',
+                  content={'application/json': objects.ProjectModel.model_json_schema(
+                                                ref_template="#/components/schemas/{model}")})
 async def update_project(request: Request, project_id: str):
     """
     Update Project
@@ -93,24 +94,31 @@ async def update_project(request: Request, project_id: str):
 
 
 @project_blueprint.route('/<project_id:str>/status', methods=['POST'])
+@openapi.body(content={'application/json': {'status': str}})
+@openapi.response(status=201, description='Successfully Added')
 async def project_status(request: Request, project_id: str):
     """
     New Project Status
 
     Insert a new project status.
     """
-    ...
+    await model_factory.ProjectFactory.insert_status(project_id, request.json['status'])
+
+    return HTTPResponse(status=201)
 
 
 @project_blueprint.route('/<project_id:str>/content', methods=['POST'])
+@openapi.body(content={'application/json': {'content': str, 'edited_by': int}})
+@openapi.response(status=201, description='Successfully Added')
 async def project_content(request: Request, project_id: str):
     """
     New Project Content
 
-    Insert a new project content. You do not have to insert
-    the `content_edited_by` however it is best for tracking changes.
+    Insert a new project content. `edited_by` is a ThornyID and is required
     """
-    ...
+    await model_factory.ProjectFactory.insert_content(project_id, request.json['content'], request.json['edited_by'])
+
+    return HTTPResponse(status=201)
 
 
 @project_blueprint.route('/<project_id:str>/members', methods=['POST'])

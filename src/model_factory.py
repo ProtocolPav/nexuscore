@@ -211,3 +211,22 @@ class ProjectFactory(Factory):
                                """,
                                model.name, model.thread_id, model.coordinates_x, model.coordinates_y, model.coordinates_z,
                                model.description, model.accepted_on, model.completed_on, model.owner_id, project_id)
+
+    @classmethod
+    async def insert_status(cls, project_id: str, status: str):
+        if status in ['pending', 'ongoing', 'abandoned', 'completed']:
+            await cls.pool.execute("""
+                                   INSERT INTO projects.status(project_id, status, since)
+                                   VALUES($1, $2, NOW())
+                                   """,
+                                   project_id, status)
+        else:
+            raise BadRequest("Status should be one of: pending, ongoing, abandoned, completed")
+
+    @classmethod
+    async def insert_content(cls, project_id: str, content: str, edited_by_user: int = None):
+        await cls.pool.execute("""
+                               INSERT INTO projects.content(project_id, content, since, user_id)
+                               VALUES($1, $2, NOW(), $3)
+                               """,
+                               project_id, content, edited_by_user)

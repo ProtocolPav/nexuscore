@@ -1,5 +1,5 @@
 from pydantic import NaiveDatetime, BaseModel
-from typing import Optional
+from typing import Optional, Literal
 
 from sanic_ext import openapi
 
@@ -32,7 +32,7 @@ class ContentModel(BaseModel):
 
 @openapi.component
 class StatusModel(BaseModel):
-    status: str
+    status: Literal["pending", "ongoing", "abandoned", "completed"]
     status_since: NaiveDatetime
 
 
