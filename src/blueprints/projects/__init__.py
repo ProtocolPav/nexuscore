@@ -90,26 +90,42 @@ async def update_project(request: Request, project_id: str):
     return sanicjson(updated_project.dict(), default=str)
 
 
-@project_blueprint.route('/<project_id:str>/status', methods=['PATCH'])
+@project_blueprint.route('/<project_id:str>/status', methods=['POST'])
 async def project_status(request: Request, project_id: str):
+    """
+    New Project Status
+
+    Insert a new project status.
+    """
     ...
 
 
-@project_blueprint.route('/<project_id:str>/content', methods=['PATCH'])
+@project_blueprint.route('/<project_id:str>/content', methods=['POST'])
 async def project_content(request: Request, project_id: str):
+    """
+    New Project Content
+
+    Insert a new project content. You do not have to insert
+    the `content_edited_by` however it is best for tracking changes.
+    """
     ...
 
 
-@project_blueprint.route('/<project_id:str>/members', methods=['PATCH'])
+@project_blueprint.route('/<project_id:str>/members', methods=['POST'])
 async def update_members(request: Request, project_id: str):
+    """
+    New Project Members
+
+    Insert new members into the project. Must be ThornyIDs
+    """
     ...
 
 
-@project_blueprint.route('/<project_id:str>/thread', methods=['PATCH'])
-async def update_thread(request: Request, project_id: str):
-    ...
+@project_blueprint.route('/<project_id:str>/members', methods=['DELETE'])
+async def delete_members(request: Request, project_id: str):
+    """
+    Remove Project Members
 
-
-@project_blueprint.route('/<project_id:str>/description', methods=['PATCH'])
-async def update_description(request: Request, project_id: str):
+    Remove existing project members from the project member list.
+    """
     ...
