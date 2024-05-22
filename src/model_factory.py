@@ -272,6 +272,17 @@ class ProjectFactory(Factory):
                                project_id, content, edited_by_user)
 
     @classmethod
+    async def insert_members(cls, project_id: str, members: list[int]):
+        async with cls.pool.acquire() as conn:
+            async with conn.transaction():
+                for member in members:
+                    await conn.execute("""
+                                       INSERT INTO projects.members(project_id, user_id)
+                                       VALUES($1, $2)
+                                       """,
+                                       project_id, member)
+
+    @classmethod
     async def create_project(cls, project_id: str, model: ProjectCreateModel):
         await cls.pool.execute("""
                                 with project_table as (
@@ -297,3 +308,11 @@ class ProjectFactory(Factory):
                                """,
                                project_id, model.name, model.description, model.coordinates_x,
                                model.coordinates_y, model.coordinates_z, model.owner_id)
+
+    @classmethod
+    async def fetch_all_project_ids(cls):
+        projects_record = await cls.pool.fetchrow("""
+                                                  select array_agg(project_id) as all_projects from projects.project
+                                                  """)
+
+        return [i for i in projects_record['all_projects']]

@@ -61,7 +61,19 @@ async def get_all_projects(request: Request):
     returned as ThornyIDs, however you can specify in the URL
     parameter to get a bare-bones User object for each member instead.
     """
-    ...
+    project_ids = await model_factory.ProjectFactory.fetch_all_project_ids()
+    projects = []
+
+    for proj in project_ids:
+        project_model = await model_factory.ProjectFactory.build_project_model(proj)
+        content_model = await model_factory.ProjectFactory.build_content_model(proj)
+        status_model = await model_factory.ProjectFactory.build_status_model(proj)
+        members_model = await model_factory.ProjectFactory.build_members_model(proj)
+
+        project_data = project_model | content_model | status_model | members_model
+
+        projects.append(objects.ProjectObject(**project_data).dict())
+    return sanicjson(projects, default=str)
 
 
 @project_blueprint.route('/<project_id:str>', methods=['GET'])
@@ -159,13 +171,16 @@ async def project_content(request: Request, project_id: str):
 
 
 @project_blueprint.route('/<project_id:str>/members', methods=['POST'])
+@openapi.body(content={'application/json': {'members': list[int]}})
 async def update_members(request: Request, project_id: str):
     """
     New Project Members
 
     Insert new members into the project. Must be ThornyIDs
     """
-    ...
+    await model_factory.ProjectFactory.insert_members(project_id, request.json['members'])
+
+    return HTTPResponse(status=201)
 
 
 @project_blueprint.route('/<project_id:str>/members', methods=['DELETE'])
