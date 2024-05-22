@@ -19,6 +19,11 @@ project_blueprint = Blueprint("project_routes", url_prefix='/projects')
                     )
                   })
 async def create_project(request: Request):
+    """
+    Create Project
+
+    Creates a new project with the data provided.
+    """
     model = project.ProjectCreateModel(**request.json)
 
     # Transform project name into an ID string,
@@ -27,16 +32,20 @@ async def create_project(request: Request):
     # - Only alphanumeric characters and underscores
     project_id = re.sub(r'[^a-z0-9_]', '', model.name.lower().replace(' ', '_'))
 
-    await model_factory.ProjectFactory.create_project(project_id, model)
+    try:
+        await model_factory.ProjectFactory.build_project_model(project_id)
+        return HTTPResponse(status=500, body="Project already exists!")
+    except TypeError:
+        await model_factory.ProjectFactory.create_project(project_id, model)
 
-    project_model = await model_factory.ProjectFactory.build_project_model(project_id)
-    content_model = await model_factory.ProjectFactory.build_content_model(project_id)
-    status_model = await model_factory.ProjectFactory.build_status_model(project_id)
-    members_model = await model_factory.ProjectFactory.build_members_model(project_id)
+        project_model = await model_factory.ProjectFactory.build_project_model(project_id)
+        content_model = await model_factory.ProjectFactory.build_content_model(project_id)
+        status_model = await model_factory.ProjectFactory.build_status_model(project_id)
+        members_model = await model_factory.ProjectFactory.build_members_model(project_id)
 
-    project_data = project_model | content_model | status_model | members_model
+        project_data = project_model | content_model | status_model | members_model
 
-    return sanicjson(objects.ProjectObject(**project_data).dict(), default=str)
+        return sanicjson(objects.ProjectObject(**project_data).dict(), default=str)
 
 
 @project_blueprint.route('/', methods=['GET'])

@@ -244,13 +244,13 @@ class ProjectFactory(Factory):
                                    coordinates_y = $4,
                                    coordinates_z = $5,
                                    description = $6,
-                                   accepted_on = $7,
+                                   started_on = $7,
                                    completed_on = $8,
                                    owner_id = $9
                                WHERE project_id = $10
                                """,
                                model.name, model.thread_id, model.coordinates_x, model.coordinates_y, model.coordinates_z,
-                               model.description, model.accepted_on, model.completed_on, model.owner_id, project_id)
+                               model.description, model.started_on, model.completed_on, model.owner_id, project_id)
 
     @classmethod
     async def insert_status(cls, project_id: str, status: str):

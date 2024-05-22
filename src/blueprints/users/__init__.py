@@ -25,8 +25,8 @@ async def create_user(request: Request):
     If a user with these ID's already exists, it returns a 500.
     """
     try:
-        new_user = await model_factory.UserFactory.build_user_model(guild_id=int(request.json['guild_id']),
-                                                                    user_id=int(request.json['discord_user_id']))
+        await model_factory.UserFactory.build_user_model(guild_id=int(request.json['guild_id']),
+                                                         user_id=int(request.json['discord_user_id']))
 
         return sanic.HTTPResponse(status=500, body="User Already Exists!")
     except TypeError:
