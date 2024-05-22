@@ -184,10 +184,11 @@ async def update_members(request: Request, project_id: str):
 
 
 @project_blueprint.route('/<project_id:str>/members', methods=['DELETE'])
+@openapi.response(status=501, description="Not Implemented")
 async def delete_members(request: Request, project_id: str):
     """
     Remove Project Members
 
     Remove existing project members from the project member list.
     """
-    ...
+    return HTTPResponse(status=501)

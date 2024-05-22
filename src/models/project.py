@@ -56,4 +56,3 @@ class ProjectCreateModel(BaseModel):
     coordinates_y: int
     coordinates_z: int
     owner_id: int
-    members: list[int]
