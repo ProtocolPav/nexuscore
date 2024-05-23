@@ -1,9 +1,12 @@
+import json
+
 from sanic import Blueprint, Request
 import sanic
 from sanic_ext import openapi
 
-from src import model_factory
+from src.database import Database
 from src.models import objects, user
+from src.views.user import UserView
 
 user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
@@ -17,7 +20,7 @@ user_blueprint = Blueprint("user_routes", url_prefix='/users')
                   description='Success')
 @openapi.response(status=500, description='User Already Exists')
 @openapi.definition(body={'application/json': {'guild_id': int, 'discord_user_id': int, 'username': str}})
-async def create_user(request: Request):
+async def create_user(request: Request, db: Database):
     """
     Create New User
 
@@ -44,10 +47,10 @@ async def create_user(request: Request):
 @openapi.parameter('include-profile', bool)
 @openapi.parameter('include-playtime', bool)
 @openapi.response(status=200,
-                  content={'application/json': objects.UserObject.model_json_schema(ref_template="#/components/schemas/{model}")},
+                  content={'application/json': UserView.view_schema()},
                   description='Success')
 @openapi.response(status=404, description='Error')
-async def user_thorny_id(request: Request, thorny_id: int):
+async def user_thorny_id(request: Request, db: Database, thorny_id: int):
     """
     Get User
 
@@ -55,19 +58,9 @@ async def user_thorny_id(request: Request, thorny_id: int):
 
     Note that all playtime will be returned as seconds. You can process that manually.
     """
-    user_model = await model_factory.UserFactory.build_user_model(thorny_id)
+    user_view: UserView = await UserView.build(db, thorny_id)
 
-    user_data = user_model | {'profile': None} | {'playtime': None}
-
-    if request.args.get('include-profile', 'false').lower() == 'true':
-        profile_model = await model_factory.UserFactory.build_profile_model(thorny_id)
-        user_data['profile'] = profile_model
-
-    if request.args.get('include-playtime', 'false').lower() == 'true':
-        playtime_report = await model_factory.UserFactory.build_playtime_report(thorny_id)
-        user_data['playtime'] = playtime_report
-
-    return sanic.json(objects.UserObject(**user_data).dict(), default=str)
+    return sanic.json(user_view.model_dump(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
@@ -79,7 +72,7 @@ async def user_thorny_id(request: Request, thorny_id: int):
                   },
                   description='Success')
 @openapi.response(status=404, description='Error')
-async def update_thorny_id(request: Request, thorny_id: int):
+async def update_thorny_id(request: Request, db: Database, thorny_id: int):
     """
     Update User
 
@@ -89,21 +82,18 @@ async def update_thorny_id(request: Request, thorny_id: int):
     Note: Balance updates will trigger a `Transaction` Event. It is preferred to use the `/balance`
     route to be able to enter comments, otherwise, a default comment will be generated to the `Transaction`.
     """
-    model = user.UserUpdateModel.parse_obj(request.json).dict()
+    model: user.UserModel = await user.UserModel.fetch(db, thorny_id)
 
-    model['thorny_id'], model['user_id'], model['guild_id'], model['join_date'] = None, None, None, None
+    data = request.json
+    data['thorny_id'] = model.thorny_id
 
-    user_existing = await model_factory.UserFactory.build_user_model(thorny_id)
+    model = model.model_copy(update=request.json)
 
-    # Log balance transaction here.
+    print(model)
 
-    user_existing.update([k, v] for k, v in model.items() if v is not None)
+    await model.update(db)
 
-    updated_user = objects.UserObjectWithNoOptionals(**user_existing)
-
-    await model_factory.UserFactory.update_user_model(thorny_id, updated_user)
-
-    return sanic.json(updated_user.dict(), default=str)
+    return sanic.json(model, default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/balance', methods=['PATCH'])
@@ -164,7 +154,7 @@ async def update_profile(request: Request, thorny_id: int):
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/playtime', methods=['GET'])
 @openapi.response(status=200,
-                  content={'application/json': objects.PlaytimeReport.model_json_schema(
+                  content={'application/json': objects.PlaytimeSummary.model_json_schema(
                       ref_template="#/components/schemas/{model}"
                     )
                   },

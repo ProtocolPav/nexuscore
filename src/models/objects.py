@@ -1,5 +1,5 @@
 from typing import Optional
-from src.models.user import UserModel, ProfileModel, PlaytimeReport
+from src.models.user import UserModel, ProfileModel, PlaytimeSummary
 from src.models.project import ProjectModel, MembersModel, ContentModel, StatusModel
 
 from sanic_ext import openapi
@@ -8,13 +8,13 @@ from sanic_ext import openapi
 @openapi.component
 class UserObject(UserModel):
     profile: Optional[ProfileModel]
-    playtime: Optional[PlaytimeReport]
+    playtime: Optional[PlaytimeSummary]
 
 
 @openapi.component
 class UserObjectWithNoOptionals(UserModel):
     profile: Optional[ProfileModel] = None
-    playtime: Optional[PlaytimeReport] = None
+    playtime: Optional[PlaytimeSummary] = None
 
 
 @openapi.component

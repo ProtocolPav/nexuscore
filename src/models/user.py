@@ -1,9 +1,15 @@
 from datetime import datetime
 
 from pydantic import NaiveDatetime, StringConstraints, BaseModel
-from typing_extensions import Annotated, Optional, TypedDict
+from typing_extensions import Annotated, Optional
+
+import json
 
 from sanic_ext import openapi
+
+import sanic
+
+from src.database import Database
 
 
 @openapi.component
@@ -25,6 +31,37 @@ class UserModel(BaseModel):
     gamertag: Optional[str]
     whitelist: Optional[str]
 
+    @classmethod
+    async def fetch(cls, db: Database, thorny_id: int):
+        data = await db.pool.fetchrow("""
+                                       SELECT * FROM users.user
+                                       WHERE thorny_id = $1
+                                       """,
+                                      thorny_id)
+
+        return cls(**data)
+
+    async def update(self, db: Database):
+        await db.pool.execute("""
+                               UPDATE users.user
+                               SET username = $1,
+                                   birthday = $2,
+                                   balance = $3,
+                                   active = $4,
+                                   role = $5,
+                                   patron = $6,
+                                   level = $7,
+                                   xp = $8,
+                                   required_xp = $9,
+                                   last_message = $10,
+                                   gamertag = $11,
+                                   whitelist = $12
+                               WHERE thorny_id = $13
+                               """,
+                              self.username, self.birthday, self.balance, self.active,
+                              self.role, self.patron, self.level, self.xp, self.required_xp,
+                              self.last_message, self.gamertag, self.whitelist, self.thorny_id)
+
 
 # noinspection PyTypeHints
 @openapi.component
@@ -45,6 +82,16 @@ class ProfileModel(BaseModel):
     creativity: int
     ingenuity: int
 
+    @classmethod
+    async def fetch(cls, db: Database, thorny_id: int = None):
+        data = await db.pool.fetchrow("""
+                                       SELECT * FROM users.profile
+                                       WHERE thorny_id = $1
+                                       """,
+                                      thorny_id)
+
+        return cls(**data)
+
 
 @openapi.component
 class DailyPlaytimeDict(BaseModel):
@@ -59,11 +106,78 @@ class MonthlyPlaytimeDict(BaseModel):
 
 
 @openapi.component
-class PlaytimeReport(BaseModel):
+class PlaytimeSummary(BaseModel):
     total: int
     session: datetime
     daily: list[DailyPlaytimeDict]
     monthly: list[MonthlyPlaytimeDict]
+
+    @classmethod
+    async def fetch(cls, db: Database, thorny_id: int = None):
+        data = await db.pool.fetchrow("""
+                WITH daily_playtime AS (
+                    SELECT t.day, SUM(t.playtime) AS playtime
+                    FROM (
+                        SELECT SUM(playtime) AS playtime, 
+                               DATE(connect_time) AS day
+                        FROM thorny.playtime
+                        INNER JOIN thorny.user ON thorny.playtime.thorny_user_id = thorny.user.thorny_user_id 
+                        WHERE thorny.playtime.thorny_user_id = $1
+                        GROUP BY day
+                    ) AS t
+                    GROUP BY t.day
+                    ORDER BY t.day DESC
+                    LIMIT 7
+                ),
+                total_playtime AS (
+                    SELECT SUM(EXTRACT(EPOCH FROM playtime)) AS total_playtime
+                    FROM thorny.playtime
+                    WHERE thorny_user_id = $1
+                    GROUP BY thorny_user_id
+                ),
+                session AS (
+                    SELECT connect_time as session
+                    FROM thorny.playtime
+                    WHERE thorny_user_id = $1
+                    GROUP BY thorny_user_id, connect_time
+                    order by connect_time DESC
+                    limit 1
+                ),
+                monthly_playtime AS (
+                    SELECT t.year || '-' || t.month || '-' || '01' AS month, SUM(t.playtime) AS playtime
+                    FROM (
+                        SELECT SUM(playtime) AS playtime, 
+                               LPAD(extract(month from connect_time)::text, 2, '0') AS month, 
+                               DATE_PART('year', connect_time) AS year
+                        FROM thorny.playtime
+                        INNER JOIN thorny.user ON thorny.playtime.thorny_user_id = thorny.user.thorny_user_id 
+                        WHERE thorny.playtime.thorny_user_id = $1
+                        GROUP BY year, month
+                    ) AS t
+                    GROUP BY t.year, t.month
+                    ORDER BY t.year DESC, t.month DESC
+                    LIMIT 12
+                )
+                SELECT 
+                    $1 AS thorny_id,
+                    (SELECT JSON_AGG(JSON_BUILD_OBJECT('day', wp.day, 'playtime', EXTRACT(EPOCH FROM wp.playtime)))
+                        FROM daily_playtime wp) AS daily,
+                    (SELECT total_playtime
+                        FROM total_playtime) AS total,
+                    (SELECT session
+                        FROM session) AS session,
+                    (SELECT JSON_AGG(JSON_BUILD_OBJECT('month', mp.month, 'playtime', EXTRACT(EPOCH FROM mp.playtime)))
+                        FROM monthly_playtime mp) AS monthly;
+                                      """,
+                                      thorny_id)
+
+        processed_dict = {'thorny_id': thorny_id,
+                          'total': data['total'],
+                          'daily': json.loads(data['daily']),
+                          'monthly': json.loads(data['monthly']),
+                          'session': data['session']}
+
+        return cls(**processed_dict)
 
 
 @openapi.component
@@ -81,41 +195,3 @@ class UserQuestModel(BaseModel):
     started_on: NaiveDatetime
     completion_count: int
     status: bool | None
-
-
-class UserUpdateModel(UserModel):
-    thorny_id: int = None
-    user_id: int = None
-    guild_id: int = None
-    username: str = None
-    join_date: NaiveDatetime = None
-    birthday: NaiveDatetime = None
-    balance: int = None
-    active: bool = None
-    role: str = None
-    patron: bool = None
-    level: int = None
-    xp: int = None
-    required_xp: int = None
-    last_message: NaiveDatetime = None
-    gamertag: str = None
-    whitelist: str = None
-
-
-# noinspection PyTypeHints
-class ProfileUpdateModel(ProfileModel):
-    slogan: Annotated[str, StringConstraints(max_length=35)] = None
-    aboutme: Annotated[str, StringConstraints(max_length=300)] = None
-    lore: Annotated[str, StringConstraints(max_length=300)] = None
-    character_name: Annotated[str, StringConstraints(max_length=40)] = None
-    character_age: Optional[int] = None
-    character_race: Annotated[str, StringConstraints(max_length=40)] = None
-    character_role: Annotated[str, StringConstraints(max_length=40)] = None
-    character_origin: Annotated[str, StringConstraints(max_length=40)] = None
-    character_beliefs: Annotated[str, StringConstraints(max_length=40)] = None
-    agility: int = None
-    valor: int = None
-    strength: int = None
-    charisma: int = None
-    creativity: int = None
-    ingenuity: int = None

@@ -1,4 +1,4 @@
-from src.models.user import UserModel, ProfileModel, PlaytimeReport
+from src.models.user import UserModel, ProfileModel, PlaytimeSummary
 from src.models.project import ProjectModel, MembersModel, ContentModel, StatusModel, ProjectCreateModel
 from asyncpg import Pool, create_pool
 import json
@@ -124,7 +124,7 @@ class UserFactory(Factory):
                           'monthly': json.loads(data['monthly']),
                           'session': data['session']}
 
-        return dict(PlaytimeReport.parse_obj(processed_dict))
+        return dict(PlaytimeSummary.parse_obj(processed_dict))
 
     @classmethod
     async def update_user_model(cls, thorny_id: int, model: UserModel):

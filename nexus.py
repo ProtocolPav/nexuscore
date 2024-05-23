@@ -1,6 +1,5 @@
 from sanic import Sanic, Request, HTTPResponse
-from src.model_factory import Factory
-import asyncio
+from src.database import Database
 
 from src.blueprints import blueprint_group
 
@@ -29,9 +28,10 @@ async def health_check(request: Request):
     return HTTPResponse(status=200)
 
 
-@app.listener('after_server_start')
-async def init_db_pool(application: Sanic, loop: asyncio.AbstractEventLoop):
-    await Factory.init_pool()
+@app.before_server_start
+async def init_db(application: Sanic):
+    db = await Database.init_pool()
+    application.ext.dependency(db)
 
 app.blueprint(blueprint_group)
 
