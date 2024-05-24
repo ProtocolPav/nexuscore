@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from pydantic import NaiveDatetime, StringConstraints, BaseModel
 from typing_extensions import Annotated, Optional
@@ -7,19 +7,16 @@ import json
 
 from sanic_ext import openapi
 
-import sanic
-
 from src.database import Database
 
 
-@openapi.component
 class UserModel(BaseModel):
     thorny_id: int
     user_id: int
     guild_id: int
     username: Optional[str]
-    join_date: NaiveDatetime
-    birthday: Optional[NaiveDatetime]
+    join_date: date
+    birthday: Optional[date]
     balance: int
     active: bool
     role: str
@@ -63,18 +60,36 @@ class UserModel(BaseModel):
                               self.last_message, self.gamertag, self.whitelist, self.thorny_id)
 
 
-# noinspection PyTypeHints
+class UserUpdateModel(BaseModel):
+    username: Optional[str] = None
+    birthday: Optional[date] = None
+    balance: int = None
+    active: bool = None
+    role: str = None
+    patron: bool = None
+    level: int = None
+    xp: int = None
+    required_xp: int = None
+    last_message: NaiveDatetime = None
+    gamertag: Optional[str] = None
+    whitelist: Optional[str] = None
+
+
+ShortString = Annotated[str, StringConstraints(max_length=35)]
+LongString = Annotated[str, StringConstraints(max_length=300)]
+
+
 @openapi.component
 class ProfileModel(BaseModel):
-    slogan: Annotated[str, StringConstraints(max_length=35)]
-    aboutme: Annotated[str, StringConstraints(max_length=300)]
-    lore: Annotated[str, StringConstraints(max_length=300)]
-    character_name: Annotated[str, StringConstraints(max_length=40)]
+    slogan: ShortString
+    aboutme: LongString
+    lore: LongString
+    character_name: ShortString
     character_age: Optional[int]
-    character_race: Annotated[str, StringConstraints(max_length=40)]
-    character_role: Annotated[str, StringConstraints(max_length=40)]
-    character_origin: Annotated[str, StringConstraints(max_length=40)]
-    character_beliefs: Annotated[str, StringConstraints(max_length=40)]
+    character_race: ShortString
+    character_role: ShortString
+    character_origin: ShortString
+    character_beliefs: ShortString
     agility: int
     valor: int
     strength: int
@@ -92,15 +107,58 @@ class ProfileModel(BaseModel):
 
         return cls(**data)
 
+    async def update(self, db: Database, thorny_id: int):
+        await db.pool.execute("""
+                               UPDATE users.profile
+                               SET slogan = $1,
+                                   aboutme = $2,
+                                   lore = $3,
+                                   character_name = $4,
+                                   character_age = $5,
+                                   character_race = $6,
+                                   character_role = $7,
+                                   character_origin = $8,
+                                   character_beliefs = $9,
+                                   agility = $10,
+                                   valor = $11,
+                                   strength = $12,
+                                   charisma = $13,
+                                   creativity = $14,
+                                   ingenuity = $15
+                               WHERE thorny_id = $16
+                               """,
+                              self.slogan, self.aboutme, self.lore, self.character_name,
+                              self.character_age, self.character_race, self.character_role, self.character_origin,
+                              self.character_beliefs, self.agility, self.valor, self.strength, self.charisma,
+                              self.creativity, self.ingenuity, thorny_id)
+
+
+class ProfileUpdateModel(BaseModel):
+    slogan: ShortString = None
+    aboutme: LongString = None
+    lore: LongString = None
+    character_name: ShortString = None
+    character_age: Optional[int] = None
+    character_race: ShortString = None
+    character_role: ShortString = None
+    character_origin: ShortString = None
+    character_beliefs: ShortString = None
+    agility: int = None
+    valor: int = None
+    strength: int = None
+    charisma: int = None
+    creativity: int = None
+    ingenuity: int = None
+
 
 @openapi.component
-class DailyPlaytimeDict(BaseModel):
+class DailyPlaytime(BaseModel):
     day: NaiveDatetime
     playtime: int
 
 
 @openapi.component
-class MonthlyPlaytimeDict(BaseModel):
+class MonthlyPlaytime(BaseModel):
     month: NaiveDatetime
     playtime: int
 
@@ -109,11 +167,11 @@ class MonthlyPlaytimeDict(BaseModel):
 class PlaytimeSummary(BaseModel):
     total: int
     session: datetime
-    daily: list[DailyPlaytimeDict]
-    monthly: list[MonthlyPlaytimeDict]
+    daily: list[DailyPlaytime]
+    monthly: list[MonthlyPlaytime]
 
     @classmethod
-    async def fetch(cls, db: Database, thorny_id: int = None):
+    async def fetch(cls, db: Database, thorny_id: int):
         data = await db.pool.fetchrow("""
                 WITH daily_playtime AS (
                     SELECT t.day, SUM(t.playtime) AS playtime
@@ -180,7 +238,6 @@ class PlaytimeSummary(BaseModel):
         return cls(**processed_dict)
 
 
-@openapi.component
 class ServerEventsReport(BaseModel):
     total_placed: int
     total_broken: int
@@ -188,7 +245,6 @@ class ServerEventsReport(BaseModel):
     total_player_kills: int
 
 
-@openapi.component
 class UserQuestModel(BaseModel):
     quest_id: int
     accepted_on: NaiveDatetime

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from sanic import Blueprint, Request
 import sanic
@@ -15,7 +16,7 @@ user_blueprint = Blueprint("user_routes", url_prefix='/users')
 @openapi.response(status=201,
                   content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
                       ref_template="#/components/schemas/{model}"
-                    )
+                  )
                   },
                   description='Success')
 @openapi.response(status=500, description='User Already Exists')
@@ -27,20 +28,17 @@ async def create_user(request: Request, db: Database):
     Creates a user based on the discord UserID and GuildID provided.
     If a user with these ID's already exists, it returns a 500.
     """
-    try:
-        await model_factory.UserFactory.build_user_model(guild_id=int(request.json['guild_id']),
-                                                         user_id=int(request.json['discord_user_id']))
-
+    if await UserView.get_thorny_id(db, int(request.json['guild_id']), int(request.json['discord_user_id'])):
         return sanic.HTTPResponse(status=500, body="User Already Exists!")
-    except TypeError:
-        await model_factory.UserFactory.create_user(int(request.json['guild_id']),
-                                                    int(request.json['discord_user_id']),
-                                                    request.json.get('username', None))
+    else:
+        await UserView.new(db, int(request.json['guild_id']),
+                           int(request.json['discord_user_id']),
+                           request.json.get('username', None))
 
-        new_user = await model_factory.UserFactory.build_user_model(guild_id=int(request.json['guild_id']),
-                                                                    user_id=int(request.json['discord_user_id']))
+        thorny_id = await UserView.get_thorny_id(db, int(request.json['guild_id']), int(request.json['discord_user_id']))
+        user_view = await UserView.build(db, thorny_id, bare=True)
 
-    return sanic.json(status=201, body=objects.UserObjectWithNoOptionals(**new_user).dict(), default=str)
+    return sanic.json(status=201, body=user_view.model_dump(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET'])
@@ -64,12 +62,9 @@ async def user_thorny_id(request: Request, db: Database, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
-@openapi.definition(body={'application/json': objects.UserModel.model_json_schema()})
+@openapi.definition(body={'application/json': user.UserUpdateModel.model_json_schema()})
 @openapi.response(status=200,
-                  content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
-                      ref_template="#/components/schemas/{model}"
-                    )
-                  },
+                  content={'application/json': UserView.view_schema(bare=True)},
                   description='Success')
 @openapi.response(status=404, description='Error')
 async def update_thorny_id(request: Request, db: Database, thorny_id: int):
@@ -83,17 +78,17 @@ async def update_thorny_id(request: Request, db: Database, thorny_id: int):
     route to be able to enter comments, otherwise, a default comment will be generated to the `Transaction`.
     """
     model: user.UserModel = await user.UserModel.fetch(db, thorny_id)
+    update_dict = {}
 
-    data = request.json
-    data['thorny_id'] = model.thorny_id
+    for k, v in user.UserUpdateModel(**request.json).model_dump().items():
+        if v:
+            update_dict[k] = v
 
-    model = model.model_copy(update=request.json)
-
-    print(model)
+    model = model.model_copy(update=update_dict)
 
     await model.update(db)
 
-    return sanic.json(model, default=str)
+    return sanic.json(model.model_dump(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/balance', methods=['PATCH'])
@@ -111,74 +106,68 @@ async def update_balance(request: Request, thorny_id: int):
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['GET'])
-@openapi.response(content={"application/json": objects.ProfileModel.model_json_schema(
-                                                ref_template="#/components/schemas/{model}")})
-async def get_profile(request: Request, thorny_id: int):
+@openapi.response(content={"application/json": user.ProfileModel.model_json_schema(ref_template="#/components/schemas/{model}")})
+async def get_profile(request: Request, db: Database, thorny_id: int):
     """
     Get User Profile
 
     This returns only the user's profile.
     """
-    profile_model = await model_factory.UserFactory.build_profile_model(thorny_id)
+    profile_model = await user.ProfileModel.fetch(db, thorny_id)
 
-    return sanic.json(profile_model, default=str)
+    return sanic.json(profile_model.model_dump(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['PATCH'])
-@openapi.definition(body={'application/json': objects.ProfileModel.model_json_schema()})
+@openapi.definition(body={'application/json': user.ProfileUpdateModel.model_json_schema(
+    ref_template="#/components/schemas/{model}"
+)})
 @openapi.response(status=200,
-                  content={'application/json': objects.ProfileModel.model_json_schema(
-                      ref_template="#/components/schemas/{model}"
-                    )
-                  },
+                  content={'application/json': user.ProfileModel.model_json_schema(ref_template="#/components/schemas/{model}")},
                   description='Success')
-async def update_profile(request: Request, thorny_id: int):
+async def update_profile(request: Request, db: Database, thorny_id: int):
     """
     Update User Profile
 
     This updates a user's profile. Include only the request body fields
     that you want to update.
     """
-    model = user.ProfileUpdateModel.parse_obj(request.json).dict()
+    model: user.ProfileModel = await user.ProfileModel.fetch(db, thorny_id)
+    update_dict = {}
 
-    profile_existing = await model_factory.UserFactory.build_profile_model(thorny_id)
+    for k, v in user.ProfileUpdateModel(**request.json).model_dump().items():
+        if v:
+            update_dict[k] = v
 
-    profile_existing.update([k, v] for k, v in model.items() if v is not None)
+    model = model.model_copy(update=update_dict)
 
-    updated_profile = objects.ProfileModel(**profile_existing)
+    await model.update(db, thorny_id)
 
-    await model_factory.UserFactory.update_profile_model(thorny_id, updated_profile)
-
-    return sanic.json(updated_profile.dict(), default=str)
+    return sanic.json(model.model_dump(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/playtime', methods=['GET'])
 @openapi.response(status=200,
-                  content={'application/json': objects.PlaytimeSummary.model_json_schema(
-                      ref_template="#/components/schemas/{model}"
-                    )
-                  },
+                  content={
+                      'application/json': user.PlaytimeSummary.model_json_schema(ref_template="#/components/schemas/{model}")},
                   description='Success')
-async def get_playtime(request: Request, thorny_id: int):
+async def get_playtime(request: Request, db: Database, thorny_id: int):
     """
     Get User Playtime
 
     This returns only the user's playtime.
     """
-    playtime_report = await model_factory.UserFactory.build_playtime_report(thorny_id)
+    playtime_summary = await user.PlaytimeSummary.fetch(db, thorny_id)
 
-    return sanic.json(objects.PlaytimeReport(**playtime_report).dict(), default=str)
+    return sanic.json(playtime_summary.model_dump(), default=str)
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
 @openapi.response(status=200,
-                  content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
-                      ref_template="#/components/schemas/{model}"
-                    )
-                  },
+                  content={'application/json': UserView.view_schema(bare=True)},
                   description='Success')
 @openapi.response(status=404, description='Error')
-async def user_gamertag(request: Request, guild_id: int, gamertag: str):
+async def user_gamertag(request: Request, db: Database, guild_id: int, gamertag: str):
     """
     Get User by Gamertag
 
@@ -187,27 +176,25 @@ async def user_gamertag(request: Request, guild_id: int, gamertag: str):
 
     This will check either the whitelisted gamertag or the user-entered gamertag.
     """
-    user_model = await model_factory.UserFactory.build_user_model(gamertag=gamertag, guild_id=guild_id)
-    print(objects.UserObjectWithNoOptionals(**user_model).dict())
+    thorny_id = await UserView.get_thorny_id(db, guild_id, gamertag=gamertag)
+    user_view = await UserView.build(db, thorny_id, bare=True)
 
-    return sanic.json(objects.UserObjectWithNoOptionals(**user_model).dict(), default=str)
+    return sanic.json(user_view.model_dump(), default=str)
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<discord_id:int>', methods=['GET'])
 @openapi.response(status=200,
-                  content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
-                      ref_template="#/components/schemas/{model}"
-                    )
-                  },
+                  content={'application/json': UserView.view_schema()},
                   description='Success')
 @openapi.response(status=404, description='Error')
-async def user_discord_id(request: Request, guild_id: int, discord_id: int):
+async def user_discord_id(request: Request, db: Database, guild_id: int, discord_id: int):
     """
     Get User by Discord ID
 
     This returns a bare-bones user object based on the discord user ID and
     guild ID provided.
     """
-    user_model = await model_factory.UserFactory.build_user_model(user_id=discord_id, guild_id=guild_id)
+    thorny_id = await UserView.get_thorny_id(db, guild_id, user_id=discord_id)
+    user_view = await UserView.build(db, thorny_id, bare=True)
 
-    return sanic.json(objects.UserObjectWithNoOptionals(**user_model).dict(), default=str)
+    return sanic.json(user_view.model_dump(), default=str)

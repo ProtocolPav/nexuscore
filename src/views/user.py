@@ -9,7 +9,6 @@ from sanic_ext import openapi
 from pydantic import BaseModel, model_serializer
 
 
-@openapi.component
 class UserView(BaseModel):
     user: UserModel
     profile: Optional[ProfileModel]
@@ -32,27 +31,50 @@ class UserView(BaseModel):
                                            """,
                                           guild_id, user_id)
 
-        return data['thorny_id']
+        return data['thorny_id'] if data else None
 
     @classmethod
-    async def build(cls, db: Database, thorny_id: int) -> Self:
+    async def build(cls, db: Database, thorny_id: int, bare: bool = False) -> Self:
         user = await UserModel.fetch(db, thorny_id)
-        profile = await ProfileModel.fetch(db, thorny_id)
-        playtime = await PlaytimeSummary.fetch(db, thorny_id)
+        if bare:
+            profile = None
+            playtime = None
+        else:
+            profile = await ProfileModel.fetch(db, thorny_id)
+            playtime = await PlaytimeSummary.fetch(db, thorny_id)
 
         return cls(user=user, profile=profile, playtime=playtime)
 
     @model_serializer
     def serialize_for_output(self):
         user = self.user.model_dump()
-        profile = {'profile': self.profile.model_dump()}
-        playtime = {'playtime': self.playtime.model_dump()}
+        profile = {'profile': self.profile.model_dump() if self.profile else None}
+        playtime = {'playtime': self.playtime.model_dump() if self.playtime else None}
         return user | profile | playtime
 
     @classmethod
-    def view_schema(cls):
-        class Schema(UserModel):
-            profile: Optional[ProfileModel]
-            playtime: Optional[PlaytimeSummary]
+    def view_schema(cls, bare: bool = False):
+        if bare:
+            class Schema(UserModel):
+                profile: Optional[ProfileModel] = None
+                playtime: Optional[PlaytimeSummary] = None
+        else:
+            class Schema(UserModel):
+                profile: Optional[ProfileModel]
+                playtime: Optional[PlaytimeSummary]
 
         return Schema.model_json_schema(ref_template="#/components/schemas/{model}")
+
+    @classmethod
+    async def new(cls, db: Database, guild_id: int, discord_id: int, username: str):
+        await db.pool.execute("""
+                                with user_table as (
+                                    insert into users.user(user_id, guild_id, username)
+                                    values($1, $2, $3)
+
+                                    returning thorny_id
+                                )
+                                insert into users.profile(thorny_id)
+                                select thorny_id from user_table
+                               """,
+                              discord_id, guild_id, username)
