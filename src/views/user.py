@@ -1,10 +1,7 @@
-import json
-from typing import Any, Optional, Self
+from typing import Optional, Self
 
 from src.database import Database
 from src.models.user import UserModel, ProfileModel, PlaytimeSummary
-
-from sanic_ext import openapi
 
 from pydantic import BaseModel, model_serializer
 
