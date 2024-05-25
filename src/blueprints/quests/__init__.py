@@ -25,3 +25,5 @@ async def create_quest(request: Request, db: Database):
                   content={'application/json': QuestView.view_schema()})
 async def get_quest(request: Request, db: Database, quest_id: int):
     quest_view = await QuestView.build(db, quest_id)
+
+    return sanic.json(quest_view.model_dump(), default=str)

@@ -14,8 +14,20 @@ class QuestView(BaseModel):
     @classmethod
     async def build(cls, db: Database, quest_id: int) -> "QuestView":
         quest = await QuestModel.fetch(db, quest_id)
+        all_rewards = await RewardModel.get_all_rewards(db, quest_id)
+        all_objectives = await ObjectiveModel.get_all_objectives(db, quest_id)
 
-        return cls(quest=quest)
+        rewards = []
+        for r_id in all_rewards:
+            rewards.append(await RewardModel.fetch(db, r_id))
+
+        objectives = []
+        for obj_id in all_objectives:
+            objectives.append(await ObjectiveModel.fetch(db, obj_id))
+
+        objectives.sort(key=lambda x: x.order)
+
+        return cls(quest=quest, rewards=rewards, objectives=objectives)
 
     @model_serializer
     def serialize_for_output(self):

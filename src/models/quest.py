@@ -60,6 +60,16 @@ class ObjectiveModel(BaseModel):
 
         return cls(**data)
 
+    @classmethod
+    async def get_all_objectives(cls, db: Database, quest_id: int):
+        data = await db.pool.fetchrow("""
+                                       SELECT array_agg(objective_id) FROM quests.objective
+                                       WHERE quest_id = $1
+                                       """,
+                                      quest_id)
+
+        return data['array_agg']
+
 
 class ObjectiveUpdateModel(BaseModel):
     objective: str
@@ -90,6 +100,16 @@ class RewardModel(BaseModel):
                                       reward_id)
 
         return cls(**data)
+
+    @classmethod
+    async def get_all_rewards(cls, db: Database, quest_id: int):
+        data = await db.pool.fetchrow("""
+                                       SELECT array_agg(reward_id) FROM quests.reward
+                                       WHERE quest_id = $1
+                                       """,
+                                      quest_id)
+
+        return data['array_agg']
 
 
 class RewardUpdateModel(BaseModel):
