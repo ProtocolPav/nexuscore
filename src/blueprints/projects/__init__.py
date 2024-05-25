@@ -1,9 +1,14 @@
+from typing import Literal
+
 from sanic import Blueprint, Request, HTTPResponse
-from sanic import json as sanicjson
+import sanic
 from sanic_ext import openapi
 
 from src import model_factory
-from src.models import objects, project
+from src.views.project import ProjectView
+from src.models import project
+
+from src.database import Database
 
 import re
 
@@ -11,41 +16,25 @@ project_blueprint = Blueprint("project_routes", url_prefix='/projects')
 
 
 @project_blueprint.route('/', methods=['POST'])
-@openapi.definition(body={'application/json': project.ProjectCreateModel.model_json_schema()})
+@openapi.definition(body={'application/json': project.ProjectUpdateModel.model_json_schema()})
 @openapi.response(status=200,
                   description='Return Project',
-                  content={'application/json': objects.ProjectObject.model_json_schema(
-                      ref_template="#/components/schemas/{model}"
-                    )
-                  })
-async def create_project(request: Request):
+                  content={'application/json': ProjectView.view_schema()})
+async def create_project(request: Request, db: Database):
     """
     Create Project
 
     Creates a new project with the data provided.
     """
-    model = project.ProjectCreateModel(**request.json)
-
-    # Transform project name into an ID string,
-    # which has the following limits:
-    # - Must be lowercase
-    # - Only alphanumeric characters and underscores
-    project_id = re.sub(r'[^a-z0-9_]', '', model.name.lower().replace(' ', '_'))
+    model = project.ProjectUpdateModel(**request.json)
 
     try:
-        await model_factory.ProjectFactory.build_project_model(project_id)
-        return HTTPResponse(status=500, body="Project already exists!")
+        project_id = await ProjectView.new(db, model)
+
+        project_view = await ProjectView.build(db, project_id)
+        return sanic.json(project_view.model_dump(), default=str)
     except TypeError:
-        await model_factory.ProjectFactory.create_project(project_id, model)
-
-        project_model = await model_factory.ProjectFactory.build_project_model(project_id)
-        content_model = await model_factory.ProjectFactory.build_content_model(project_id)
-        status_model = await model_factory.ProjectFactory.build_status_model(project_id)
-        members_model = await model_factory.ProjectFactory.build_members_model(project_id)
-
-        project_data = project_model | content_model | status_model | members_model
-
-        return sanicjson(objects.ProjectObject(**project_data).dict(), default=str)
+        return HTTPResponse(status=500, body="Project already exists!")
 
 
 @project_blueprint.route('/', methods=['GET'])
@@ -79,12 +68,9 @@ async def get_all_projects(request: Request):
 @project_blueprint.route('/<project_id:str>', methods=['GET'])
 @openapi.response(status=200,
                   description='Return Project',
-                  content={'application/json': objects.ProjectObject.model_json_schema(
-                      ref_template="#/components/schemas/{model}"
-                    )
-                  })
+                  content={'application/json': ProjectView.view_schema()})
 @openapi.parameter('users-as-object', bool)
-async def get_project(request: Request, project_id: str):
+async def get_project(request: Request, db: Database, project_id: str):
     """
     Get Project
 
@@ -94,64 +80,47 @@ async def get_project(request: Request, project_id: str):
     By default, users are returned as ThornyIDs (`int`), but you can specify
     using `users-as-object=true` to return them as User Objects instead
     """
-    project_model = await model_factory.ProjectFactory.build_project_model(project_id)
-    content_model = await model_factory.ProjectFactory.build_content_model(project_id)
-    status_model = await model_factory.ProjectFactory.build_status_model(project_id)
-    members_model = await model_factory.ProjectFactory.build_members_model(project_id)
+    project_view = await ProjectView.build(db, project_id)
 
-    project_data = project_model | content_model | status_model | members_model
-
-    if request.args.get('users-as-object', 'false').lower() == 'true':
-        project_data['members'] = []
-        for member in members_model['members']:
-            project_data['members'].append(await model_factory.UserFactory.build_user_model(member))
-
-        project_data['owner_id'] = await model_factory.UserFactory.build_user_model(project_model['owner_id'])
-        project_data['content_edited_by'] = await model_factory.UserFactory.build_user_model(content_model['content_edited_by'])
-
-    return sanicjson(objects.ProjectObject(**project_data).dict(), default=str)
+    return sanic.json(project_view.model_dump(), default=str)
 
 
 @project_blueprint.route('/<project_id:str>', methods=['PATCH'])
-@openapi.body(content={'application/json': project.ProjectModel.model_json_schema(
-                                            ref_template="#/components/schemas/{model}")})
+@openapi.body(content={'application/json': project.ProjectUpdateModel.model_json_schema()})
 @openapi.response(status=200, description='Returns Bare Project',
-                  content={'application/json': objects.ProjectModel.model_json_schema(
-                                                ref_template="#/components/schemas/{model}")})
-async def update_project(request: Request, project_id: str):
+                  content={'application/json': ProjectView.view_schema()})
+async def update_project(request: Request, db: Database, project_id: str):
     """
     Update Project
 
     Update the project. You do not have to include every field in
     the body, only those that you wish to update.
-
-    Note: ProjectID will not update even if specified.
     """
-    model = project.ProjectUpdateModel.parse_obj(request.json).dict()
+    model: project.ProjectModel = await project.ProjectModel.fetch(db, project_id)
+    update_dict = {}
 
-    model['project_id'] = None
+    for k, v in project.ProjectUpdateModel(**request.json).model_dump().items():
+        if v:
+            update_dict[k] = v
 
-    project_existing = await model_factory.ProjectFactory.build_project_model(project_id)
+    model = model.model_copy(update=update_dict)
 
-    project_existing.update([k, v] for k, v in model.items() if v is not None)
+    await model.update(db)
 
-    updated_project = objects.ProjectModel(**project_existing)
-
-    await model_factory.ProjectFactory.update_project_model(project_id, updated_project)
-
-    return sanicjson(updated_project.dict(), default=str)
+    return sanic.json(model.model_dump(), default=str)
 
 
 @project_blueprint.route('/<project_id:str>/status', methods=['POST'])
 @openapi.body(content={'application/json': {'status': str}})
 @openapi.response(status=201, description='Successfully Added')
-async def project_status(request: Request, project_id: str):
+async def project_status(request: Request, db: Database, project_id: str):
     """
     New Project Status
 
     Insert a new project status.
     """
-    await model_factory.ProjectFactory.insert_status(project_id, request.json['status'])
+    model: project.StatusModel = await project.StatusModel.fetch(db, project_id)
+    await model.insert_status(db, project_id, request.json['status'])
 
     return HTTPResponse(status=201)
 
@@ -159,26 +128,29 @@ async def project_status(request: Request, project_id: str):
 @project_blueprint.route('/<project_id:str>/content', methods=['POST'])
 @openapi.body(content={'application/json': {'content': str, 'edited_by': int}})
 @openapi.response(status=201, description='Successfully Added')
-async def project_content(request: Request, project_id: str):
+async def project_content(request: Request, db: Database, project_id: str):
     """
     New Project Content
 
-    Insert a new project content. `edited_by` is a ThornyID and is required
+    Insert a new project content. `edited_by` is a ThornyID
     """
-    await model_factory.ProjectFactory.insert_content(project_id, request.json['content'], request.json['edited_by'])
+    model: project.ContentModel = await project.ContentModel.fetch(db, project_id)
+    await model.insert_content(db, project_id, request.json['content'], request.json['edited_by'])
 
     return HTTPResponse(status=201)
 
 
 @project_blueprint.route('/<project_id:str>/members', methods=['POST'])
 @openapi.body(content={'application/json': {'members': list[int]}})
-async def update_members(request: Request, project_id: str):
+@openapi.response(status=201, description='Successfully Added')
+async def update_members(request: Request, db: Database, project_id: str):
     """
     New Project Members
 
     Insert new members into the project. Must be ThornyIDs
     """
-    await model_factory.ProjectFactory.insert_members(project_id, request.json['members'])
+    model: project.MembersModel = await project.MembersModel.fetch(db, project_id)
+    await model.insert_members(db, project_id, request.json['members'])
 
     return HTTPResponse(status=201)
 

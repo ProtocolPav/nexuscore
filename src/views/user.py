@@ -5,7 +5,10 @@ from src.models.user import UserModel, ProfileModel, PlaytimeSummary
 
 from pydantic import BaseModel, model_serializer
 
+from sanic_ext import openapi
 
+
+@openapi.component
 class UserView(BaseModel):
     user: UserModel
     profile: Optional[ProfileModel]
@@ -27,6 +30,8 @@ class UserView(BaseModel):
                                            AND user_id = $2
                                            """,
                                           guild_id, user_id)
+        else:
+            return -1
 
         return data['thorny_id'] if data else None
 

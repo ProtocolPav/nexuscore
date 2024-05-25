@@ -7,6 +7,7 @@ from datetime import date, datetime
 from sanic_ext import openapi
 
 from src.database import Database
+from src.views.user import UserView
 
 
 class ProjectModel(BaseModel):
@@ -19,7 +20,7 @@ class ProjectModel(BaseModel):
     thread_id: Optional[int]
     started_on: Optional[date]
     completed_on: Optional[date]
-    owner_id: int
+    owner_id: Union[int, UserView]
 
     @classmethod
     async def fetch(cls, db: Database, project_id: str):
@@ -61,7 +62,7 @@ class ProjectUpdateModel(BaseModel):
 
 @openapi.component
 class MembersModel(BaseModel):
-    members: list[Optional[int]]
+    members: list[Optional[Union[int, UserView]]]
 
     @classmethod
     async def fetch(cls, db: Database, project_id: str):
@@ -73,7 +74,8 @@ class MembersModel(BaseModel):
 
         return cls(**data)
 
-    async def insert_members(self, db: Database, project_id: str, members: list[int]):
+    @staticmethod
+    async def insert_members(db: Database, project_id: str, members: list[int]):
         async with db.pool.acquire() as conn:
             async with conn.transaction():
                 for member in members:
@@ -83,9 +85,8 @@ class MembersModel(BaseModel):
                                        """,
                                        project_id, member)
 
-                self.members.extend(members)
-
-    async def remove_members(self, db: Database, project_id: str, members: list[int]):
+    @staticmethod
+    async def remove_members(db: Database, project_id: str, members: list[int]):
         async with db.pool.acquire() as conn:
             async with conn.transaction():
                 for member in members:
@@ -95,19 +96,12 @@ class MembersModel(BaseModel):
                                        """,
                                        project_id, member)
 
-                new_members = []
-                for member in self.members:
-                    if member not in members:
-                        new_members.append(member)
-
-                self.members = new_members
-
 
 @openapi.component
 class ContentModel(BaseModel):
     content: Optional[str]
     content_since: Optional[datetime]
-    content_edited_by: Optional[int]
+    content_edited_by: Optional[Union[int, UserView]]
 
     @classmethod
     async def fetch(cls, db: Database, project_id: str):
@@ -139,7 +133,7 @@ class StatusModel(BaseModel):
     async def fetch(cls, db: Database, project_id: str):
         data = await db.pool.fetchrow("""
                                        SELECT status, since AS status_since
-                                       FROM projects.content
+                                       FROM projects.status
                                        WHERE project_id = $1
                                        ORDER BY status_since DESC
                                        """,

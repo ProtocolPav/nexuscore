@@ -10,6 +10,7 @@ from sanic_ext import openapi
 from src.database import Database
 
 
+@openapi.component
 class UserModel(BaseModel):
     thorny_id: int
     user_id: int

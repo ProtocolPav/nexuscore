@@ -6,7 +6,7 @@ import sanic
 from sanic_ext import openapi
 
 from src.database import Database
-from src.models import objects, user
+from src.models import user
 from src.views.user import UserView
 
 user_blueprint = Blueprint("user_routes", url_prefix='/users')
@@ -14,10 +14,7 @@ user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
 @user_blueprint.route('/', methods=['POST'])
 @openapi.response(status=201,
-                  content={'application/json': objects.UserObjectWithNoOptionals.model_json_schema(
-                      ref_template="#/components/schemas/{model}"
-                  )
-                  },
+                  content={'application/json': UserView.view_schema(bare=True)},
                   description='Success')
 @openapi.response(status=500, description='User Already Exists')
 @openapi.definition(body={'application/json': {'guild_id': int, 'discord_user_id': int, 'username': str}})

@@ -1,5 +1,5 @@
 from src.models.user import UserModel, ProfileModel, PlaytimeSummary
-from src.models.project import ProjectModel, MembersModel, ContentModel, StatusModel, ProjectCreateModel
+from src.models.project import ProjectModel, MembersModel, ContentModel, StatusModel
 from asyncpg import Pool, create_pool
 import json
 from sanic import BadRequest
@@ -283,7 +283,7 @@ class ProjectFactory(Factory):
                                        project_id, member)
 
     @classmethod
-    async def create_project(cls, project_id: str, model: ProjectCreateModel):
+    async def create_project(cls, project_id: str):
         await cls.pool.execute("""
                                 with project_table as (
                                     insert into projects.project(project_id,
