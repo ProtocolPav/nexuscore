@@ -9,6 +9,7 @@ from sanic_ext import openapi
 from src.database import Database
 
 
+@openapi.component
 class QuestModel(BaseModel):
     quest_id: int
     start_time: datetime
@@ -28,17 +29,26 @@ class QuestModel(BaseModel):
         return cls(**data)
 
 
+class QuestUpdateModel(BaseModel):
+    start_time: datetime
+    end_time: datetime
+    timer: Optional[timedelta]
+    title: str
+    description: str
+
+
+@openapi.component
 class ObjectiveModel(BaseModel):
     objective_id: int
     quest_id: int
     objective: str
     order: int
     objective_count: int
-    objective_type: str
+    objective_type: Literal["kill", "mine"]
     objective_timer: Optional[timedelta]
     required_mainhand: Optional[str]
     required_location: Optional[tuple[int, int]]
-    location_radius: int
+    location_radius: Optional[int]
 
     @classmethod
     async def fetch(cls, db: Database, objective_id: int):
@@ -51,6 +61,18 @@ class ObjectiveModel(BaseModel):
         return cls(**data)
 
 
+class ObjectiveUpdateModel(BaseModel):
+    objective: str
+    order: int
+    objective_count: int
+    objective_type: Literal["kill", "mine"]
+    objective_timer: Optional[timedelta]
+    required_mainhand: Optional[str]
+    required_location: Optional[tuple[int, int]]
+    location_radius: Optional[int]
+
+
+@openapi.component
 class RewardModel(BaseModel):
     reward_id: int
     quest_id: int
@@ -68,3 +90,40 @@ class RewardModel(BaseModel):
                                       reward_id)
 
         return cls(**data)
+
+
+class RewardUpdateModel(BaseModel):
+    objective_id: Optional[int]
+    balance: Optional[int]
+    item: Optional[str]
+    count: Optional[int]
+
+
+@openapi.component
+class RewardCreateModel(BaseModel):
+    balance: Optional[int]
+    item: Optional[str]
+    count: Optional[int]
+
+
+@openapi.component
+class QuestCreateModel(BaseModel):
+    start_time: datetime
+    end_time: datetime
+    timer: Optional[timedelta]
+    title: str
+    description: str
+    rewards: Optional[list[RewardCreateModel]]
+
+
+@openapi.component
+class ObjectiveCreateModel(BaseModel):
+    objective: str
+    order: int
+    objective_count: int
+    objective_type: Literal["kill", "mine"]
+    objective_timer: Optional[timedelta]
+    required_mainhand: Optional[str]
+    required_location: Optional[tuple[int, int]]
+    location_radius: Optional[int]
+    rewards: Optional[list[RewardCreateModel]]
