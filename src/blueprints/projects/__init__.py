@@ -4,13 +4,10 @@ from sanic import Blueprint, Request, HTTPResponse
 import sanic
 from sanic_ext import openapi
 
-from src import model_factory
 from src.views.project import ProjectView
 from src.models import project
 
 from src.database import Database
-
-import re
 
 project_blueprint = Blueprint("project_routes", url_prefix='/projects')
 
@@ -50,19 +47,7 @@ async def get_all_projects(request: Request):
     returned as ThornyIDs, however you can specify in the URL
     parameter to get a bare-bones User object for each member instead.
     """
-    project_ids = await model_factory.ProjectFactory.fetch_all_project_ids()
-    projects = []
-
-    for proj in project_ids:
-        project_model = await model_factory.ProjectFactory.build_project_model(proj)
-        content_model = await model_factory.ProjectFactory.build_content_model(proj)
-        status_model = await model_factory.ProjectFactory.build_status_model(proj)
-        members_model = await model_factory.ProjectFactory.build_members_model(proj)
-
-        project_data = project_model | content_model | status_model | members_model
-
-        projects.append(objects.ProjectObject(**project_data).dict())
-    return sanicjson(projects, default=str)
+    ...
 
 
 @project_blueprint.route('/<project_id:str>', methods=['GET'])

@@ -78,3 +78,11 @@ class ProjectView(BaseModel):
                               model.coordinates_y, model.coordinates_z, model.owner_id)
 
         return project_id
+
+    @classmethod
+    async def fetch_all_project_ids(cls):
+        projects_record = await cls.pool.fetchrow("""
+                                                  select array_agg(project_id) as all_projects from projects.project
+                                                  """)
+
+        return [i for i in projects_record['all_projects']]
