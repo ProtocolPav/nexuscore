@@ -14,7 +14,7 @@ user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
 @user_blueprint.route('/', methods=['POST'])
 @openapi.response(status=201,
-                  content={'application/json': UserView.view_schema(bare=True)},
+                  content={'application/json': UserView.view_schema()},
                   description='Success')
 @openapi.response(status=500, description='User Already Exists')
 @openapi.definition(body={'application/json': {'guild_id': int, 'discord_user_id': int, 'username': str}})
@@ -33,14 +33,12 @@ async def create_user(request: Request, db: Database):
                            request.json.get('username', None))
 
         thorny_id = await UserView.get_thorny_id(db, int(request.json['guild_id']), int(request.json['discord_user_id']))
-        user_view = await UserView.build(db, thorny_id, bare=True)
+        user_view = await UserView.build(db, thorny_id)
 
     return sanic.json(status=201, body=user_view.model_dump(), default=str)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['GET'])
-@openapi.parameter('include-profile', bool)
-@openapi.parameter('include-playtime', bool)
 @openapi.response(status=200,
                   content={'application/json': UserView.view_schema()},
                   description='Success')
@@ -61,7 +59,7 @@ async def user_thorny_id(request: Request, db: Database, thorny_id: int):
 @user_blueprint.route('/thorny-id/<thorny_id:int>', methods=['PATCH'])
 @openapi.definition(body={'application/json': user.UserUpdateModel.model_json_schema()})
 @openapi.response(status=200,
-                  content={'application/json': UserView.view_schema(bare=True)},
+                  content={'application/json': UserView.view_schema()},
                   description='Success')
 @openapi.response(status=404, description='Error')
 async def update_thorny_id(request: Request, db: Database, thorny_id: int):
@@ -161,7 +159,7 @@ async def get_playtime(request: Request, db: Database, thorny_id: int):
 
 @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
 @openapi.response(status=200,
-                  content={'application/json': UserView.view_schema(bare=True)},
+                  content={'application/json': UserView.view_schema()},
                   description='Success')
 @openapi.response(status=404, description='Error')
 async def user_gamertag(request: Request, db: Database, guild_id: int, gamertag: str):
@@ -174,7 +172,7 @@ async def user_gamertag(request: Request, db: Database, guild_id: int, gamertag:
     This will check either the whitelisted gamertag or the user-entered gamertag.
     """
     thorny_id = await UserView.get_thorny_id(db, guild_id, gamertag=gamertag)
-    user_view = await UserView.build(db, thorny_id, bare=True)
+    user_view = await UserView.build(db, thorny_id)
 
     return sanic.json(user_view.model_dump(), default=str)
 
@@ -192,6 +190,6 @@ async def user_discord_id(request: Request, db: Database, guild_id: int, discord
     guild ID provided.
     """
     thorny_id = await UserView.get_thorny_id(db, guild_id, user_id=discord_id)
-    user_view = await UserView.build(db, thorny_id, bare=True)
+    user_view = await UserView.build(db, thorny_id)
 
     return sanic.json(user_view.model_dump(), default=str)
