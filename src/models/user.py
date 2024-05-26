@@ -151,18 +151,18 @@ class ProfileUpdateModel(BaseModel):
 
 
 class DailyPlaytime(BaseModel):
-    day: NaiveDatetime
+    day: date
     playtime: int
 
 
 class MonthlyPlaytime(BaseModel):
-    month: NaiveDatetime
+    month: date
     playtime: int
 
 
 class PlaytimeSummary(BaseModel):
     total: int
-    session: datetime
+    session: Optional[datetime]
     daily: list[DailyPlaytime]
     monthly: list[MonthlyPlaytime]
 
@@ -214,14 +214,29 @@ class PlaytimeSummary(BaseModel):
                 )
                 SELECT 
                     $1 AS thorny_id,
-                    (SELECT JSON_AGG(JSON_BUILD_OBJECT('day', wp.day, 'playtime', EXTRACT(EPOCH FROM wp.playtime)))
-                        FROM daily_playtime wp) AS daily,
-                    (SELECT total_playtime
-                        FROM total_playtime) AS total,
+                    COALESCE(
+                        (
+                         SELECT JSON_AGG(JSON_BUILD_OBJECT('day', wp.day, 'playtime', EXTRACT(EPOCH FROM wp.playtime)))
+                         FROM daily_playtime wp
+                         ),
+                         '[]'::json
+                    ) AS daily,
+                    COALESCE(
+                        (
+                         SELECT total_playtime
+                         FROM total_playtime
+                         ),
+                         0
+                    ) AS total,
                     (SELECT session
                         FROM session) AS session,
-                    (SELECT JSON_AGG(JSON_BUILD_OBJECT('month', mp.month, 'playtime', EXTRACT(EPOCH FROM mp.playtime)))
-                        FROM monthly_playtime mp) AS monthly;
+                    COALESCE(
+                        (
+                         SELECT JSON_AGG(JSON_BUILD_OBJECT('month', mp.month, 'playtime', EXTRACT(EPOCH FROM mp.playtime)))
+                         FROM monthly_playtime mp
+                         ),
+                         '[]'::json
+                    ) AS monthly;
                                       """,
                                       thorny_id)
 
