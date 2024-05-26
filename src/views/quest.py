@@ -3,12 +3,11 @@ from typing import Optional
 from src.database import Database
 from src.models.quest import QuestModel, RewardModel, ObjectiveModel, QuestCreateModel, ObjectiveCreateModel
 
-from pydantic import BaseModel, model_serializer
+from pydantic import BaseModel
 
 from sanic_ext import openapi
 
 
-@openapi.component
 class QuestView(BaseModel):
     quest: QuestModel
     rewards: Optional[list[RewardModel]]
@@ -135,3 +134,9 @@ class AllQuestsView(BaseModel):
     @classmethod
     def view_schema(cls):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
+# Define components in the OpenAPI schema
+# This can be done via a decorator, but for some reason
+# the decorator stops intellisense from working
+openapi.component(QuestView)

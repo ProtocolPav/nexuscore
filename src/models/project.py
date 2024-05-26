@@ -10,7 +10,6 @@ from src.database import Database
 from src.views.user import UserView
 
 
-@openapi.component
 class ProjectModel(BaseModel):
     project_id: str
     name: str
@@ -61,7 +60,6 @@ class ProjectUpdateModel(BaseModel):
     owner_id: int = None
 
 
-@openapi.component
 class MembersModel(BaseModel):
     members: Optional[list[Union[int, UserView]]]
 
@@ -98,7 +96,6 @@ class MembersModel(BaseModel):
                                        project_id, member)
 
 
-@openapi.component
 class ContentModel(BaseModel):
     content: Optional[str]
     content_since: Optional[datetime]
@@ -125,7 +122,6 @@ class ContentModel(BaseModel):
                               project_id, content, edited_by_user)
 
 
-@openapi.component
 class StatusModel(BaseModel):
     status: Literal["pending", "ongoing", "abandoned", "completed"]
     status_since: datetime
@@ -152,3 +148,12 @@ class StatusModel(BaseModel):
                                   project_id, status)
         else:
             raise sanic.BadRequest("Status should be one of: pending, ongoing, abandoned, completed")
+
+
+# Define components in the OpenAPI schema
+# This can be done via a decorator, but for some reason
+# the decorator stops intellisense from working
+openapi.component(ProjectModel)
+openapi.component(MembersModel)
+openapi.component(ContentModel)
+openapi.component(StatusModel)

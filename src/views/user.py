@@ -8,7 +8,6 @@ from pydantic import BaseModel, model_serializer
 from sanic_ext import openapi
 
 
-@openapi.component
 class UserView(BaseModel):
     user: UserModel
     profile: Optional[ProfileModel]
@@ -75,3 +74,9 @@ class UserView(BaseModel):
                                 select thorny_id from user_table
                                """,
                               discord_id, guild_id, username)
+
+
+# Define components in the OpenAPI schema
+# This can be done via a decorator, but for some reason
+# the decorator stops intellisense from working
+openapi.component(UserView)

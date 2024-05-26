@@ -10,7 +10,6 @@ from sanic_ext import openapi
 from src.database import Database
 
 
-@openapi.component
 class UserModel(BaseModel):
     thorny_id: int
     user_id: int
@@ -80,7 +79,6 @@ ShortString = Annotated[str, StringConstraints(max_length=35)]
 LongString = Annotated[str, StringConstraints(max_length=300)]
 
 
-@openapi.component
 class ProfileModel(BaseModel):
     slogan: ShortString
     aboutme: LongString
@@ -152,19 +150,16 @@ class ProfileUpdateModel(BaseModel):
     ingenuity: int = None
 
 
-@openapi.component
 class DailyPlaytime(BaseModel):
     day: NaiveDatetime
     playtime: int
 
 
-@openapi.component
 class MonthlyPlaytime(BaseModel):
     month: NaiveDatetime
     playtime: int
 
 
-@openapi.component
 class PlaytimeSummary(BaseModel):
     total: int
     session: datetime
@@ -252,3 +247,13 @@ class UserQuestModel(BaseModel):
     started_on: NaiveDatetime
     completion_count: int
     status: bool | None
+
+
+# Define components in the OpenAPI schema
+# This can be done via a decorator, but for some reason
+# the decorator stops intellisense from working
+openapi.component(UserModel)
+openapi.component(ProfileModel)
+openapi.component(DailyPlaytime)
+openapi.component(MonthlyPlaytime)
+openapi.component(PlaytimeSummary)
