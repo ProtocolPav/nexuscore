@@ -20,7 +20,7 @@ class ProjectView(BaseModel):
                                        """,
                                       project_id)
 
-        return data['project_id'] if data else None
+        return data['project_id']
 
     @classmethod
     async def build(cls, db: Database, project_id: str, user_as_object: bool = False):

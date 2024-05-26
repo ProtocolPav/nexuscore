@@ -5,7 +5,10 @@ from src.models.quest import QuestModel, RewardModel, ObjectiveModel, QuestCreat
 
 from pydantic import BaseModel, model_serializer
 
+from sanic_ext import openapi
 
+
+@openapi.component
 class QuestView(BaseModel):
     quest: QuestModel
     rewards: Optional[list[RewardModel]]
@@ -101,10 +104,33 @@ class QuestCreateView(BaseModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
-class AllQuestsSummary(BaseModel):
+class AllQuestsView(BaseModel):
     current: list[QuestView]
     past: list[QuestView]
     future: list[QuestView]
+
+    @classmethod
+    async def build(cls, db: Database) -> "AllQuestsView":
+        current_quest_ids = await db.pool.fetchrow("""
+                                                   SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids FROM quests.quest
+                                                   WHERE NOW() BETWEEN start_time AND end_time
+                                                   """)
+
+        past_quest_ids = await db.pool.fetchrow("""
+                                                SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids FROM quests.quest
+                                                WHERE end_time < NOW()
+                                                """)
+
+        future_quest_ids = await db.pool.fetchrow("""
+                                                  SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids FROM quests.quest
+                                                  WHERE start_time > NOW()
+                                                  """)
+
+        current = [await QuestView.build(db, x) for x in current_quest_ids['ids']]
+        past = [await QuestView.build(db, x) for x in past_quest_ids['ids']]
+        future = [await QuestView.build(db, x) for x in future_quest_ids['ids']]
+
+        return cls(current=current, past=past, future=future)
 
     @classmethod
     def view_schema(cls):

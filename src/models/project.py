@@ -63,7 +63,7 @@ class ProjectUpdateModel(BaseModel):
 
 @openapi.component
 class MembersModel(BaseModel):
-    members: list[Optional[Union[int, UserView]]]
+    members: Optional[list[Union[int, UserView]]]
 
     @classmethod
     async def fetch(cls, db: Database, project_id: str):
