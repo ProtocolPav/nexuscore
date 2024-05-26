@@ -9,7 +9,6 @@ from sanic_ext import openapi
 from src.database import Database
 
 
-@openapi.component
 class QuestModel(BaseModel):
     quest_id: int
     start_time: datetime
@@ -28,16 +27,28 @@ class QuestModel(BaseModel):
 
         return cls(**data)
 
+    async def update(self, db: Database):
+        await db.pool.execute("""
+                              UPDATE quests.quest
+                              SET start_time = $1,
+                                  end_time = $2,
+                                  timer = $3,
+                                  title = $4,
+                                  description = $5
+                              WHERE quest_id = $6
+                              """,
+                              self.start_time, self.end_time, self.timer,
+                              self.title, self.description, self.quest_id)
+
 
 class QuestUpdateModel(BaseModel):
-    start_time: datetime
-    end_time: datetime
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
     timer: Optional[timedelta]
-    title: str
-    description: str
+    title: Optional[str]
+    description: Optional[str]
 
 
-@openapi.component
 class ObjectiveModel(BaseModel):
     objective_id: int
     quest_id: int
@@ -70,19 +81,33 @@ class ObjectiveModel(BaseModel):
 
         return data['array_agg']
 
+    async def update(self, db: Database):
+        await db.pool.execute("""
+                              UPDATE quests.objective
+                              SET objective = $1,
+                                  objective_count = $2,
+                                  objective_type = $3,
+                                  objective_timer = $4,
+                                  required_mainhand = $5,
+                                  required_location = $6,
+                                  location_radius = $7
+                              WHERE objective_id = $8
+                              """,
+                              self.objective, self.objective_count, self.objective_type,
+                              self.objective_timer, self.required_mainhand, self.required_location,
+                              self.location_radius, self.objective_id)
+
 
 class ObjectiveUpdateModel(BaseModel):
-    objective: str
-    order: int
-    objective_count: int
-    objective_type: Literal["kill", "mine"]
+    objective: Optional[str]
+    objective_count: Optional[int]
+    objective_type: Optional[Literal["kill", "mine"]]
     objective_timer: Optional[timedelta]
     required_mainhand: Optional[str]
     required_location: Optional[tuple[int, int]]
     location_radius: Optional[int]
 
 
-@openapi.component
 class RewardModel(BaseModel):
     reward_id: int
     quest_id: int
@@ -111,6 +136,17 @@ class RewardModel(BaseModel):
 
         return data['array_agg']
 
+    async def update(self, db: Database):
+        await db.pool.execute("""
+                              UPDATE quests.reward
+                              SET objective_id = $1,
+                                  balance = $2,
+                                  item = $3,
+                                  count = $4
+                              WHERE reward_id = $5
+                              """,
+                              self.objective_id, self.balance, self.item, self.count, self.reward_id)
+
 
 class RewardUpdateModel(BaseModel):
     objective_id: Optional[int]
@@ -119,14 +155,12 @@ class RewardUpdateModel(BaseModel):
     count: Optional[int]
 
 
-@openapi.component
 class RewardCreateModel(BaseModel):
     balance: Optional[int]
     item: Optional[str]
     count: Optional[int]
 
 
-@openapi.component
 class QuestCreateModel(BaseModel):
     start_time: datetime
     end_time: datetime
@@ -136,7 +170,6 @@ class QuestCreateModel(BaseModel):
     rewards: Optional[list[RewardCreateModel]]
 
 
-@openapi.component
 class ObjectiveCreateModel(BaseModel):
     objective: str
     order: int
@@ -147,3 +180,14 @@ class ObjectiveCreateModel(BaseModel):
     required_location: Optional[tuple[int, int]]
     location_radius: Optional[int]
     rewards: Optional[list[RewardCreateModel]]
+
+
+# Define components in the OpenAPI schema
+# This can be done via a decorator, but for some reason
+# the decorator stops intellisense from working
+openapi.component(QuestModel)
+openapi.component(ObjectiveModel)
+openapi.component(RewardModel)
+openapi.component(QuestCreateModel)
+openapi.component(RewardCreateModel)
+openapi.component(ObjectiveCreateModel)
