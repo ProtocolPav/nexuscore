@@ -10,6 +10,7 @@ from src.database import Database
 from src.views.user import UserView
 
 
+@openapi.component
 class ProjectModel(BaseModel):
     project_id: str
     name: str

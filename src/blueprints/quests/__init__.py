@@ -20,6 +20,17 @@ async def create_quest(request: Request, db: Database):
     return sanic.HTTPResponse(status=201)
 
 
+@quest_blueprint.route('/', methods=['GET'])
+@openapi.response(status=200,
+                  content={'application/json': QuestView.view_schema()})
+async def get_all_quests(request: Request, db: Database):
+    view = QuestCreateView(**request.json)
+
+    await QuestView.new(db, view)
+
+    return sanic.HTTPResponse(status=201)
+
+
 @quest_blueprint.get('/<quest_id:int>')
 @openapi.response(status=200,
                   content={'application/json': QuestView.view_schema()})

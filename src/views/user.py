@@ -1,4 +1,4 @@
-from typing import Optional, Self
+from typing import Optional
 
 from src.database import Database
 from src.models.user import UserModel, ProfileModel, PlaytimeSummary
@@ -36,7 +36,7 @@ class UserView(BaseModel):
         return data['thorny_id'] if data else None
 
     @classmethod
-    async def build(cls, db: Database, thorny_id: int, bare: bool = False) -> Self:
+    async def build(cls, db: Database, thorny_id: int, bare: bool = False):
         user = await UserModel.fetch(db, thorny_id)
         if bare:
             profile = None
@@ -47,21 +47,16 @@ class UserView(BaseModel):
 
         return cls(user=user, profile=profile, playtime=playtime)
 
-    @model_serializer
-    def serialize_for_output(self):
-        user = self.user.model_dump()
-        profile = {'profile': self.profile.model_dump() if self.profile else None}
-        playtime = {'playtime': self.playtime.model_dump() if self.playtime else None}
-        return user | profile | playtime
-
     @classmethod
     def view_schema(cls, bare: bool = False):
         if bare:
-            class Schema(UserModel):
+            class Schema(BaseModel):
+                user: UserModel
                 profile: Optional[ProfileModel] = None
                 playtime: Optional[PlaytimeSummary] = None
         else:
-            class Schema(UserModel):
+            class Schema(BaseModel):
+                user: UserModel
                 profile: Optional[ProfileModel]
                 playtime: Optional[PlaytimeSummary]
 

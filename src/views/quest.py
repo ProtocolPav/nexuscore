@@ -1,4 +1,4 @@
-from typing import Optional, Self
+from typing import Optional
 
 from src.database import Database
 from src.models.quest import QuestModel, RewardModel, ObjectiveModel, QuestCreateModel, ObjectiveCreateModel
@@ -29,21 +29,9 @@ class QuestView(BaseModel):
 
         return cls(quest=quest, rewards=rewards, objectives=objectives)
 
-    @model_serializer
-    def serialize_for_output(self):
-        quest = self.quest.model_dump()
-        rewards = {'rewards': [r.model_dump() for r in self.rewards] if self.rewards else None}
-        objectives = {'objectives': [o.model_dump() for o in self.objectives] if self.objectives else None}
-
-        return quest | rewards | objectives
-
     @classmethod
     def view_schema(cls):
-        class Schema(QuestModel):
-            rewards: list[RewardModel]
-            objectives: list[ObjectiveModel]
-
-        return Schema.model_json_schema(ref_template="#/components/schemas/{model}")
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
     @classmethod
     async def new(cls, db: Database, create_view: "QuestCreateView"):
@@ -107,6 +95,16 @@ class QuestView(BaseModel):
 class QuestCreateView(BaseModel):
     quest: QuestCreateModel
     objectives: Optional[list[ObjectiveCreateModel]]
+
+    @classmethod
+    def view_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
+class AllQuestsSummary(BaseModel):
+    current: list[QuestView]
+    past: list[QuestView]
+    future: list[QuestView]
 
     @classmethod
     def view_schema(cls):

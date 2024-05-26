@@ -18,5 +18,13 @@ class GuildModel(BaseModel):
     active: bool
 
 
-class GuildFeatures(BaseModel):
-    ...
+class FeatureModel(BaseModel):
+    feature: str
+    display_name: str
+    description: str
+    configured: bool
+
+
+class ChannelModel(BaseModel):
+    channel_type: str
+    channel_id: int

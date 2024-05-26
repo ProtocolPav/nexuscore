@@ -1,5 +1,3 @@
-from typing import Self
-
 from src.database import Database
 from src.models.project import ProjectModel, StatusModel, MembersModel, ContentModel, ProjectUpdateModel
 
@@ -25,7 +23,7 @@ class ProjectView(BaseModel):
         return data['project_id'] if data else None
 
     @classmethod
-    async def build(cls, db: Database, project_id: str, user_as_object: bool = False) -> Self:
+    async def build(cls, db: Database, project_id: str, user_as_object: bool = False):
         project = await ProjectModel.fetch(db, project_id)
         member_list = await MembersModel.fetch(db, project_id)
         status = await StatusModel.fetch(db, project_id)
@@ -33,20 +31,9 @@ class ProjectView(BaseModel):
 
         return cls(project=project, members=member_list, status=status, content=content)
 
-    @model_serializer
-    def serialize_for_output(self):
-        project = self.project.model_dump()
-        members = self.members.model_dump()
-        status = self.status.model_dump()
-        content = self.content.model_dump()
-        return project | members | status | content
-
     @classmethod
     def view_schema(cls):
-        class Schema(ProjectModel, MembersModel, StatusModel, ContentModel):
-            pass
-
-        return Schema.model_json_schema(ref_template="#/components/schemas/{model}")
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
     @classmethod
     async def new(cls, db: Database, model: ProjectUpdateModel):
