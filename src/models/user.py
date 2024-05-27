@@ -1,6 +1,7 @@
 from datetime import datetime, date
+from typing import Literal
 
-from pydantic import NaiveDatetime, StringConstraints, BaseModel
+from pydantic import StringConstraints, BaseModel
 from typing_extensions import Annotated, Optional
 
 import json
@@ -24,7 +25,7 @@ class UserModel(BaseModel):
     level: int
     xp: int
     required_xp: int
-    last_message: NaiveDatetime
+    last_message: datetime
     gamertag: Optional[str]
     whitelist: Optional[str]
 
@@ -70,7 +71,7 @@ class UserUpdateModel(BaseModel):
     level: int = None
     xp: int = None
     required_xp: int = None
-    last_message: NaiveDatetime = None
+    last_message: datetime = None
     gamertag: Optional[str] = None
     whitelist: Optional[str] = None
 
@@ -249,19 +250,107 @@ class PlaytimeSummary(BaseModel):
         return cls(**processed_dict)
 
 
-class ServerEventsReport(BaseModel):
-    total_placed: int
-    total_broken: int
-    total_kills: int
-    total_player_kills: int
-
-
 class UserQuestModel(BaseModel):
     quest_id: int
-    accepted_on: NaiveDatetime
-    started_on: NaiveDatetime
-    completion_count: int
-    status: bool | None
+    accepted_on: datetime
+    started_on: Optional[datetime]
+    objectives_completed: int
+    status: Literal['in_progress', 'completed', 'failed']
+
+    @classmethod
+    async def fetch(cls, db: Database, thorny_id: int, quest_id: int):
+        data = await db.pool.fetchrow("""
+                                      SELECT * from users.quests
+                                      WHERE thorny_id = $1 AND quest_id = $2
+                                      """,
+                                      thorny_id, quest_id)
+
+        return cls(**data)
+
+    @classmethod
+    async def get_active_quest(cls, db: Database, thorny_id: int):
+        data = await db.pool.fetchrow("""
+                                      SELECT quest_id from users.quests
+                                      WHERE thorny_id = $1
+                                      AND status = 'in_progress'
+                                      """,
+                                      thorny_id)
+
+        return data['quest_id'] if data else None
+
+    async def update(self, db: Database, thorny_id: int):
+        await db.pool.execute("""
+                               UPDATE users.quests
+                               SET accepted_on = $1,
+                                   started_on = $2,
+                                   objectives_completed = $3,
+                                   status = $4
+                               WHERE thorny_id = $5
+                               AND quest_id = $6
+                               """,
+                              self.accepted_on, self.started_on, self.objectives_completed,
+                              self.status, thorny_id, self.quest_id)
+
+
+class UserQuestUpdateModel(BaseModel):
+    accepted_on: Optional[datetime]
+    started_on: Optional[datetime]
+    objectives_completed: Optional[int]
+    status: Optional[Literal['in_progress', 'completed', 'failed']]
+
+
+class UserObjectiveModel(BaseModel):
+    quest_id: int
+    objective_id: int
+    start: datetime
+    end: Optional[datetime]
+    completion: int
+    status: str
+
+    @classmethod
+    async def fetch(cls, db: Database, thorny_id: int, quest_id: int, objective_id: int):
+        data = await db.pool.fetchrow("""
+                                      SELECT * from users.objectives
+                                      WHERE thorny_id = $1
+                                      AND quest_id = $2
+                                      AND objective_id = $3
+                                      """,
+                                      thorny_id, quest_id, objective_id)
+
+        return cls(**data)
+
+    @classmethod
+    async def get_all_objectives(cls, db: Database, thorny_id: int, quest_id: int):
+        data = await db.pool.fetchrow("""
+                                      SELECT COALESCE(ARRAY_AGG(objective_id), ARRAY[]::INTEGER[]) AS ids
+                                      FROM users.objectives
+                                      WHERE thorny_id = $1
+                                      AND quest_id = $2
+                                      """,
+                                      thorny_id, quest_id)
+
+        return data['ids']
+
+    async def update(self, db: Database, thorny_id: int):
+        await db.pool.execute("""
+                               UPDATE users.objectives
+                               SET start = $1,
+                                   end = $2,
+                                   completion = $3,
+                                   status = $4
+                               WHERE thorny_id = $5
+                               AND quest_id = $6
+                               AND objective_id = $7
+                               """,
+                              self.accepted_on, self.started_on, self.objectives_completed,
+                              self.status, thorny_id, self.quest_id, self.objective_id)
+
+
+class UserObjectiveUpdateModel(BaseModel):
+    start: Optional[datetime]
+    end: Optional[datetime]
+    completion: Optional[int]
+    status: Optional[str]
 
 
 # Define components in the OpenAPI schema

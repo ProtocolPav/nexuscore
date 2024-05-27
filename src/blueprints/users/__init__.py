@@ -7,7 +7,7 @@ from sanic_ext import openapi
 
 from src.database import Database
 from src.models import user
-from src.views.user import UserView
+from src.views.user import UserView, UserQuestView
 
 user_blueprint = Blueprint("user_routes", url_prefix='/users')
 
@@ -193,3 +193,56 @@ async def user_discord_id(request: Request, db: Database, guild_id: int, discord
     user_view = await UserView.build(db, thorny_id)
 
     return sanic.json(user_view.model_dump(), default=str)
+
+
+@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/active', methods=['GET'])
+@openapi.response(status=200,
+                  content={'application/json': UserQuestView.view_schema()},
+                  description='Success')
+@openapi.response(status=404, description='Error')
+async def active_quest(request: Request, db: Database, thorny_id: int):
+    """
+    Get User's Active Quest
+
+    This returns a User Quest object
+    """
+    quest_id = await user.UserQuestModel.get_active_quest(db, thorny_id)
+
+    if quest_id:
+        quest_view = await UserQuestView.build(db, thorny_id, quest_id)
+    else:
+        quest_view = UserQuestView(**{'quest': None, 'objectives': None})
+
+    return sanic.json(quest_view.model_dump(), default=str)
+
+
+@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/active', methods=['DELETE'])
+@openapi.response(status=204, description='Success')
+@openapi.response(status=404, description='Error')
+async def fail_active_quest(request: Request, db: Database, thorny_id: int):
+    """
+    Fail User's Active Quest
+
+    This marks the active quest and all of its objectives as "failed".
+    Calling GET ACTIVE QUEST after this will return null.
+    """
+    quest_id = await user.UserQuestModel.get_active_quest(db, thorny_id)
+
+    await UserQuestView.mark_failed(db, thorny_id, quest_id)
+
+    return sanic.HTTPResponse(status=204)
+
+
+@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/<quest_id:int>', methods=['POST'])
+@openapi.response(status=201, description='Success')
+@openapi.response(status=404, description='Error')
+async def new_active_quest(request: Request, db: Database, thorny_id: int, quest_id: int):
+    """
+    Add Quest to User's Active Quests
+
+    Note, this doesn't check if a user already has an active quest.
+    It is recommended to check yourself beforehand.
+    """
+    await UserQuestView.new(db, thorny_id, quest_id)
+
+    return sanic.HTTPResponse(status=201)
