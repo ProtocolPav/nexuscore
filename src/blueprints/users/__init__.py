@@ -246,3 +246,55 @@ async def new_active_quest(request: Request, db: Database, thorny_id: int, quest
     await UserQuestView.new(db, thorny_id, quest_id)
 
     return sanic.HTTPResponse(status=201)
+
+
+@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/<quest_id:int>', methods=['PATCH'])
+@openapi.body(content={'application/json': user.UserQuestUpdateModel.model_json_schema()})
+@openapi.response(status=200,
+                  content={'application/json': user.UserQuestModel.model_json_schema()},
+                  description='Success')
+@openapi.response(status=404, description='Error')
+async def update_quest(request: Request, db: Database, thorny_id: int, quest_id: int):
+    """
+    Update Specific User's Quest
+
+    Updates a user's quest. Note this does not update objectives, that is separate.
+    """
+    model: user.UserQuestModel = await user.UserQuestModel.fetch(db, thorny_id, quest_id)
+    update_dict = {}
+
+    for k, v in user.UserQuestUpdateModel(**request.json).model_dump().items():
+        if v:
+            update_dict[k] = v
+
+    model = model.model_copy(update=update_dict)
+
+    await model.update(db, thorny_id)
+
+    return sanic.json(model.model_dump(), default=str)
+
+
+@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/<quest_id:int>/<objective_id:int>', methods=['PATCH'])
+@openapi.body(content={'application/json': user.UserObjectiveUpdateModel.model_json_schema()})
+@openapi.response(status=200,
+                  content={'application/json': user.UserObjectiveModel.model_json_schema()},
+                  description='Success')
+@openapi.response(status=404, description='Error')
+async def update_objective(request: Request, db: Database, thorny_id: int, quest_id: int, objective_id: int):
+    """
+    Update Specific User's Quest Objective
+
+    Updates a user's quest objective.
+    """
+    model: user.UserObjectiveModel = await user.UserObjectiveModel.fetch(db, thorny_id, quest_id, objective_id)
+    update_dict = {}
+
+    for k, v in user.UserObjectiveUpdateModel(**request.json).model_dump().items():
+        if v:
+            update_dict[k] = v
+
+    model = model.model_copy(update=update_dict)
+
+    await model.update(db, thorny_id)
+
+    return sanic.json(model.model_dump(), default=str)

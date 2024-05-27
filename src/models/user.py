@@ -293,10 +293,10 @@ class UserQuestModel(BaseModel):
 
 
 class UserQuestUpdateModel(BaseModel):
-    accepted_on: Optional[datetime]
-    started_on: Optional[datetime]
-    objectives_completed: Optional[int]
-    status: Optional[Literal['in_progress', 'completed', 'failed']]
+    accepted_on: Optional[datetime] = None
+    started_on: Optional[datetime] = None
+    objectives_completed: Optional[int] = None
+    status: Optional[Literal['completed']] = None
 
 
 class UserObjectiveModel(BaseModel):
@@ -305,7 +305,7 @@ class UserObjectiveModel(BaseModel):
     start: datetime
     end: Optional[datetime]
     completion: int
-    status: str
+    status: Literal['in_progress', 'completed', 'failed']
 
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int, quest_id: int, objective_id: int):
@@ -334,23 +334,23 @@ class UserObjectiveModel(BaseModel):
     async def update(self, db: Database, thorny_id: int):
         await db.pool.execute("""
                                UPDATE users.objectives
-                               SET start = $1,
-                                   end = $2,
-                                   completion = $3,
-                                   status = $4
+                               SET "start" = $1,
+                                   "end" = $2,
+                                   "completion" = $3,
+                                   "status" = $4
                                WHERE thorny_id = $5
                                AND quest_id = $6
                                AND objective_id = $7
                                """,
-                              self.accepted_on, self.started_on, self.objectives_completed,
+                              self.start, self.end, self.completion,
                               self.status, thorny_id, self.quest_id, self.objective_id)
 
 
 class UserObjectiveUpdateModel(BaseModel):
-    start: Optional[datetime]
-    end: Optional[datetime]
-    completion: Optional[int]
-    status: Optional[str]
+    start: Optional[datetime] = None
+    end: Optional[datetime] = None
+    completion: Optional[int] = None
+    status: Optional[Literal['completed', 'failed']] = None
 
 
 # Define components in the OpenAPI schema
