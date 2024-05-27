@@ -50,14 +50,14 @@ class ProjectModel(BaseModel):
 
 
 class ProjectUpdateModel(BaseModel):
-    name: str = None
-    description: str = None
-    coordinates_x: int = None
-    coordinates_y: int = None
-    coordinates_z: int = None
-    thread_id: Optional[int] = None
-    completed_on: Optional[date] = None
-    owner_id: int = None
+    name: Optional[str]
+    description: Optional[str]
+    coordinates_x: Optional[int]
+    coordinates_y: Optional[int]
+    coordinates_z: Optional[int]
+    thread_id: Optional[int]
+    completed_on: Optional[date]
+    owner_id: Optional[int]
 
 
 class MembersModel(BaseModel):

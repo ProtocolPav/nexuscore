@@ -62,18 +62,18 @@ class UserModel(BaseModel):
 
 
 class UserUpdateModel(BaseModel):
-    username: Optional[str] = None
-    birthday: Optional[date] = None
-    balance: int = None
-    active: bool = None
-    role: str = None
-    patron: bool = None
-    level: int = None
-    xp: int = None
-    required_xp: int = None
-    last_message: datetime = None
-    gamertag: Optional[str] = None
-    whitelist: Optional[str] = None
+    username: Optional[str]
+    birthday: Optional[date]
+    balance: Optional[int]
+    active: Optional[bool]
+    role: Optional[str]
+    patron: Optional[bool]
+    level: Optional[int]
+    xp: Optional[int]
+    required_xp: Optional[int]
+    last_message: Optional[datetime]
+    gamertag: Optional[str]
+    whitelist: Optional[str]
 
 
 ShortString = Annotated[str, StringConstraints(max_length=35)]
@@ -134,21 +134,21 @@ class ProfileModel(BaseModel):
 
 
 class ProfileUpdateModel(BaseModel):
-    slogan: ShortString = None
-    aboutme: LongString = None
-    lore: LongString = None
-    character_name: ShortString = None
-    character_age: Optional[int] = None
-    character_race: ShortString = None
-    character_role: ShortString = None
-    character_origin: ShortString = None
-    character_beliefs: ShortString = None
-    agility: int = None
-    valor: int = None
-    strength: int = None
-    charisma: int = None
-    creativity: int = None
-    ingenuity: int = None
+    slogan: Optional[ShortString]
+    aboutme: Optional[LongString]
+    lore: Optional[LongString]
+    character_name: Optional[ShortString]
+    character_age: Optional[int]
+    character_race: Optional[ShortString]
+    character_role: Optional[ShortString]
+    character_origin: Optional[ShortString]
+    character_beliefs: Optional[ShortString]
+    agility: Optional[int]
+    valor: Optional[int]
+    strength: Optional[int]
+    charisma: Optional[int]
+    creativity: Optional[int]
+    ingenuity: Optional[int]
 
 
 class DailyPlaytime(BaseModel):
@@ -293,10 +293,10 @@ class UserQuestModel(BaseModel):
 
 
 class UserQuestUpdateModel(BaseModel):
-    accepted_on: Optional[datetime] = None
-    started_on: Optional[datetime] = None
-    objectives_completed: Optional[int] = None
-    status: Optional[Literal['completed']] = None
+    accepted_on: Optional[datetime]
+    started_on: Optional[datetime]
+    objectives_completed: Optional[int]
+    status: Optional[Literal['completed']]
 
 
 class UserObjectiveModel(BaseModel):
@@ -347,10 +347,10 @@ class UserObjectiveModel(BaseModel):
 
 
 class UserObjectiveUpdateModel(BaseModel):
-    start: Optional[datetime] = None
-    end: Optional[datetime] = None
-    completion: Optional[int] = None
-    status: Optional[Literal['completed', 'failed']] = None
+    start: Optional[datetime]
+    end: Optional[datetime]
+    completion: Optional[int]
+    status: Optional[Literal['completed', 'failed']]
 
 
 # Define components in the OpenAPI schema
@@ -361,3 +361,5 @@ openapi.component(ProfileModel)
 openapi.component(DailyPlaytime)
 openapi.component(MonthlyPlaytime)
 openapi.component(PlaytimeSummary)
+openapi.component(UserQuestModel)
+openapi.component(UserObjectiveModel)
