@@ -49,6 +49,23 @@ class InteractionModel(BaseModel):
     time: datetime
     dimension: InteractionRef
 
+    @classmethod
+    async def new(cls, db: Database, model: "InteractionCreateModel"):
+        await db.pool.execute("""
+                              INSERT INTO events.interactions(thorny_id,
+                                                              type,
+                                                              position_x, 
+                                                              position_y,
+                                                              position_z,
+                                                              reference,
+                                                              mainhand,
+                                                              time,
+                                                              dimension)
+                              VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                              """,
+                              model.thorny_id, model.type, model.position_x, model.position_y,
+                              model.position_z, model.reference, model.mainhand, model.time, model.dimension)
+
 
 class InteractionCreateModel(BaseModel):
     thorny_id: int
