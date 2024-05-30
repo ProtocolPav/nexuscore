@@ -153,16 +153,16 @@ class ProfileUpdateModel(BaseModel):
 
 class DailyPlaytime(BaseModel):
     day: date
-    playtime: int
+    playtime: float
 
 
 class MonthlyPlaytime(BaseModel):
     month: date
-    playtime: int
+    playtime: float
 
 
 class PlaytimeSummary(BaseModel):
-    total: int
+    total: float
     session: Optional[datetime]
     daily: list[DailyPlaytime]
     monthly: list[MonthlyPlaytime]
@@ -170,14 +170,30 @@ class PlaytimeSummary(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int):
         data = await db.pool.fetchrow("""
-                WITH daily_playtime AS (
+                WITH playtime_table AS (
+                    SELECT connect.connection_id AS connect_event_id,
+                        connect.time AS connect_time,
+                        MIN(disconnect.connection_id) AS disconnect_event_id,
+                        MIN(disconnect.time) AS disconnect_time,
+                        MIN(disconnect.time) - connect.time AS playtime,
+                        connect.thorny_id
+                    FROM 
+                        events.connections connect
+                    LEFT JOIN 
+                        events.connections disconnect ON connect.time < disconnect.time AND disconnect.type = 'disconnect'
+                    WHERE 
+                        connect.type = 'connect'
+                    GROUP BY 
+                        connect.connection_id, connect.time, connect.thorny_id
+                ),
+                daily_playtime AS (
                     SELECT t.day, SUM(t.playtime) AS playtime
                     FROM (
                         SELECT SUM(playtime) AS playtime, 
                                DATE(connect_time) AS day
-                        FROM thorny.playtime
-                        INNER JOIN thorny.user ON thorny.playtime.thorny_user_id = thorny.user.thorny_user_id 
-                        WHERE thorny.playtime.thorny_user_id = $1
+                        FROM playtime_table
+                        INNER JOIN users.user ON playtime_table.thorny_id = users.user.thorny_id 
+                        WHERE playtime_table.thorny_id = $1
                         GROUP BY day
                     ) AS t
                     GROUP BY t.day
@@ -186,15 +202,16 @@ class PlaytimeSummary(BaseModel):
                 ),
                 total_playtime AS (
                     SELECT SUM(EXTRACT(EPOCH FROM playtime)) AS total_playtime
-                    FROM thorny.playtime
-                    WHERE thorny_user_id = $1
-                    GROUP BY thorny_user_id
+                    FROM playtime_table
+                    WHERE thorny_id = $1
+                    GROUP BY thorny_id
                 ),
                 session AS (
                     SELECT connect_time as session
-                    FROM thorny.playtime
-                    WHERE thorny_user_id = $1
-                    GROUP BY thorny_user_id, connect_time
+                    FROM playtime_table
+                    WHERE thorny_id = $1
+                    AND disconnect_time IS NULL
+                    GROUP BY thorny_id, connect_time
                     order by connect_time DESC
                     limit 1
                 ),
@@ -204,9 +221,9 @@ class PlaytimeSummary(BaseModel):
                         SELECT SUM(playtime) AS playtime, 
                                LPAD(extract(month from connect_time)::text, 2, '0') AS month, 
                                DATE_PART('year', connect_time) AS year
-                        FROM thorny.playtime
-                        INNER JOIN thorny.user ON thorny.playtime.thorny_user_id = thorny.user.thorny_user_id 
-                        WHERE thorny.playtime.thorny_user_id = $1
+                        FROM playtime_table
+                        INNER JOIN users.user ON playtime_table.thorny_id = users.user.thorny_id 
+                        WHERE playtime_table.thorny_id = $1
                         GROUP BY year, month
                     ) AS t
                     GROUP BY t.year, t.month
@@ -217,7 +234,8 @@ class PlaytimeSummary(BaseModel):
                     $1 AS thorny_id,
                     COALESCE(
                         (
-                         SELECT JSON_AGG(JSON_BUILD_OBJECT('day', wp.day, 'playtime', EXTRACT(EPOCH FROM wp.playtime)))
+                         SELECT JSON_AGG(JSON_BUILD_OBJECT('day', wp.day,
+                                                           'playtime', COALESCE(EXTRACT(EPOCH FROM wp.playtime), 0)))
                          FROM daily_playtime wp
                          ),
                          '[]'::json
@@ -233,7 +251,8 @@ class PlaytimeSummary(BaseModel):
                         FROM session) AS session,
                     COALESCE(
                         (
-                         SELECT JSON_AGG(JSON_BUILD_OBJECT('month', mp.month, 'playtime', EXTRACT(EPOCH FROM mp.playtime)))
+                         SELECT JSON_AGG(JSON_BUILD_OBJECT('month', mp.month,
+                                                           'playtime', COALESCE(EXTRACT(EPOCH FROM mp.playtime), 0)))
                          FROM monthly_playtime mp
                          ),
                          '[]'::json
