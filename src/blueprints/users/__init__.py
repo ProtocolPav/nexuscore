@@ -69,8 +69,7 @@ async def update_thorny_id(request: Request, db: Database, thorny_id: int):
     This updates a user. You can omit the fields that you do not want to update.
 
     Note: ThornyID, UserID, GuildID and Join Date will not update even if specified.
-    Note: Balance updates will trigger a `Transaction` Event. It is preferred to use the `/balance`
-    route to be able to enter comments, otherwise, a default comment will be generated to the `Transaction`.
+    Note: If you want to log transaction events, update the balance and then log it separately
     """
     model: user.UserModel = await user.UserModel.fetch(db, thorny_id)
     update_dict = {}
@@ -84,20 +83,6 @@ async def update_thorny_id(request: Request, db: Database, thorny_id: int):
     await model.update(db)
 
     return sanic.json(model.model_dump(), default=str)
-
-
-@user_blueprint.route('/thorny-id/<thorny_id:int>/balance', methods=['PATCH'])
-@openapi.definition(body={'application/json': {'balance': int, 'comment': str}})
-@openapi.response(status=501, description='Not Implemented')
-async def update_balance(request: Request, thorny_id: int):
-    """
-    Update User Balance
-
-    This updates the user's balance. If you do not include a comment,
-    one will be auto-generated for you. This operation gets logged as a
-    Transaction.
-    """
-    return sanic.HTTPResponse(status=501)
 
 
 @user_blueprint.route('/thorny-id/<thorny_id:int>/profile', methods=['GET'])

@@ -32,9 +32,7 @@ class ConnectionCreateModel(BaseModel):
 
 
 # Either: minecraft:your_id_name
-# Or: player:Player Gamertag Here
 InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_]+$')]
-PlayerRef = Annotated[str, StringConstraints(pattern='player:.+')]
 
 
 class InteractionModel(BaseModel):
@@ -44,7 +42,7 @@ class InteractionModel(BaseModel):
     position_x: int
     position_y: int
     position_z: int
-    reference: InteractionRef | PlayerRef
+    reference: str
     mainhand: Optional[InteractionRef]
     time: datetime
     dimension: InteractionRef
@@ -73,7 +71,7 @@ class InteractionCreateModel(BaseModel):
     position_x: int
     position_y: int
     position_z: int
-    reference: InteractionRef | PlayerRef
+    reference: str
     mainhand: Optional[InteractionRef]
     time: datetime
     dimension: InteractionRef
