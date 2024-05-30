@@ -1,6 +1,6 @@
 import sanic
-from pydantic import BaseModel
-from typing import Optional, Literal, Union
+from pydantic import BaseModel, StringConstraints
+from typing import Annotated, Optional, Literal, Union
 
 from datetime import date, datetime, timedelta
 
@@ -49,15 +49,19 @@ class QuestUpdateModel(BaseModel):
     description: Optional[str]
 
 
+# minecraft:your_id_name
+InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_]+$')]
+
+
 class ObjectiveModel(BaseModel):
     objective_id: int
     quest_id: int
-    objective: str
+    objective: InteractionRef
     order: int
     objective_count: int
     objective_type: Literal["kill", "mine"]
     objective_timer: Optional[timedelta]
-    required_mainhand: Optional[str]
+    required_mainhand: Optional[InteractionRef]
     required_location: Optional[tuple[int, int]]
     location_radius: Optional[int]
 
@@ -99,11 +103,11 @@ class ObjectiveModel(BaseModel):
 
 
 class ObjectiveUpdateModel(BaseModel):
-    objective: Optional[str]
+    objective: Optional[InteractionRef]
     objective_count: Optional[int]
     objective_type: Optional[Literal["kill", "mine"]]
     objective_timer: Optional[timedelta]
-    required_mainhand: Optional[str]
+    required_mainhand: Optional[InteractionRef]
     required_location: Optional[tuple[int, int]]
     location_radius: Optional[int]
 
@@ -113,7 +117,7 @@ class RewardModel(BaseModel):
     quest_id: int
     objective_id: Optional[int]
     balance: Optional[int]
-    item: Optional[str]
+    item: Optional[InteractionRef]
     count: Optional[int]
 
     @classmethod
@@ -151,13 +155,13 @@ class RewardModel(BaseModel):
 class RewardUpdateModel(BaseModel):
     objective_id: Optional[int]
     balance: Optional[int]
-    item: Optional[str]
+    item: Optional[InteractionRef]
     count: Optional[int]
 
 
 class RewardCreateModel(BaseModel):
     balance: Optional[int]
-    item: Optional[str]
+    item: Optional[InteractionRef]
     count: Optional[int]
 
 
@@ -171,12 +175,12 @@ class QuestCreateModel(BaseModel):
 
 
 class ObjectiveCreateModel(BaseModel):
-    objective: str
+    objective: InteractionRef
     order: int
     objective_count: int
     objective_type: Literal["kill", "mine"]
     objective_timer: Optional[timedelta]
-    required_mainhand: Optional[str]
+    required_mainhand: Optional[InteractionRef]
     required_location: Optional[tuple[int, int]]
     location_radius: Optional[int]
     rewards: Optional[list[RewardCreateModel]]
