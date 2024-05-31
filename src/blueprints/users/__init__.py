@@ -142,6 +142,23 @@ async def get_playtime(request: Request, db: Database, thorny_id: int):
     return sanic.json(playtime_summary.model_dump(), default=str)
 
 
+@user_blueprint.route('/thorny-id/<thorny_id:int>/interactions', methods=['GET'])
+@openapi.response(status=200,
+                  content={
+                      'application/json': user.InteractionSummary.model_json_schema(ref_template="#/components/schemas/{model}")},
+                  description='Success')
+async def get_interactions(request: Request, db: Database, thorny_id: int):
+    """
+    Get User Interactions
+
+    This returns only the user's interactions summary. Note, this is very expensive and must
+    only be called when needed.
+    """
+    summary = await user.InteractionSummary.fetch(db, thorny_id)
+
+    return sanic.json(summary.model_dump(), default=str)
+
+
 @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
 @openapi.response(status=200,
                   content={'application/json': UserView.view_schema()},
