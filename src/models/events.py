@@ -16,14 +16,15 @@ class ConnectionModel(BaseModel):
     time: datetime
     type: Literal["connect", "disconnect"]
     thorny_id: int
+    ignored: bool
 
     @classmethod
-    async def new(cls, db: Database, model: "ConnectionCreateModel"):
+    async def new(cls, db: Database, model: "ConnectionCreateModel", ignore: bool = False):
         await db.pool.execute("""
-                              INSERT INTO events.connections(type, thorny_id)
-                              VALUES($1, $2)
+                              INSERT INTO events.connections(type, thorny_id, ignored)
+                              VALUES($1, $2, $3)
                               """,
-                              model.type, model.thorny_id)
+                              model.type, model.thorny_id, ignore)
 
 
 class ConnectionCreateModel(BaseModel):

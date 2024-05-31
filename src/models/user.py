@@ -171,20 +171,33 @@ class PlaytimeSummary(BaseModel):
     async def fetch(cls, db: Database, thorny_id: int):
         data = await db.pool.fetchrow("""
                 WITH playtime_table AS (
-                    SELECT connect.connection_id AS connect_event_id,
+                    SELECT 
+                        connect.connection_id AS connect_event_id,
                         connect.time AS connect_time,
-                        MIN(disconnect.connection_id) AS disconnect_event_id,
-                        MIN(disconnect.time) AS disconnect_time,
-                        MIN(disconnect.time) - connect.time AS playtime,
+                        disconnect.connection_id AS disconnect_event_id,
+                        disconnect.time AS disconnect_time,
+                        disconnect.time - connect.time AS playtime,
                         connect.thorny_id
                     FROM 
                         events.connections connect
                     LEFT JOIN 
-                        events.connections disconnect ON connect.time < disconnect.time AND disconnect.type = 'disconnect'
+                        events.connections disconnect 
+                        ON connect.thorny_id = disconnect.thorny_id 
+                        AND disconnect.type = 'disconnect' 
+                        AND disconnect.ignored = false 
+                        AND disconnect.time = (
+                            SELECT MIN(d.time) 
+                            FROM events.connections d 
+                            WHERE d.type = 'disconnect' 
+                            AND d.ignored = false 
+                            AND d.thorny_id = connect.thorny_id 
+                            AND d.time > connect.time
+                        )
                     WHERE 
                         connect.type = 'connect'
-                    GROUP BY 
-                        connect.connection_id, connect.time, connect.thorny_id
+                        AND connect.ignored = false
+                    ORDER BY 
+                        connect.time
                 ),
                 daily_playtime AS (
                     SELECT t.day, SUM(t.playtime) AS playtime

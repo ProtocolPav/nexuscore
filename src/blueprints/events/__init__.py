@@ -22,6 +22,7 @@ async def connect_event(request: Request, db: Database):
     elif model.type == 'disconnect' and user_playtime.session:
         await events.ConnectionModel.new(db, model)
     else:
+        await events.ConnectionModel.new(db, model, ignore=True)
         return sanic.HTTPResponse(status=400)
 
     return sanic.HTTPResponse(status=201)
