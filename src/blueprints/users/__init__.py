@@ -75,7 +75,7 @@ async def update_thorny_id(request: Request, db: Database, thorny_id: int):
     update_dict = {}
 
     for k, v in user.UserUpdateModel(**request.json).model_dump().items():
-        if v:
+        if v is not None:
             update_dict[k] = v
 
     model = model.model_copy(update=update_dict)
@@ -116,7 +116,7 @@ async def update_profile(request: Request, db: Database, thorny_id: int):
     update_dict = {}
 
     for k, v in user.ProfileUpdateModel(**request.json).model_dump().items():
-        if v:
+        if v is not None:
             update_dict[k] = v
 
     model = model.model_copy(update=update_dict)
@@ -266,7 +266,7 @@ async def update_quest(request: Request, db: Database, thorny_id: int, quest_id:
     update_dict = {}
 
     for k, v in user.UserQuestUpdateModel(**request.json).model_dump().items():
-        if v:
+        if v is not None:
             update_dict[k] = v
 
     model = model.model_copy(update=update_dict)
@@ -292,7 +292,7 @@ async def update_objective(request: Request, db: Database, thorny_id: int, quest
     update_dict = {}
 
     for k, v in user.UserObjectiveUpdateModel(**request.json).model_dump().items():
-        if v:
+        if v is not None:
             update_dict[k] = v
 
     model = model.model_copy(update=update_dict)

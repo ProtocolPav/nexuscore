@@ -54,7 +54,7 @@ async def update_quest(request: Request, db: Database, quest_id: int):
     update_dict = {}
 
     for k, v in quest.QuestUpdateModel(**request.json).model_dump().items():
-        if v:
+        if v is not None:
             update_dict[k] = v
 
     model = model.model_copy(update=update_dict)
@@ -73,7 +73,7 @@ async def update_reward(request: Request, db: Database, reward_id: int):
     update_dict = {}
 
     for k, v in quest.RewardUpdateModel(**request.json).model_dump().items():
-        if v:
+        if v is not None:
             update_dict[k] = v
 
     model = model.model_copy(update=update_dict)
@@ -92,7 +92,7 @@ async def update_objective(request: Request, db: Database, objective_id: int):
     update_dict = {}
 
     for k, v in quest.ObjectiveUpdateModel(**request.json).model_dump().items():
-        if v:
+        if v is not None:
             update_dict[k] = v
 
     model = model.model_copy(update=update_dict)

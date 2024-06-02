@@ -15,4 +15,6 @@ class Database:
                                      password=config['database']['password'],
                                      host=config['database']['host'],
                                      port=5432,
+                                     min_size=1,
+                                     max_size=10,
                                      loop=None))

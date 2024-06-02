@@ -84,7 +84,7 @@ async def update_project(request: Request, db: Database, project_id: str):
     update_dict = {}
 
     for k, v in project.ProjectUpdateModel(**request.json).model_dump().items():
-        if v:
+        if v is not None:
             update_dict[k] = v
 
     model = model.model_copy(update=update_dict)
