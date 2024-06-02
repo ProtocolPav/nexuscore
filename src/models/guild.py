@@ -224,3 +224,15 @@ class GuildPlaytimeAnalysis(BaseModel):
                           }
 
         return cls(**processed_dict)
+
+    @classmethod
+    def view_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
+openapi.component(MonthlyPlaytime)
+openapi.component(DailyPlaytime)
+openapi.component(WeeklyPlaytime)
+openapi.component(GuildModel)
+openapi.component(FeatureModel)
+openapi.component(ChannelModel)

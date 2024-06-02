@@ -1,8 +1,6 @@
 from asyncpg import Pool, create_pool
 import json
 
-from pydantic import BaseModel
-
 
 class Database:
     def __init__(self, pool: Pool):

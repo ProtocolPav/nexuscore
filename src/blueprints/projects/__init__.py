@@ -54,7 +54,6 @@ async def get_all_projects(request: Request):
 @openapi.response(status=200,
                   description='Return Project',
                   content={'application/json': ProjectView.view_schema()})
-@openapi.parameter('users-as-object', bool)
 async def get_project(request: Request, db: Database, project_id: str):
     """
     Get Project
