@@ -1,5 +1,4 @@
-import json
-from datetime import datetime
+from datetime import  date
 
 from sanic import Blueprint, Request
 import sanic
@@ -66,3 +65,17 @@ async def get_guild_playtime(request: Request, db: Database, guild_id: int):
     guild_analysis = await guild.GuildPlaytimeAnalysis.fetch(db, guild_id)
 
     return sanic.json(guild_analysis.model_dump(), default=str)
+
+
+@guild_blueprint.route('/<guild_id:int>/leaderboard/playtime/<month:ymd>', methods=['GET'])
+@openapi.response(status=200,
+                  content={'application/json': guild.GuildPlaytimeAnalysis.view_schema()},
+                  description='Success')
+@openapi.response(status=404, description='Error')
+async def get_playtime_leaderboard(request: Request, db: Database, guild_id: int, month: date):
+    """
+    Get Guild Playtime Leaderboard
+    """
+    guild_leaderboard = await guild.LeaderboardModel.get_playtime(db, month, guild_id)
+
+    return sanic.json(guild_leaderboard.model_dump(), default=str)

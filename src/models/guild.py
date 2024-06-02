@@ -1,8 +1,7 @@
 import json
 from datetime import datetime, date
 
-from pydantic import NaiveDatetime, StringConstraints, BaseModel
-from typing_extensions import Annotated, Optional, TypedDict
+from pydantic import BaseModel
 
 from sanic_ext import openapi
 
@@ -230,9 +229,47 @@ class GuildPlaytimeAnalysis(BaseModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
+class LeaderboardEntry(BaseModel):
+    value: float | int | str
+    thorny_id: int
+    discord_id: int
+
+
+class LeaderboardModel(BaseModel):
+    leaderboard: list[LeaderboardEntry]
+
+    @classmethod
+    async def get_playtime(cls, db: Database, month_start: date, guild_id: int):
+        month_end = datetime(year=month_start.year, month=month_start.month+1, day=1)
+        data = await db.pool.fetchrow("""
+                    with t as (
+                    select extract(epoch from sum(playtime)) as playtime, sv.thorny_id, u.user_id from events.sessions_view sv 
+                    inner join users."user" u 
+                    on u.thorny_id = sv.thorny_id 
+                    where sv.connect_time between $1 and $2
+                    and u.guild_id = $3
+                    group by sv.thorny_id, u.user_id
+                    order by playtime desc
+                    )
+                    
+                    select coalesce(
+                        (
+                        select json_agg(json_build_object('value', t.playtime,
+                                                          'thorny_id', t.thorny_id,
+                                                          'discord_id', t.user_id))
+                        from t
+                        ),
+                        '[]'::json
+                    ) as leaderboard
+                    """, month_start, month_end, guild_id)
+
+        return cls(**{'leaderboard': json.loads(data['leaderboard'])})
+
+
 openapi.component(MonthlyPlaytime)
 openapi.component(DailyPlaytime)
 openapi.component(WeeklyPlaytime)
 openapi.component(GuildModel)
 openapi.component(FeatureModel)
 openapi.component(ChannelModel)
+openapi.component(LeaderboardEntry)
