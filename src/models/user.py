@@ -170,43 +170,14 @@ class PlaytimeSummary(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int):
         data = await db.pool.fetchrow("""
-                WITH playtime_table AS (
-                    SELECT 
-                        connect.connection_id AS connect_event_id,
-                        connect.time AS connect_time,
-                        disconnect.connection_id AS disconnect_event_id,
-                        disconnect.time AS disconnect_time,
-                        disconnect.time - connect.time AS playtime,
-                        connect.thorny_id
-                    FROM 
-                        events.connections connect
-                    LEFT JOIN 
-                        events.connections disconnect 
-                        ON connect.thorny_id = disconnect.thorny_id 
-                        AND disconnect.type = 'disconnect' 
-                        AND disconnect.ignored = false 
-                        AND disconnect.time = (
-                            SELECT MIN(d.time) 
-                            FROM events.connections d 
-                            WHERE d.type = 'disconnect' 
-                            AND d.ignored = false 
-                            AND d.thorny_id = connect.thorny_id 
-                            AND d.time > connect.time
-                        )
-                    WHERE 
-                        connect.type = 'connect'
-                        AND connect.ignored = false
-                    ORDER BY 
-                        connect.time
-                ),
-                daily_playtime AS (
+                WITH daily_playtime AS (
                     SELECT t.day, SUM(t.playtime) AS playtime
                     FROM (
                         SELECT SUM(playtime) AS playtime, 
                                DATE(connect_time) AS day
-                        FROM playtime_table
-                        INNER JOIN users.user ON playtime_table.thorny_id = users.user.thorny_id 
-                        WHERE playtime_table.thorny_id = $1
+                        FROM events.sessions_view sv 
+                        INNER JOIN users.user ON sv.thorny_id = users.user.thorny_id 
+                        WHERE sv.thorny_id = $1
                         GROUP BY day
                     ) AS t
                     GROUP BY t.day
@@ -215,13 +186,13 @@ class PlaytimeSummary(BaseModel):
                 ),
                 total_playtime AS (
                     SELECT SUM(EXTRACT(EPOCH FROM playtime)) AS total_playtime
-                    FROM playtime_table
+                    FROM events.sessions_view sv 
                     WHERE thorny_id = $1
                     GROUP BY thorny_id
                 ),
                 session AS (
                     SELECT connect_time as session
-                    FROM playtime_table
+                    FROM events.sessions_view sv 
                     WHERE thorny_id = $1
                     AND disconnect_time IS NULL
                     GROUP BY thorny_id, connect_time
@@ -229,18 +200,17 @@ class PlaytimeSummary(BaseModel):
                     limit 1
                 ),
                 monthly_playtime AS (
-                    SELECT t.year || '-' || t.month || '-' || '01' AS month, SUM(t.playtime) AS playtime
+                    SELECT t.month AS month, SUM(t.playtime) AS playtime
                     FROM (
-                        SELECT SUM(playtime) AS playtime, 
-                               LPAD(extract(month from connect_time)::text, 2, '0') AS month, 
-                               DATE_PART('year', connect_time) AS year
-                        FROM playtime_table
-                        INNER JOIN users.user ON playtime_table.thorny_id = users.user.thorny_id 
-                        WHERE playtime_table.thorny_id = $1
-                        GROUP BY year, month
+                        SELECT SUM(playtime) AS playtime,
+                               date_trunc('month', connect_time)::date as month
+                        FROM events.sessions_view sv 
+                        INNER JOIN users.user ON sv.thorny_id = users.user.thorny_id 
+                        WHERE sv.thorny_id = $1
+                        GROUP BY month
                     ) AS t
-                    GROUP BY t.year, t.month
-                    ORDER BY t.year DESC, t.month DESC
+                    GROUP BY t.month
+                    ORDER BY t.month DESC
                     LIMIT 12
                 )
                 SELECT 
