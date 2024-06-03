@@ -13,14 +13,20 @@ class QuestModel(BaseModel):
     quest_id: int
     start_time: datetime
     end_time: datetime
-    timer: Optional[timedelta]
+    timer: Optional[float]
     title: str
     description: str
 
     @classmethod
     async def fetch(cls, db: Database, quest_id: int):
         data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests.quest
+                                       SELECT quest_id,
+                                              start_time,
+                                              end_time,
+                                              EXTRACT(EPOCH from timer) as timer,
+                                              title,
+                                              description
+                                       FROM quests.quest
                                        WHERE quest_id = $1
                                        """,
                                       quest_id)
@@ -44,7 +50,7 @@ class QuestModel(BaseModel):
 class QuestUpdateModel(BaseModel):
     start_time: Optional[datetime]
     end_time: Optional[datetime]
-    timer: Optional[timedelta]
+    timer: Optional[float]
     title: Optional[str]
     description: Optional[str]
 
@@ -60,7 +66,7 @@ class ObjectiveModel(BaseModel):
     order: int
     objective_count: int
     objective_type: Literal["kill", "mine"]
-    objective_timer: Optional[timedelta]
+    objective_timer: Optional[float]
     required_mainhand: Optional[InteractionRef]
     required_location: Optional[tuple[int, int]]
     location_radius: Optional[int]
@@ -68,7 +74,17 @@ class ObjectiveModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, objective_id: int):
         data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests.objective
+                                       SELECT objective_id,
+                                              quest_id,
+                                              objective,
+                                              order,
+                                              objective_count,
+                                              objective_type,
+                                              EXTRACT(EPOCH from objective_timer) as objective_timer,
+                                              required_mainhand,
+                                              required_location,
+                                              location_radius
+                                       FROM quests.objective
                                        WHERE objective_id = $1
                                        """,
                                       objective_id)
@@ -106,7 +122,7 @@ class ObjectiveUpdateModel(BaseModel):
     objective: Optional[InteractionRef]
     objective_count: Optional[int]
     objective_type: Optional[Literal["kill", "mine"]]
-    objective_timer: Optional[timedelta]
+    objective_timer: Optional[float]
     required_mainhand: Optional[InteractionRef]
     required_location: Optional[tuple[int, int]]
     location_radius: Optional[int]
@@ -168,7 +184,7 @@ class RewardCreateModel(BaseModel):
 class QuestCreateModel(BaseModel):
     start_time: datetime
     end_time: datetime
-    timer: Optional[timedelta]
+    timer: Optional[int]
     title: str
     description: str
     rewards: Optional[list[RewardCreateModel]]
@@ -179,7 +195,7 @@ class ObjectiveCreateModel(BaseModel):
     order: int
     objective_count: int
     objective_type: Literal["kill", "mine"]
-    objective_timer: Optional[timedelta]
+    objective_timer: Optional[int]
     required_mainhand: Optional[InteractionRef]
     required_location: Optional[tuple[int, int]]
     location_radius: Optional[int]
