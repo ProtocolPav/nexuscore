@@ -272,6 +272,7 @@ class LeaderboardModel(BaseModel):
 
 class OnlineEntry(BaseModel):
     thorny_id: int
+    discord_id: int
     session: datetime
 
 
@@ -283,6 +284,7 @@ class OnlineUsersSummary(BaseModel):
         data = await db.pool.fetchrow("""
                                       SELECT COALESCE(
                                                       JSON_AGG(JSON_BUILD_OBJECT('thorny_id', sv.thorny_id,
+                                                                                 'discord_id', u.user_id,
                                                                                  'session', sv.connect_time)),
                                                       '[]'::json
                                                       ) AS users
