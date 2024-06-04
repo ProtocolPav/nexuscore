@@ -77,7 +77,7 @@ class ObjectiveModel(BaseModel):
                                        SELECT objective_id,
                                               quest_id,
                                               objective,
-                                              order,
+                                              "order",
                                               objective_count,
                                               objective_type,
                                               EXTRACT(EPOCH from objective_timer) as objective_timer,

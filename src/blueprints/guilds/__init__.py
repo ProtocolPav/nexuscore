@@ -69,7 +69,7 @@ async def get_guild_playtime(request: Request, db: Database, guild_id: int):
 
 @guild_blueprint.route('/<guild_id:int>/leaderboard/playtime/<month:ymd>', methods=['GET'])
 @openapi.response(status=200,
-                  content={'application/json': guild.GuildPlaytimeAnalysis.view_schema()},
+                  content={'application/json': guild.LeaderboardModel.view_schema()},
                   description='Success')
 @openapi.response(status=404, description='Error')
 async def get_playtime_leaderboard(request: Request, db: Database, guild_id: int, month: date):
@@ -79,3 +79,17 @@ async def get_playtime_leaderboard(request: Request, db: Database, guild_id: int
     guild_leaderboard = await guild.LeaderboardModel.get_playtime(db, month, guild_id)
 
     return sanic.json(guild_leaderboard.model_dump(), default=str)
+
+
+@guild_blueprint.route('/<guild_id:int>/online', methods=['GET'])
+@openapi.response(status=200,
+                  content={'application/json': guild.OnlineUsersSummary.view_schema()},
+                  description='Success')
+@openapi.response(status=404, description='Error')
+async def get_online_users(request: Request, db: Database, guild_id: int):
+    """
+    Get Guild Online Users
+    """
+    online = await guild.OnlineUsersSummary.build(db, guild_id)
+
+    return sanic.json(online.model_dump(), default=str)

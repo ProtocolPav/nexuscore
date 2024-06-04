@@ -265,6 +265,40 @@ class LeaderboardModel(BaseModel):
 
         return cls(**{'leaderboard': json.loads(data['leaderboard'])})
 
+    @classmethod
+    def view_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
+class OnlineEntry(BaseModel):
+    thorny_id: int
+    session: datetime
+
+
+class OnlineUsersSummary(BaseModel):
+    users: list[OnlineEntry]
+
+    @classmethod
+    async def build(cls, db: Database, guild_id: int):
+        data = await db.pool.fetchrow("""
+                                      SELECT COALESCE(
+                                                      JSON_AGG(JSON_BUILD_OBJECT('thorny_id', sv.thorny_id,
+                                                                                 'session', sv.connect_time)),
+                                                      '[]'::json
+                                                      ) AS users
+                                      FROM events.sessions_view sv
+                                      INNER JOIN users.user u ON sv.thorny_id = u.thorny_id
+                                      WHERE u.guild_id = $1
+                                      AND sv.disconnect_time IS NULL
+                                      """,
+                                      guild_id)
+
+        return cls(**{'users': json.loads(data['users'])})
+
+    @classmethod
+    def view_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
 
 openapi.component(MonthlyPlaytime)
 openapi.component(DailyPlaytime)
