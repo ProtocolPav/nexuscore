@@ -1,3 +1,5 @@
+import json
+
 from sanic import Sanic, Request, HTTPResponse
 from src.database import Database
 
@@ -36,4 +38,7 @@ async def init_db(application: Sanic):
 app.blueprint(blueprint_group)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", fast=True)
+    config = json.load(open('config.json', 'r'))
+
+    print(config['title'])
+    app.run(host="0.0.0.0", dev=True)

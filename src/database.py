@@ -8,7 +8,7 @@ class Database:
 
     @classmethod
     async def init_pool(cls):
-        config = json.load(open('./config.json', 'r+'))
+        config = json.load(open('./config.json', 'r'))
 
         return cls(await create_pool(database=config['database']['name'],
                                      user=config['database']['user'],
