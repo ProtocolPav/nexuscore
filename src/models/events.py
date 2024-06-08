@@ -58,12 +58,11 @@ class InteractionModel(BaseModel):
                                                               position_z,
                                                               reference,
                                                               mainhand,
-                                                              time,
                                                               dimension)
-                              VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                              VALUES($1, $2, $3, $4, $5, $6, $7, $8)
                               """,
                               model.thorny_id, model.type, model.position_x, model.position_y,
-                              model.position_z, model.reference, model.mainhand, model.time, model.dimension)
+                              model.position_z, model.reference, model.mainhand, model.dimension)
 
 
 class InteractionCreateModel(BaseModel):
@@ -74,5 +73,4 @@ class InteractionCreateModel(BaseModel):
     position_z: int
     reference: str
     mainhand: Optional[InteractionRef]
-    time: datetime
     dimension: InteractionRef
