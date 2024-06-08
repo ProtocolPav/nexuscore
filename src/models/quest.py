@@ -50,7 +50,6 @@ class QuestModel(BaseModel):
 class QuestUpdateModel(BaseModel):
     start_time: Optional[datetime]
     end_time: Optional[datetime]
-    timer: Optional[float]
     title: Optional[str]
     description: Optional[str]
 
@@ -184,10 +183,8 @@ class RewardCreateModel(BaseModel):
 class QuestCreateModel(BaseModel):
     start_time: datetime
     end_time: datetime
-    timer: Optional[int]
     title: str
     description: str
-    rewards: Optional[list[RewardCreateModel]]
 
 
 class ObjectiveCreateModel(BaseModel):
