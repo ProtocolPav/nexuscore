@@ -23,7 +23,7 @@ class ProjectView(BaseModel):
         return data['project_id']
 
     @classmethod
-    async def build(cls, db: Database, project_id: str, user_as_object: bool = False):
+    async def build(cls, db: Database, project_id: str):
         project = await ProjectModel.fetch(db, project_id)
         member_list = await MembersModel.fetch(db, project_id)
         status = await StatusModel.fetch(db, project_id)
