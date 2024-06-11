@@ -43,23 +43,15 @@ class QuestView(BaseModel):
             async with conn.transaction():
                 quest_id = await conn.fetchrow("""
                                                 with quest_table as (
-                                                    insert into quests.quest(start_time, end_time, timer, title, description)
-                                                    values($1, $2, $3, $4, $5)
+                                                    insert into quests.quest(start_time, end_time, title, description)
+                                                    values($1, $2, $3, $4)
                 
                                                     returning quest_id
                                                 )
                                                 select quest_id as id from quest_table
                                                """,
-                                               quest_model.start_time, quest_model.end_time, quest_model.timer,
+                                               quest_model.start_time, quest_model.end_time,
                                                quest_model.title, quest_model.description)
-
-                if quest_model.rewards:
-                    for reward in quest_model.rewards:
-                        await conn.execute("""
-                                           INSERT INTO quests.reward(quest_id, balance, item, count)
-                                           VALUES($1, $2, $3, $4)
-                                           """,
-                                           quest_id['id'], reward.balance, reward.item, reward.count)
 
                 objective_model = create_view.objectives
                 for objective in objective_model:
@@ -74,7 +66,17 @@ class QuestView(BaseModel):
                                                                                          required_location,
                                                                                          location_radius,
                                                                                          "order")
-                                                            values($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                                                            values($1, 
+                                                                   $2, 
+                                                                   $3, 
+                                                                   $4, 
+                                                                   CASE WHEN $5::double precision IS NULL THEN NULL
+                                                                   ELSE make_interval(secs => $5::double precision)
+                                                                   END, 
+                                                                   $6, 
+                                                                   $7, 
+                                                                   $8, 
+                                                                   $9)
         
                                                             returning objective_id
                                                         )

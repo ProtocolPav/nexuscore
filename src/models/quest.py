@@ -13,7 +13,6 @@ class QuestModel(BaseModel):
     quest_id: int
     start_time: datetime
     end_time: datetime
-    timer: Optional[float]
     title: str
     description: str
 
@@ -23,7 +22,6 @@ class QuestModel(BaseModel):
                                        SELECT quest_id,
                                               start_time,
                                               end_time,
-                                              EXTRACT(EPOCH from timer) as timer,
                                               title,
                                               description
                                        FROM quests.quest
@@ -38,12 +36,11 @@ class QuestModel(BaseModel):
                               UPDATE quests.quest
                               SET start_time = $1,
                                   end_time = $2,
-                                  timer = $3,
-                                  title = $4,
-                                  description = $5
-                              WHERE quest_id = $6
+                                  title = $3,
+                                  description = $4
+                              WHERE quest_id = $5
                               """,
-                              self.start_time, self.end_time, self.timer,
+                              self.start_time, self.end_time,
                               self.title, self.description, self.quest_id)
 
 
