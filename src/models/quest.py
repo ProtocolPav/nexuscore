@@ -127,7 +127,7 @@ class ObjectiveUpdateModel(BaseModel):
 class RewardModel(BaseModel):
     reward_id: int
     quest_id: int
-    objective_id: Optional[int]
+    objective_id: int
     balance: Optional[int]
     item: Optional[InteractionRef]
     count: Optional[int]
@@ -165,7 +165,6 @@ class RewardModel(BaseModel):
 
 
 class RewardUpdateModel(BaseModel):
-    objective_id: Optional[int]
     balance: Optional[int]
     item: Optional[InteractionRef]
     count: Optional[int]

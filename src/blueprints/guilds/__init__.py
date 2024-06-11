@@ -44,7 +44,7 @@ async def get_guild(request: Request, db: Database, guild_id: int):
     """
     Get Guild
 
-    This returns the guild
+    This returns the guild, its channels and features
     """
     guild_view = await GuildView.build(db, guild_id)
 
@@ -60,7 +60,9 @@ async def get_guild_playtime(request: Request, db: Database, guild_id: int):
     """
     Get Guild Playtime Analysis
 
-    This returns the guild's playtime. Note, it is not complete.
+    This returns the guild's playtime summary. Playtime is in seconds.
+
+    FOR NOW IT IS NOT FULLY COMPLETE
     """
     guild_analysis = await guild.GuildPlaytimeAnalysis.fetch(db, guild_id)
 
@@ -75,6 +77,8 @@ async def get_guild_playtime(request: Request, db: Database, guild_id: int):
 async def get_playtime_leaderboard(request: Request, db: Database, guild_id: int, month: date):
     """
     Get Guild Playtime Leaderboard
+
+    Returns the guild's playtime leaderboard, in order. Playtime is in seconds.
     """
     guild_leaderboard = await guild.LeaderboardModel.get_playtime(db, month, guild_id)
 
@@ -89,6 +93,9 @@ async def get_playtime_leaderboard(request: Request, db: Database, guild_id: int
 async def get_online_users(request: Request, db: Database, guild_id: int):
     """
     Get Guild Online Users
+
+    Get a list of ThornyIDs that are currently
+    online on the server, along with their session time.
     """
     online = await guild.OnlineUsersSummary.build(db, guild_id)
 

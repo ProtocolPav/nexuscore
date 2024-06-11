@@ -31,6 +31,11 @@ async def create_quest(request: Request, db: Database):
 @openapi.response(status=200,
                   content={'application/json': AllQuestsView.view_schema()})
 async def get_all_quests(request: Request, db: Database):
+    """
+    Get all Quests
+
+    Returns a summary of all quests ever created, split into current, past and future.
+    """
     view = await AllQuestsView.build(db)
 
     return sanic.json(view.model_dump(), default=str)
@@ -40,6 +45,11 @@ async def get_all_quests(request: Request, db: Database):
 @openapi.response(status=200,
                   content={'application/json': QuestView.view_schema()})
 async def get_quest(request: Request, db: Database, quest_id: int):
+    """
+    Get Quest
+
+    Returns a specific quest, objectives and rewards
+    """
     quest_view = await QuestView.build(db, quest_id)
 
     return sanic.json(quest_view.model_dump(), default=str)
@@ -50,6 +60,11 @@ async def get_quest(request: Request, db: Database, quest_id: int):
 @openapi.response(status=200,
                   content={'application/json': QuestView.view_schema()})
 async def update_quest(request: Request, db: Database, quest_id: int):
+    """
+    Update Quest
+
+    Update a quest
+    """
     model: quest.QuestModel = await quest.QuestModel.fetch(db, quest_id)
     update_dict = {}
 
@@ -69,6 +84,11 @@ async def update_quest(request: Request, db: Database, quest_id: int):
 @openapi.response(status=200,
                   content={'application/json': QuestView.view_schema()})
 async def update_reward(request: Request, db: Database, reward_id: int):
+    """
+    Update Reward
+
+    Update an objective's reward
+    """
     model: quest.RewardModel = await quest.RewardModel.fetch(db, reward_id)
     update_dict = {}
 
@@ -88,6 +108,11 @@ async def update_reward(request: Request, db: Database, reward_id: int):
 @openapi.response(status=200,
                   content={'application/json': QuestView.view_schema()})
 async def update_objective(request: Request, db: Database, objective_id: int):
+    """
+    Update Objective
+
+    Update a quest's objective
+    """
     model: quest.ObjectiveModel = await quest.ObjectiveModel.fetch(db, objective_id)
     update_dict = {}
 

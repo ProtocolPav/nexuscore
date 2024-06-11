@@ -14,6 +14,11 @@ events_blueprint = Blueprint('events', '/events')
 @openapi.body(content={'application/json': events.ConnectionCreateModel.model_json_schema()})
 @openapi.response(status=201, description='Success')
 async def connect_event(request: Request, db: Database):
+    """
+    Insert Connection
+
+    Inserts a connection event. Either `connect` or `disconnect`.
+    """
     model = events.ConnectionCreateModel(**request.json)
     user_playtime = await user.PlaytimeSummary.fetch(db, model.thorny_id)
 
@@ -32,6 +37,11 @@ async def connect_event(request: Request, db: Database):
 @openapi.body(content={'application/json': events.InteractionCreateModel.model_json_schema()})
 @openapi.response(status=201, description='Success')
 async def interaction_event(request: Request, db: Database):
+    """
+    Insert Interaction
+
+    Inserts an interaction event.
+    """
     model = events.InteractionCreateModel(**request.json)
 
     await events.InteractionModel.new(db, model)

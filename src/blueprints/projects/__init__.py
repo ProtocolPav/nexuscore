@@ -21,7 +21,7 @@ async def create_project(request: Request, db: Database):
     """
     Create Project
 
-    Creates a new project with the data provided.
+    Creates a new project, inserts a status and content.
     """
     model = project.ProjectUpdateModel(**request.json)
 
@@ -41,11 +41,9 @@ async def get_all_projects(request: Request):
     """
     Get All Projects
 
-    Get all projects as a list of objects.
+    Get a list of Projects, their content, members and status.
 
-    By default, the `lead` and `members` of the project are
-    returned as ThornyIDs, however you can specify in the URL
-    parameter to get a bare-bones User object for each member instead.
+    NOT IMPLEMENTED YET
     """
     ...
 
@@ -58,11 +56,7 @@ async def get_project(request: Request, db: Database, project_id: str):
     """
     Get Project
 
-    Get the project and its info based on the ID provided.
-    Project IDs are strings.
-
-    By default, users are returned as ThornyIDs (`int`), but you can specify
-    using `users-as-object=true` to return them as User Objects instead
+    Get the project, its content, members and current status.
     """
     project_view = await ProjectView.build(db, project_id)
 
@@ -77,8 +71,7 @@ async def update_project(request: Request, db: Database, project_id: str):
     """
     Update Project
 
-    Update the project. You do not have to include every field in
-    the body, only those that you wish to update.
+    Update the project
     """
     model: project.ProjectModel = await project.ProjectModel.fetch(db, project_id)
     update_dict = {}
@@ -146,5 +139,7 @@ async def delete_members(request: Request, project_id: str):
     Remove Project Members
 
     Remove existing project members from the project member list.
+
+    NOT IMPLEMENTED
     """
     return HTTPResponse(status=501)
