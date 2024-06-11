@@ -403,6 +403,16 @@ class UserQuestModel(BaseModel):
 
         return data['quest_id'] if data else None
 
+    @classmethod
+    async def get_all_quests(cls, db: Database, thorny_id: int):
+        data = await db.pool.fetchrow("""
+                                      SELECT ARRAY_AGG(quest_id) AS quests from users.quests
+                                      WHERE thorny_id = $1
+                                      """,
+                                      thorny_id)
+
+        return data['quests'] if data else None
+
     async def update(self, db: Database, thorny_id: int):
         await db.pool.execute("""
                                UPDATE users.quests

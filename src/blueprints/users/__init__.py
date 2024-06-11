@@ -218,6 +218,22 @@ async def active_quest(request: Request, db: Database, thorny_id: int):
     return sanic.json(quest_view.model_dump(), default=str)
 
 
+@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/all', methods=['GET'])
+@openapi.response(status=200,
+                  content={'application/json': {'quests': list[int]}},
+                  description='Success')
+@openapi.response(status=404, description='Error')
+async def all_quests(request: Request, db: Database, thorny_id: int):
+    """
+    Get All User's Quest IDs
+
+    This returns a list of integers
+    """
+    quest_ids = await user.UserQuestModel.get_all_quests(db, thorny_id)
+
+    return sanic.json({'quests': quest_ids}, default=str)
+
+
 @user_blueprint.route('/thorny-id/<thorny_id:int>/quest/active', methods=['DELETE'])
 @openapi.response(status=204, description='Success')
 @openapi.response(status=404, description='Error')
