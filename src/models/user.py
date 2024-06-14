@@ -485,7 +485,7 @@ class UserObjectiveUpdateModel(BaseModel):
     start: Optional[datetime]
     end: Optional[datetime]
     completion: Optional[int]
-    status: Optional[Literal['completed', 'failed']]
+    status: Optional[Literal['in_progress', 'completed', 'failed']]
 
 
 # Define components in the OpenAPI schema

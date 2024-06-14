@@ -258,7 +258,7 @@ async def new_active_quest(request: Request, db: Database, thorny_id: int, quest
     return sanic.HTTPResponse(status=201)
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/<quest_id:int>', methods=['PATCH'])
+@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/<quest_id:int>', methods=['PUT'])
 @openapi.body(content={'application/json': user.UserQuestUpdateModel.model_json_schema()})
 @openapi.response(status=200,
                   content={'application/json': user.UserQuestModel.model_json_schema()},
@@ -284,7 +284,7 @@ async def update_quest(request: Request, db: Database, thorny_id: int, quest_id:
     return sanic.json(model.model_dump(), default=str)
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/<quest_id:int>/<objective_id:int>', methods=['PATCH'])
+@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/<quest_id:int>/<objective_id:int>', methods=['PUT'])
 @openapi.body(content={'application/json': user.UserObjectiveUpdateModel.model_json_schema()})
 @openapi.response(status=200,
                   content={'application/json': user.UserObjectiveModel.model_json_schema()},
