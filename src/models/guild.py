@@ -141,6 +141,7 @@ class GuildPlaytimeAnalysis(BaseModel):
                     weekly_playtime as (
                         select 
                             extract(week from sv.connect_time) as week,
+                            extract(year from sv.connect_time) as year,
                             sum(sv.playtime) as total,
                             count(distinct sv.thorny_id) as unique_players,
                             count(*) as total_sessions,
@@ -153,8 +154,8 @@ class GuildPlaytimeAnalysis(BaseModel):
                             users."user".thorny_id = sv.thorny_id
                         where
                             users."user".guild_id = $1
-                        group by week
-                        order by week desc 
+                        group by year, week
+                        order by year desc, week desc 
                         limit 8
                     ),
                     monthly_playtime as (
