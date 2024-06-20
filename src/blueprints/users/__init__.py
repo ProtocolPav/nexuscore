@@ -37,7 +37,7 @@ async def create_user(request: Request, db: Database, body: users.UserCreateMode
 @openapi.response(status=200,
                   content={'application/json': users.UserModel.doc_schema()},
                   description='Success')
-@openapi.response(status=404, description='Error')
+@openapi.response(status=404, description='User does not exist')
 async def get_user(request: Request, db: Database, thorny_id: int):
     """
     Get User
@@ -57,19 +57,23 @@ async def get_user(request: Request, db: Database, thorny_id: int):
 @openapi.response(status=200,
                   content={'application/json': users.UserModel.doc_schema()},
                   description='Success')
-@openapi.response(status=404, description='Error')
+@openapi.response(status=404, description='User does not exist')
 @validate(json=users.UserUpdateModel)
-async def update_thorny_id(request: Request, db: Database, thorny_id: int):
+async def update_thorny_id(request: Request, db: Database, thorny_id: int, body: users.UserUpdateModel):
     """
     Update User
 
     This updates a user. All fields are optional, meaning you may
     set a field to `null` to not update it.
     """
-    model: users.UserModel = await users.UserModel.fetch(db, thorny_id)
+    model = await users.UserModel.fetch(db, thorny_id)
+
+    if not model:
+        raise exceptions.NotFound("Could not find this user, are you sure the ID is correct?")
+
     update_dict = {}
 
-    for k, v in users.UserUpdateModel(**request.json).model_dump().items():
+    for k, v in body.model_dump().items():
         if v is not None:
             update_dict[k] = v
 
@@ -84,7 +88,7 @@ async def update_thorny_id(request: Request, db: Database, thorny_id: int):
 @openapi.response(status=200,
                   content={'application/json': users.ProfileModel.doc_schema()},
                   description='Success')
-@openapi.response(status=404, description='Error')
+@openapi.response(status=404, description='User does not exist')
 async def get_profile(request: Request, db: Database, thorny_id: int):
     """
     Get User Profile
@@ -92,6 +96,9 @@ async def get_profile(request: Request, db: Database, thorny_id: int):
     This returns the user's profile
     """
     profile_model = await users.ProfileModel.fetch(db, thorny_id)
+
+    if not profile_model:
+        raise exceptions.NotFound("Could not find this user, are you sure the ID is correct?")
 
     return sanic.json(profile_model.model_dump(), default=str)
 
@@ -101,17 +108,22 @@ async def get_profile(request: Request, db: Database, thorny_id: int):
 @openapi.response(status=200,
                   content={'application/json': users.ProfileModel.doc_schema()},
                   description='Success')
+@openapi.response(status=404, description='User does not exist')
 @validate(json=users.ProfileUpdateModel)
-async def update_profile(request: Request, db: Database, thorny_id: int):
+async def update_profile(request: Request, db: Database, thorny_id: int, body: users.ProfileUpdateModel):
     """
     Update User Profile
 
     This updates a user's profile. Anything set to NULL will be ignored.
     """
-    model: users.ProfileModel = await users.ProfileModel.fetch(db, thorny_id)
+    model = await users.ProfileModel.fetch(db, thorny_id)
+
+    if not model:
+        raise exceptions.NotFound("Could not find this user, are you sure the ID is correct?")
+
     update_dict = {}
 
-    for k, v in users.ProfileUpdateModel(**request.json).model_dump().items():
+    for k, v in body.model_dump().items():
         if v is not None:
             update_dict[k] = v
 
@@ -126,6 +138,7 @@ async def update_profile(request: Request, db: Database, thorny_id: int):
 @openapi.response(status=200,
                   content={'application/json': users.PlaytimeSummary.doc_schema()},
                   description='Success')
+@openapi.response(status=404, description='User does not exist')
 async def get_playtime(request: Request, db: Database, thorny_id: int):
     """
     Get User Playtime
@@ -134,6 +147,9 @@ async def get_playtime(request: Request, db: Database, thorny_id: int):
     """
     playtime_summary = await users.PlaytimeSummary.fetch(db, thorny_id)
 
+    if not playtime_summary:
+        raise exceptions.NotFound("Could not find this user, are you sure the ID is correct?")
+
     return sanic.json(playtime_summary.model_dump(), default=str)
 
 
@@ -141,6 +157,7 @@ async def get_playtime(request: Request, db: Database, thorny_id: int):
 @openapi.response(status=200,
                   content={'application/json': users.InteractionSummary.doc_schema()},
                   description='Success')
+@openapi.response(status=404, description='User does not exist')
 async def get_interactions(request: Request, db: Database, thorny_id: int):
     """
     Get User Interactions
@@ -150,6 +167,9 @@ async def get_interactions(request: Request, db: Database, thorny_id: int):
     """
     summary = await users.InteractionSummary.fetch(db, thorny_id)
 
+    if not summary:
+        raise exceptions.NotFound("Could not find this user, are you sure the ID is correct?")
+
     return sanic.json(summary.model_dump(), default=str)
 
 
@@ -157,7 +177,7 @@ async def get_interactions(request: Request, db: Database, thorny_id: int):
 @openapi.response(status=200,
                   content={'application/json': users.UserModel.doc_schema()},
                   description='Success')
-@openapi.response(status=404, description='Error')
+@openapi.response(status=404, description='User does not exist')
 async def user_by_gamertag(request: Request, db: Database, guild_id: int, gamertag: str):
     """
     Get User by Gamertag
@@ -166,7 +186,11 @@ async def user_by_gamertag(request: Request, db: Database, guild_id: int, gamert
     This will check either the whitelisted gamertag or the user-entered gamertag.
     """
     thorny_id = await users.UserModel.get_thorny_id(db, guild_id, gamertag=gamertag)
-    user_view = await users.UserModel.build(db, thorny_id)
+
+    if not thorny_id:
+        raise exceptions.NotFound("Could not find this user, are you sure the guild and gamertag is correct?")
+
+    user_view = await users.UserModel.fetch(db, thorny_id)
 
     return sanic.json(user_view.model_dump(), default=str)
 
@@ -175,7 +199,7 @@ async def user_by_gamertag(request: Request, db: Database, guild_id: int, gamert
 @openapi.response(status=200,
                   content={'application/json': users.UserModel.doc_schema()},
                   description='Success')
-@openapi.response(status=404, description='Error')
+@openapi.response(status=404, description='User does not exist')
 async def user_discord_id(request: Request, db: Database, guild_id: int, discord_id: int):
     """
     Get User by Discord ID
@@ -183,7 +207,11 @@ async def user_discord_id(request: Request, db: Database, guild_id: int, discord
     This acts the same as `Get by ThornyID`.
     """
     thorny_id = await users.UserModel.get_thorny_id(db, guild_id, user_id=discord_id)
-    user_view = await users.UserModel.build(db, thorny_id)
+
+    if not thorny_id:
+        raise exceptions.NotFound("Could not find this user, are you sure the guild and discord ID is correct?")
+
+    user_view = await users.UserModel.fetch(db, thorny_id)
 
     return sanic.json(user_view.model_dump(), default=str)
 
@@ -192,7 +220,7 @@ async def user_discord_id(request: Request, db: Database, guild_id: int, discord
 @openapi.response(status=200,
                   content={'application/json': users.UserQuestModel.doc_schema()},
                   description='Success')
-@openapi.response(status=404, description='Error')
+@openapi.response(status=404, description='No active quest found')
 async def active_quest(request: Request, db: Database, thorny_id: int):
     """
     Get User's Active Quest
@@ -200,21 +228,19 @@ async def active_quest(request: Request, db: Database, thorny_id: int):
     Returns the user's currently active quest.
     Data about the quest must be fetched separately.
     """
-    quest_id: int = await users.UserQuestModel.get_active_quest(db, thorny_id)
+    quest = await users.UserQuestModel.fetch_active_quest(db, thorny_id)
 
-    if quest_id:
-        quest_view = await users.UserQuestModel.build(db, thorny_id, quest_id)
-    else:
-        quest_view = users.UserQuestModel(**{})
+    if not quest:
+        raise exceptions.NotFound("This user either does not exist or does not have a quest active")
 
-    return sanic.json(quest_view.model_dump(), default=str)
+    return sanic.json(quest.model_dump(), default=str)
 
 
 @user_blueprint.route('/<thorny_id:int>/quest/all', methods=['GET'])
 @openapi.response(status=200,
-                  content={'application/json': {'quests': list[int]}},
+                  content={'application/json': list[int]},
                   description='Success')
-@openapi.response(status=404, description='Error')
+@openapi.response(status=404, description='User does not exist')
 async def all_quests(request: Request, db: Database, thorny_id: int):
     """
     Get All User's Quests
@@ -223,7 +249,7 @@ async def all_quests(request: Request, db: Database, thorny_id: int):
     """
     quest_ids = await users.UserQuestModel.get_all_quest_ids(db, thorny_id)
 
-    return sanic.json({'quests': quest_ids}, default=str)
+    return sanic.json(quest_ids, default=str)
 
 
 @user_blueprint.route('/<thorny_id:int>/quest/active', methods=['DELETE'])

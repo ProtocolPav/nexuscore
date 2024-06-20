@@ -98,7 +98,7 @@ class UserQuestModel(BaseModel):
                                       """,
                                       thorny_id)
 
-        if data.get('quest_id', None):
+        if data:
             objectives = await UserObjectiveModel.fetch_all_objectives(db, thorny_id, data['quest_id'])
 
             return cls(**data, objectives=objectives)
@@ -106,7 +106,7 @@ class UserQuestModel(BaseModel):
         return None
 
     @classmethod
-    async def get_all_quest_ids(cls, db: Database, thorny_id: int) -> list[int]:
+    async def get_all_quest_ids(cls, db: Database, thorny_id: int) -> Optional[list[int]]:
         data = await db.pool.fetchrow("""
                                       SELECT ARRAY_AGG(quest_id) AS quests from users.quests
                                       WHERE thorny_id = $1
