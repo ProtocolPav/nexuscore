@@ -294,16 +294,17 @@ async def new_active_quest(request: Request, db: Database, thorny_id: int, quest
                   content={'application/json': users.UserQuestModel.doc_schema()},
                   description='Success')
 @openapi.response(status=404, description='Error')
-async def update_quest(request: Request, db: Database, thorny_id: int, quest_id: int):
+@validate(json=users.UserQuestUpdateModel)
+async def update_quest(request: Request, db: Database, thorny_id: int, quest_id: int, body: users.UserQuestUpdateModel):
     """
     Update Specific User's Quest
 
     Updates a user's quest. Note this does not update objectives, that is separate.
     """
-    model: user.UserQuestModel = await user.UserQuestModel.fetch(db, thorny_id, quest_id)
+    model = await users.UserQuestModel.fetch(db, thorny_id, quest_id)
     update_dict = {}
 
-    for k, v in user.UserQuestUpdateModel(**request.json).model_dump().items():
+    for k, v in body.model_dump().items():
         if v is not None:
             update_dict[k] = v
 
@@ -320,16 +321,18 @@ async def update_quest(request: Request, db: Database, thorny_id: int, quest_id:
                   content={'application/json': users.UserObjectiveModel.doc_schema()},
                   description='Success')
 @openapi.response(status=404, description='Error')
-async def update_objective(request: Request, db: Database, thorny_id: int, quest_id: int, objective_id: int):
+@validate(json=users.UserObjectiveUpdateModel)
+async def update_objective(request: Request, db: Database, thorny_id: int, quest_id: int, objective_id: int,
+                           body: users.UserObjectiveUpdateModel):
     """
     Update Specific User's Quest Objective
 
     Updates a user's quest objective.
     """
-    model: user.UserObjectiveModel = await user.UserObjectiveModel.fetch(db, thorny_id, quest_id, objective_id)
+    model = await users.UserObjectiveModel.fetch(db, thorny_id, quest_id, objective_id)
     update_dict = {}
 
-    for k, v in user.UserObjectiveUpdateModel(**request.json).model_dump().items():
+    for k, v in body.model_dump().items():
         if v is not None:
             update_dict[k] = v
 
