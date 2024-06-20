@@ -7,7 +7,7 @@ from datetime import date, datetime
 from sanic_ext import openapi
 
 from src.database import Database
-from src.views.user import UserView
+from src.models import users
 
 
 class ProjectModel(BaseModel):
@@ -20,7 +20,7 @@ class ProjectModel(BaseModel):
     thread_id: Optional[int]
     started_on: Optional[date]
     completed_on: Optional[date]
-    owner_id: Union[int, UserView]
+    owner_id: Union[int, users.UserModel]
 
     @classmethod
     async def fetch(cls, db: Database, project_id: str):
@@ -61,7 +61,7 @@ class ProjectUpdateModel(BaseModel):
 
 
 class MembersModel(BaseModel):
-    members: Optional[list[Union[int, UserView]]]
+    members: Optional[list[Union[int, users.UserModel]]]
 
     @classmethod
     async def fetch(cls, db: Database, project_id: str):
@@ -99,7 +99,7 @@ class MembersModel(BaseModel):
 class ContentModel(BaseModel):
     content: Optional[str]
     content_since: Optional[datetime]
-    content_edited_by: Optional[Union[int, UserView]]
+    content_edited_by: Optional[Union[int, users.UserModel]]
 
     @classmethod
     async def fetch(cls, db: Database, project_id: str):
