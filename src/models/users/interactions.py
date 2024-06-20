@@ -35,7 +35,7 @@ class InteractionSummary(BaseModel):
     totals: InteractionTotals
 
     @classmethod
-    async def fetch(cls, db: Database, thorny_id: int):
+    async def fetch(cls, db: Database, thorny_id: int) -> Optional["InteractionSummary"]:
         data = await db.pool.fetchrow("""
                                     with blocks_mined as (
                                         select "type", reference, count(reference) as "count" from events.interactions i 
@@ -74,7 +74,10 @@ class InteractionSummary(BaseModel):
                                     )
 
                                     select 
-                                        $1 as thorny_id,
+                                        (
+                                            SELECT thorny_id FROM users.user
+                                            WHERE thorny_id = $1
+                                        ) AS thorny_id,
                                         coalesce(
                                             (select json_agg(json_build_object('reference', t.reference,
                                                                                'type', t."type",
@@ -132,13 +135,16 @@ class InteractionSummary(BaseModel):
                                         """,
                                       thorny_id)
 
-        processed_dict = {'thorny_id': thorny_id,
-                          'totals': json.loads(data['totals']),
-                          'blocks_mined': json.loads(data['blocks_mined']),
-                          'blocks_placed': json.loads(data['blocks_placed']),
-                          'kills': json.loads(data['kills']),
-                          'deaths': json.loads(data['deaths']),
-                          'uses': json.loads(data['uses'])}
+        if data['thorny_id']:
+            processed_dict = {'thorny_id': thorny_id,
+                              'totals': json.loads(data['totals']),
+                              'blocks_mined': json.loads(data['blocks_mined']),
+                              'blocks_placed': json.loads(data['blocks_placed']),
+                              'kills': json.loads(data['kills']),
+                              'deaths': json.loads(data['deaths']),
+                              'uses': json.loads(data['uses'])}
+        else:
+            return None
 
         return cls(**processed_dict)
 

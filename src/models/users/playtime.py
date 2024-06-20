@@ -30,7 +30,7 @@ class PlaytimeSummary(BaseModel):
     monthly: list[MonthlyPlaytime] = Field(description="The list of playtime in seconds each month. Up to 12 months.")
 
     @classmethod
-    async def fetch(cls, db: Database, thorny_id: int):
+    async def fetch(cls, db: Database, thorny_id: int) -> Optional["PlaytimeSummary"]:
         data = await db.pool.fetchrow("""
                 WITH daily_playtime AS (
                     SELECT t.day, SUM(t.playtime) AS playtime
@@ -76,7 +76,10 @@ class PlaytimeSummary(BaseModel):
                     LIMIT 12
                 )
                 SELECT 
-                    $1 AS thorny_id,
+                    (
+                        SELECT thorny_id FROM users.user
+                        WHERE thorny_id = $1
+                    ) AS thorny_id,
                     COALESCE(
                         (
                          SELECT JSON_AGG(JSON_BUILD_OBJECT('day', wp.day,
@@ -105,11 +108,14 @@ class PlaytimeSummary(BaseModel):
                                       """,
                                       thorny_id)
 
-        processed_dict = {'thorny_id': thorny_id,
-                          'total': data['total'],
-                          'daily': json.loads(data['daily']),
-                          'monthly': json.loads(data['monthly']),
-                          'session': data['session']}
+        if data['thorny_id']:
+            processed_dict = {'thorny_id': thorny_id,
+                              'total': data['total'],
+                              'daily': json.loads(data['daily']),
+                              'monthly': json.loads(data['monthly']),
+                              'session': data['session']}
+        else:
+            return None
 
         return cls(**processed_dict)
 

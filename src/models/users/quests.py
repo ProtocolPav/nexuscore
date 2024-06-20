@@ -80,7 +80,8 @@ class UserQuestModel(BaseModel):
     async def fetch(cls, db: Database, thorny_id: int, quest_id: int) -> "UserQuestModel":
         data = await db.pool.fetchrow("""
                                       SELECT * from users.quests
-                                      WHERE thorny_id = $1 AND quest_id = $2
+                                      WHERE thorny_id = $1
+                                      AND quest_id = $2
                                       """,
                                       thorny_id, quest_id)
 
@@ -89,18 +90,23 @@ class UserQuestModel(BaseModel):
         return cls(**data, objectives=objectives)
 
     @classmethod
-    async def get_active_quest(cls, db: Database, thorny_id: int) -> int:
+    async def fetch_active_quest(cls, db: Database, thorny_id: int) -> Optional["UserQuestModel"]:
         data = await db.pool.fetchrow("""
-                                      SELECT quest_id from users.quests
+                                      SELECT * from users.quests
                                       WHERE thorny_id = $1
                                       AND status = 'in_progress'
                                       """,
                                       thorny_id)
 
-        return data['quest_id'] if data else None
+        if data:
+            objectives = await UserObjectiveModel.fetch_all_objectives(db, thorny_id, data['quest_id'])
+
+            return cls(**data, objectives=objectives)
+
+        return None
 
     @classmethod
-    async def get_all_quests(cls, db: Database, thorny_id: int) -> list[int]:
+    async def get_all_quest_ids(cls, db: Database, thorny_id: int) -> Optional[list[int]]:
         data = await db.pool.fetchrow("""
                                       SELECT ARRAY_AGG(quest_id) AS quests from users.quests
                                       WHERE thorny_id = $1
@@ -108,6 +114,34 @@ class UserQuestModel(BaseModel):
                                       thorny_id)
 
         return data['quests'] if data else None
+
+    @classmethod
+    async def new(cls, db: Database, thorny_id: int, quest_id: int):
+        quest_view = await QuestView.build(db, quest_id)
+
+        async with db.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute("""
+                                   INSERT INTO users.quests(quest_id, thorny_id)
+                                   VALUES($1, $2)
+                                   """,
+                                   quest_id, thorny_id)
+
+                for objective in quest_view.objectives:
+                    await conn.execute("""
+                                       INSERT INTO users.objectives(quest_id, thorny_id, objective_id)
+                                       VALUES($1, $2, $3)
+                                       """,
+                                       quest_id, thorny_id, objective.objective_id)
+
+    async def mark_failed(self, db: Database, thorny_id: int):
+        self.status = 'failed'
+        await self.update(db, thorny_id)
+
+        for objective in self.objectives:
+            if objective.status == 'in_progress':
+                objective.status = 'failed'
+                await objective.update(db, thorny_id)
 
     async def update(self, db: Database, thorny_id: int):
         await db.pool.execute("""
@@ -147,53 +181,3 @@ class UserObjectiveUpdateModel(BaseModel):
     @classmethod
     def doc_schema(cls):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
-
-
-class UserQuestView(BaseModel):
-    quest: Optional[UserQuestModel]
-    objectives: Optional[list[UserObjectiveModel]]
-
-    @classmethod
-    async def build(cls, db: Database, thorny_id: int, quest_id: int):
-        quest = await UserQuestModel.fetch(db, thorny_id, quest_id)
-        objective_ids = await UserObjectiveModel.get_all_objectives(db, thorny_id, quest_id)
-
-        objectives = []
-        for objective in objective_ids:
-            objectives.append(await UserObjectiveModel.fetch(db, thorny_id, quest_id, objective))
-
-        return cls(quest=quest, objectives=objectives)
-
-    @classmethod
-    def view_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
-
-    @classmethod
-    async def new(cls, db: Database, thorny_id: int, quest_id: int):
-        quest_view = await QuestView.build(db, quest_id)
-
-        async with db.pool.acquire() as conn:
-            async with conn.transaction():
-                await conn.execute("""
-                                   INSERT INTO users.quests(quest_id, thorny_id)
-                                   VALUES($1, $2)
-                                   """,
-                                   quest_id, thorny_id)
-
-                for objective in quest_view.objectives:
-                    await conn.execute("""
-                                       INSERT INTO users.objectives(quest_id, thorny_id, objective_id)
-                                       VALUES($1, $2, $3)
-                                       """,
-                                       quest_id, thorny_id, objective.objective_id)
-
-    @classmethod
-    async def mark_failed(cls, db: Database, thorny_id: int, quest_id: int):
-        quest = await cls.build(db, thorny_id, quest_id)
-        quest.quest.status = 'failed'
-        await quest.quest.update(db, thorny_id)
-
-        for obj in quest.objectives:
-            if obj.status == 'in_progress':
-                obj.status = 'failed'
-                await obj.update(db, thorny_id)

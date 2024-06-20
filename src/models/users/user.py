@@ -48,14 +48,14 @@ class UserModel(BaseModel):
                               discord_id, guild_id, username)
 
     @classmethod
-    async def fetch(cls, db: Database, thorny_id: int) -> "UserModel":
+    async def fetch(cls, db: Database, thorny_id: int) -> Optional["UserModel"]:
         data = await db.pool.fetchrow("""
                                        SELECT * FROM users.user
                                        WHERE thorny_id = $1
                                        """,
                                       thorny_id)
 
-        return cls(**data)
+        return cls(**data) if data else None
 
     @classmethod
     async def get_thorny_id(cls, db: Database, guild_id: int, user_id: int = None, gamertag: str = None) -> Optional[int]:

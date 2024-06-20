@@ -41,14 +41,14 @@ class ProfileModel(BaseModel):
     ingenuity: int
 
     @classmethod
-    async def fetch(cls, db: Database, thorny_id: int):
+    async def fetch(cls, db: Database, thorny_id: int) -> Optional["ProfileModel"]:
         data = await db.pool.fetchrow("""
                                        SELECT * FROM users.profile
                                        WHERE thorny_id = $1
                                        """,
                                       thorny_id)
 
-        return cls(**data)
+        return cls(**data) if data else None
 
     async def update(self, db: Database, thorny_id: int):
         await db.pool.execute("""
