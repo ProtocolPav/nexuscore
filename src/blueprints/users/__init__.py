@@ -15,21 +15,19 @@ user_blueprint = Blueprint("user_routes", url_prefix='/users')
 @openapi.response(status=500, description='User Already Exists')
 @openapi.definition(body={'application/json': users.UserCreateModel.doc_schema()})
 @validate(json=users.UserCreateModel)
-async def create_user(request: Request, db: Database):
+async def create_user(request: Request, db: Database, body: users.UserCreateModel):
     """
     Create New User
 
     Creates a user based on the discord UserID and GuildID provided.
     If a user with these ID's already exists, it returns a 500.
     """
-    if await users.UserModel.get_thorny_id(db, int(request.json['guild_id']), int(request.json['discord_user_id'])):
+    if await users.UserModel.get_thorny_id(db, body.guild_id, body.discord_id):
         raise exceptions.ServerError(message="Could not create the user as it already exists")
     else:
-        await users.UserModel.new(db, int(request.json['guild_id']),
-                                  int(request.json['discord_user_id']),
-                                  request.json.get('username', None))
+        await users.UserModel.new(db, body.guild_id, body.discord_id, body.username)
 
-        thorny_id = await users.UserModel.get_thorny_id(db, int(request.json['guild_id']), int(request.json['discord_user_id']))
+        thorny_id = await users.UserModel.get_thorny_id(db, body.guild_id, body.discord_id)
         user_view = await users.UserModel.build(db, thorny_id)
 
     return sanic.json(status=201, body=user_view.model_dump(), default=str)
