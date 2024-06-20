@@ -5,7 +5,7 @@ from src.database import Database
 
 from sanic_ext import openapi
 
-from src.models import events, user
+from src.models import events, users
 
 events_blueprint = Blueprint('events', '/events')
 
@@ -20,7 +20,7 @@ async def connect_event(request: Request, db: Database):
     Inserts a connection event. Either `connect` or `disconnect`.
     """
     model = events.ConnectionCreateModel(**request.json)
-    user_playtime = await user.PlaytimeSummary.fetch(db, model.thorny_id)
+    user_playtime = await users.PlaytimeSummary.fetch(db, model.thorny_id)
 
     if model.type == 'connect' and user_playtime.session is None:
         await events.ConnectionModel.new(db, model)
