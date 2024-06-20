@@ -1,4 +1,4 @@
-from sanic import Blueprint, Request
+from sanic import Blueprint, Request, exceptions
 import sanic
 from sanic_ext import openapi, validate
 
@@ -23,7 +23,7 @@ async def create_user(request: Request, db: Database):
     If a user with these ID's already exists, it returns a 500.
     """
     if await users.UserModel.get_thorny_id(db, int(request.json['guild_id']), int(request.json['discord_user_id'])):
-        return sanic.HTTPResponse(status=500, body="User Already Exists!")
+        raise exceptions.ServerError(message="Could not create the user as it already exists")
     else:
         await users.UserModel.new(db, int(request.json['guild_id']),
                                   int(request.json['discord_user_id']),
@@ -46,7 +46,10 @@ async def get_user(request: Request, db: Database, thorny_id: int):
 
     This returns the User object
     """
-    user_model = await users.UserModel.build(db, thorny_id)
+    user_model = await users.UserModel.fetch(db, thorny_id)
+
+    if not user_model:
+        raise exceptions.NotFound("Could not find this user, are you sure the ID is correct?")
 
     return sanic.json(user_model.model_dump(), default=str)
 
@@ -220,7 +223,7 @@ async def all_quests(request: Request, db: Database, thorny_id: int):
 
     Returns a list of QuestIDs that the user has previously accepted.
     """
-    quest_ids = await users.UserQuestModel.get_all_quests(db, thorny_id)
+    quest_ids = await users.UserQuestModel.get_all_quest_ids(db, thorny_id)
 
     return sanic.json({'quests': quest_ids}, default=str)
 
@@ -234,29 +237,34 @@ async def fail_active_quest(request: Request, db: Database, thorny_id: int):
 
     This marks the active quest and all of its objectives as "failed".
     """
-    quest_id = await users.UserQuestModel.get_active_quest(db, thorny_id)
+    quest = await users.UserQuestModel.fetch_active_quest(db, thorny_id)
 
-    await users.UserQuestModel.mark_failed(db, thorny_id, quest_id)
+    if quest:
+        await quest.mark_failed(db, thorny_id)
 
     return sanic.HTTPResponse(status=204)
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/<quest_id:int>', methods=['POST'])
+@user_blueprint.route('/<thorny_id:int>/quest/<quest_id:int>', methods=['POST'])
 @openapi.response(status=201, description='Success')
+@openapi.response(status=400, description='User already has quest active')
 @openapi.response(status=404, description='Error')
 async def new_active_quest(request: Request, db: Database, thorny_id: int, quest_id: int):
     """
     Add Quest to User's Active Quests
 
-    Note, this doesn't check if a user already has an active quest.
-    It is recommended to check yourself beforehand.
+    This will return a 400 if the user already has a quest active.
     """
-    await UserQuestView.new(db, thorny_id, quest_id)
+    quest = await users.UserQuestModel.fetch_active_quest(db, thorny_id)
 
-    return sanic.HTTPResponse(status=201)
+    if not quest:
+        await users.UserQuestModel.new(db, thorny_id, quest_id)
+        return sanic.HTTPResponse(status=201)
+
+    return sanic.HTTPResponse(status=400)
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/<quest_id:int>', methods=['PUT'])
+@user_blueprint.route('/<thorny_id:int>/quest/<quest_id:int>', methods=['PUT'])
 @openapi.body(content={'application/json': users.UserQuestUpdateModel.doc_schema()})
 @openapi.response(status=200,
                   content={'application/json': users.UserQuestModel.doc_schema()},
@@ -282,7 +290,7 @@ async def update_quest(request: Request, db: Database, thorny_id: int, quest_id:
     return sanic.json(model.model_dump(), default=str)
 
 
-@user_blueprint.route('/thorny-id/<thorny_id:int>/quest/<quest_id:int>/<objective_id:int>', methods=['PUT'])
+@user_blueprint.route('/<thorny_id:int>/quest/<quest_id:int>/<objective_id:int>', methods=['PUT'])
 @openapi.body(content={'application/json': users.UserObjectiveUpdateModel.doc_schema()})
 @openapi.response(status=200,
                   content={'application/json': users.UserObjectiveModel.doc_schema()},
