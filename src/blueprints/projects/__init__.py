@@ -41,8 +41,6 @@ async def get_all_projects(request: Request, db: Database):
     Get All Projects
 
     Get a list of Projects, their content, members and status.
-
-    NOT IMPLEMENTED YET
     """
     all_ids = await ProjectView.fetch_all_project_ids(db)
 
