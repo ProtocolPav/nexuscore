@@ -1,3 +1,5 @@
+from sanic_ext import openapi
+
 from src.database import Database
 from src.models.project import ProjectModel, StatusModel, MembersModel, ContentModel, ProjectUpdateModel
 
@@ -67,9 +69,20 @@ class ProjectView(BaseModel):
         return project_id
 
     @classmethod
-    async def fetch_all_project_ids(cls):
-        projects_record = await cls.pool.fetchrow("""
+    async def fetch_all_project_ids(cls, db: Database):
+        projects_record = await db.pool.fetchrow("""
                                                   select array_agg(project_id) as all_projects from projects.project
                                                   """)
 
         return [i for i in projects_record['all_projects']]
+
+
+class ProjectList(BaseModel):
+    projects: list[ProjectView]
+
+    @classmethod
+    def view_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
+openapi.component(ProjectView)
