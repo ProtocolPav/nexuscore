@@ -4,7 +4,7 @@ from sanic import Blueprint, Request, HTTPResponse
 import sanic
 from sanic_ext import openapi
 
-from src.views.project import ProjectView
+from src.views.project import ProjectList, ProjectView
 from src.models import project
 
 from src.database import Database
@@ -35,9 +35,8 @@ async def create_project(request: Request, db: Database):
 
 
 @project_blueprint.route('/', methods=['GET'])
-@openapi.parameter('users-as-object', bool)
-@openapi.response(status=501)
-async def get_all_projects(request: Request):
+@openapi.response(status=200, content={'application/json': ProjectList.view_schema()})
+async def get_all_projects(request: Request, db: Database):
     """
     Get All Projects
 
@@ -45,7 +44,14 @@ async def get_all_projects(request: Request):
 
     NOT IMPLEMENTED YET
     """
-    ...
+    all_ids = await ProjectView.fetch_all_project_ids(db)
+
+    returned_projects = []
+    for project_id in all_ids:
+        project_to_add = await ProjectView.build(db, project_id)
+        returned_projects.append(project_to_add.model_dump())
+
+    return sanic.json({'projects': returned_projects}, default=str)
 
 
 @project_blueprint.route('/<project_id:str>', methods=['GET'])
