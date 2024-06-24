@@ -29,7 +29,7 @@ class UserModel(BaseModel):
     xp: int = Field(description="The user's xp")
     required_xp: int = Field(description="The xp required to reach the next level")
     last_message: datetime = Field(description="The last time the user gained XP",
-                                   examples=['2024-05-24T23:34:04.123456Z'])
+                                   examples=['2024-05-24 23:34:04.123456'])
     gamertag: Optional[str] = Field(description="The user's gamertag")
     whitelist: Optional[str] = Field(description="The gamertag that this user is whitelisted under")
 
