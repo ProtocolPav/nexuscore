@@ -8,8 +8,7 @@ from sanic_ext import openapi
 from src.database import Database
 
 
-@openapi.component()
-class LeaderboardEntry(BaseModel):
+class LeaderboardModel(BaseModel):
     value: float | int = Field(description="The value of the leaderboard, if it's playtime then it is seconds, etc.")
     thorny_id: int
     discord_id: int
