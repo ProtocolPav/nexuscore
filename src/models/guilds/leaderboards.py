@@ -1,20 +1,25 @@
 import json
 from datetime import datetime, date
 
-from pydantic import BaseModel, Field, schema
+from pydantic import BaseModel, Field
 
 from sanic_ext import openapi
 
 from src.database import Database
 
 
-class LeaderboardModel(BaseModel):
+@openapi.component()
+class LeaderboardEntry(BaseModel):
     value: float | int = Field(description="The value of the leaderboard, if it's playtime then it is seconds, etc.")
     thorny_id: int
     discord_id: int
 
+
+class LeaderboardModel(BaseModel):
+    leaderboard: list[LeaderboardEntry]
+
     @classmethod
-    async def fetch_playtime(cls, db: Database, month_start: date, guild_id: int) -> list["LeaderboardEntry"]:
+    async def fetch_playtime(cls, db: Database, month_start: date, guild_id: int) -> "LeaderboardModel":
         month_end = datetime(year=month_start.year, month=month_start.month + 1, day=1)
         data = await db.pool.fetchrow("""
                     with t as (
@@ -38,14 +43,10 @@ class LeaderboardModel(BaseModel):
                     ) as leaderboard
                     """, month_start, month_end, guild_id)
 
-        leaderboard = []
-        for entry in json.loads(data['leaderboard']):
-            leaderboard.append(cls(**entry))
-
-        return leaderboard
+        return cls(**{'leaderboard': json.loads(data['leaderboard'])})
 
     @classmethod
-    async def fetch_currency(cls, db: Database, guild_id: int) -> list["LeaderboardEntry"]:
+    async def fetch_currency(cls, db: Database, guild_id: int) -> "LeaderboardModel":
         data = await db.pool.fetchrow("""
                                         with t as (
                                             select thorny_id, user_id, balance
@@ -53,7 +54,7 @@ class LeaderboardModel(BaseModel):
                                             where guild_id = $1
                                             order by balance desc
                                         )
-
+                                        
                                         select coalesce(
                                             (
                                             select
@@ -67,14 +68,10 @@ class LeaderboardModel(BaseModel):
                                       """,
                                       guild_id)
 
-        leaderboard = []
-        for entry in json.loads(data['leaderboard']):
-            leaderboard.append(cls(**entry))
-
-        return leaderboard
+        return cls(**{'leaderboard': json.loads(data['leaderboard'])})
 
     @classmethod
-    async def fetch_levels(cls, db: Database, guild_id: int) -> list["LeaderboardEntry"]:
+    async def fetch_levels(cls, db: Database, guild_id: int) -> "LeaderboardModel":
         data = await db.pool.fetchrow("""
                                         with t as (
                                             select thorny_id, user_id, level
@@ -96,14 +93,10 @@ class LeaderboardModel(BaseModel):
                                       """,
                                       guild_id)
 
-        leaderboard = []
-        for entry in json.loads(data['leaderboard']):
-            leaderboard.append(cls(**entry))
-
-        return leaderboard
+        return cls(**{'leaderboard': json.loads(data['leaderboard'])})
 
     @classmethod
-    async def fetch_quests(cls, db: Database, guild_id: int) -> list["LeaderboardEntry"]:
+    async def fetch_quests(cls, db: Database, guild_id: int) -> "LeaderboardModel":
         data = await db.pool.fetchrow("""
                                         with t as (
                                             select u.thorny_id, u.user_id, count(q.status) as quests
@@ -128,12 +121,8 @@ class LeaderboardModel(BaseModel):
                                       """,
                                       guild_id)
 
-        leaderboard = []
-        for entry in json.loads(data['leaderboard']):
-            leaderboard.append(cls(**entry))
-
-        return leaderboard
+        return cls(**{'leaderboard': json.loads(data['leaderboard'])})
 
     @classmethod
     def doc_schema(cls):
-        return schema.schema(list[cls.model_json_schema(ref_template="#/components/schemas/{model}")])
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")

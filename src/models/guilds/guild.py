@@ -67,3 +67,12 @@ class GuildModel(BaseModel):
     @classmethod
     def doc_schema(cls):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
+class GuildCreateModel(BaseModel):
+    guild_id: int
+    name: str
+
+    @classmethod
+    def doc_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")

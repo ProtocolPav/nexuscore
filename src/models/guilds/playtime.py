@@ -1,7 +1,7 @@
 import json
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field, schema
+from pydantic import BaseModel, Field
 
 from sanic_ext import openapi
 
@@ -190,14 +190,19 @@ class GuildPlaytimeAnalysis(BaseModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
-class OnlineUsersModel(BaseModel):
+@openapi.component()
+class OnlineEntry(BaseModel):
     thorny_id: int
     discord_id: int
     session: datetime = Field(description="The date and time when the session started",
                               examples=['2024-05-05 13:44:33.123456'])
 
+
+class OnlineUsersModel(BaseModel):
+    users: list[OnlineEntry]
+
     @classmethod
-    async def fetch(cls, db: Database, guild_id: int) -> list["OnlineEntry"]:
+    async def fetch(cls, db: Database, guild_id: int) -> "OnlineUsersModel":
         data = await db.pool.fetchrow("""
                                       SELECT COALESCE(
                                                       JSON_AGG(JSON_BUILD_OBJECT('thorny_id', sv.thorny_id,
@@ -212,12 +217,8 @@ class OnlineUsersModel(BaseModel):
                                       """,
                                       guild_id)
 
-        online_users = []
-        for entry in json.loads(data['users']):
-            online_users.append(cls(**entry))
-
-        return online_users
+        return cls(**{'users': json.loads(data['users'])})
 
     @classmethod
     def doc_schema(cls):
-        return schema.schema(list[cls.model_json_schema(ref_template="#/components/schemas/{model}")])
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")

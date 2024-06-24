@@ -1,27 +1,30 @@
-from pydantic import BaseModel, Field, schema
+from sanic_ext import openapi
+
+from pydantic import BaseModel, Field
 
 from src.database import Database
 
 
-class ChannelModel(BaseModel):
+@openapi.component()
+class Channel(BaseModel):
     channel_type: str = Field(description="The type of channel",
                               examples=['project_forum'])
     channel_id: int = Field(description="The channel ID",
                             examples=[965579894652222618])
 
+
+class ChannelsModel(BaseModel):
+    channels: list[Channel]
+
     @classmethod
-    async def fetch(cls, db: Database, guild_id: int) -> list["ChannelModel"]:
+    async def fetch(cls, db: Database, guild_id: int) -> "ChannelsModel":
         data = await db.pool.fetch("""
                                    SELECT channel_type, channel_id FROM guilds.channels
                                    WHERE guild_id = $1
                                    """,
                                    guild_id)
 
-        channels = []
-        for i in data:
-            channels.append(cls(**i))
-
-        return channels
+        return cls(**{'channels': data})
 
     @classmethod
     async def add(cls, db: Database, guild_id: int, channel_type: str, channel_id: int):
@@ -42,4 +45,4 @@ class ChannelModel(BaseModel):
 
     @classmethod
     def doc_schema(cls):
-        return schema.schema(list[cls.model_json_schema(ref_template="#/components/schemas/{model}")])
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
