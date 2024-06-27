@@ -166,7 +166,7 @@ async def user_gamertag(request: Request, db: Database, guild_id: int, gamertag:
     This acts the same as `Get by ThornyID`.
     This will check either the whitelisted gamertag or the user-entered gamertag.
     """
-    thorny_id = await UserView.get_thorny_id(db, guild_id, gamertag=gamertag)
+    thorny_id = await UserView.get_thorny_id(db, guild_id, gamertag=gamertag.replace('%20', ' '))
     user_view = await UserView.build(db, thorny_id)
 
     return sanic.json(user_view.model_dump(), default=str)
