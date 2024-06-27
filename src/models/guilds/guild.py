@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from typing import Optional
+
 from src.database import Database
 
 
@@ -24,14 +26,14 @@ class GuildModel(BaseModel):
                          examples=[True])
 
     @classmethod
-    async def fetch(cls, db: Database, guild_id: int) -> "GuildModel":
+    async def fetch(cls, db: Database, guild_id: int) -> Optional["GuildModel"]:
         data = await db.pool.fetchrow("""
                                       SELECT * FROM guilds.guild
                                       WHERE guild_id = $1
                                       """,
                                       guild_id)
 
-        return cls(**data)
+        return cls(**data) if data else None
 
     @classmethod
     async def new(cls, db: Database, guild_id: int, name: str):
