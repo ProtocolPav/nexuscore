@@ -40,8 +40,8 @@ class WeeklyPlaytime(BaseModel):
 
 @openapi.component()
 class MonthlyPlaytime(BaseModel):
-    day: date = Field(description="The month this data is about. Always the first day of that month",
-                      examples=['2024-05-01'])
+    month: date = Field(description="The month this data is about. Always the first day of that month",
+                        examples=['2024-05-01'])
     total: float = Field(description="The total playtime that month in seconds",
                          examples=[4554544.4322])
     unique_players: int = Field(description="How many unique players played that month",
