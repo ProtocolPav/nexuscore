@@ -71,6 +71,29 @@ class GuildModel(BaseModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
+class GuildUpdateModel(BaseModel):
+    name: Optional[str] = Field(description="The name of the guild",
+                                examples=['Everthorn'])
+    currency_name: Optional[str] = Field(description="The name of the guild's currency (plural)",
+                                         examples=['Nugs'])
+    currency_emoji: Optional[str] = Field(description="The emoji of the guild's currency",
+                                          examples=['<:Nug:884320353202081833>'])
+    level_up_message: Optional[str] = Field(description="The message that gets sent when a user levels up",
+                                            examples=['Yay! You leveled up!'])
+    join_message: Optional[str] = Field(description="The message that gets sent when a user joins the guild",
+                                        examples=['Welcome to our guild!'])
+    leave_message: Optional[str] = Field(description="The message that gets sent when a user leaves the guild",
+                                         examples=['Bye bye :(('])
+    xp_multiplier: Optional[float] = Field(description="The xp multiplier of this guild",
+                                           examples=[1.3])
+    active: Optional[bool] = Field(description="Whether Thorny is in this guild or not",
+                                   examples=[True])
+
+    @classmethod
+    def doc_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
 class GuildCreateModel(BaseModel):
     guild_id: int
     name: str

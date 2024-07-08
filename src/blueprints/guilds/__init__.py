@@ -1,6 +1,6 @@
 from datetime import date
 
-from sanic import Blueprint, Request
+from sanic import Blueprint, Request, exceptions
 import sanic
 from sanic_ext import openapi, validate
 
@@ -24,13 +24,14 @@ async def create_guild(request: Request, db: Database, body: guilds.GuildCreateM
 
     Creates a new guild. This should never be called, only by thorny.
     """
-    try:
-        await guilds.GuildModel.fetch(db, body.guild_id)
-        return sanic.HTTPResponse(status=500, body="Guild Already Exists!")
-    except TypeError:
-        await guilds.GuildModel.new(db, body.guild_id, body.name)
+    model = await guilds.GuildModel.fetch(db, body.guild_id)
 
-        guild_model = await guilds.GuildModel.fetch(db, body.guild_id)
+    if model:
+        raise exceptions.ServerError("This guild already exists!")
+
+    await guilds.GuildModel.new(db, body.guild_id, body.name)
+
+    guild_model = await guilds.GuildModel.fetch(db, body.guild_id)
 
     return sanic.json(status=201, body=guild_model.model_dump(), default=str)
 
@@ -39,16 +40,88 @@ async def create_guild(request: Request, db: Database, body: guilds.GuildCreateM
 @openapi.response(status=200,
                   content={'application/json': guilds.GuildModel.doc_schema()},
                   description='Success')
-@openapi.response(status=404, description='Error')
+@openapi.response(status=404, description='Guild does not exist')
 async def get_guild(request: Request, db: Database, guild_id: int):
     """
     Get Guild
 
     This returns the guild object
     """
-    guild_view = await guilds.GuildModel.fetch(db, guild_id)
+    model = await guilds.GuildModel.fetch(db, guild_id)
 
-    return sanic.json(guild_view.model_dump(), default=str)
+    if not model:
+        raise exceptions.ServerError("Could not find guild. Are you sure the ID is correct?")
+
+    return sanic.json(model.model_dump(), default=str)
+
+
+@guild_blueprint.route('/<guild_id:int>', methods=['PATCH'])
+@openapi.response(status=200,
+                  content={'application/json': guilds.GuildModel.doc_schema()},
+                  description='Success')
+@openapi.definition(body={'application/json': guilds.GuildUpdateModel.doc_schema()})
+@validate(json=guilds.GuildUpdateModel)
+@openapi.response(status=404, description='Guild does not exist')
+async def update_guild(request: Request, db: Database, guild_id: int, body: guilds.GuildUpdateModel):
+    """
+    Update Guild
+
+    Anything that you include as `null` will be omitted and not updated
+    """
+    model = await guilds.GuildModel.fetch(db, guild_id)
+
+    if not model:
+        raise exceptions.NotFound("Could not find this guild, are you sure the ID is correct?")
+
+    update_dict = {}
+
+    for k, v in body.model_dump().items():
+        if v is not None:
+            update_dict[k] = v
+
+    model = model.model_copy(update=update_dict)
+
+    await model.update(db)
+
+    return sanic.json(model.model_dump(), default=str)
+
+
+@guild_blueprint.route('/<guild_id:int>/features', methods=['GET'])
+@openapi.response(status=200,
+                  content={'application/json': guilds.FeaturesModel.doc_schema()},
+                  description='Success')
+@openapi.response(status=404, description='Guild does not exist')
+async def get_features(request: Request, db: Database, guild_id: int):
+    """
+    Get Guild Features
+
+    This returns a list of the guild's features
+    """
+    model = await guilds.FeaturesModel.fetch(db, guild_id)
+
+    if not model:
+        raise exceptions.ServerError("Could not find guild. Are you sure the ID is correct?")
+
+    return sanic.json(model.model_dump(), default=str)
+
+
+@guild_blueprint.route('/<guild_id:int>/channels', methods=['GET'])
+@openapi.response(status=200,
+                  content={'application/json': guilds.ChannelsModel.doc_schema()},
+                  description='Success')
+@openapi.response(status=404, description='Guild does not exist')
+async def get_channels(request: Request, db: Database, guild_id: int):
+    """
+    Get Guild Channels
+
+    This returns a list of the guild's channels
+    """
+    model = await guilds.ChannelsModel.fetch(db, guild_id)
+
+    if not model:
+        raise exceptions.ServerError("Could not find guild. Are you sure the ID is correct?")
+
+    return sanic.json(model.model_dump(), default=str)
 
 
 @guild_blueprint.route('/<guild_id:int>/playtime', methods=['GET'])

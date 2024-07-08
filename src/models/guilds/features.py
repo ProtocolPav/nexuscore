@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from typing import Optional
+
 from sanic_ext import openapi
 
 from src.database import Database
@@ -17,14 +19,18 @@ class FeaturesModel(BaseModel):
     features: list[Feature]
 
     @classmethod
-    async def fetch(cls, db: Database, guild_id: int) -> "FeaturesModel":
+    async def fetch(cls, db: Database, guild_id: int) -> Optional["FeaturesModel"]:
         data = await db.pool.fetch("""
                                    SELECT feature, configured FROM guilds.features
                                    WHERE guild_id = $1
                                    """,
                                    guild_id)
 
-        return cls(**{'features': data})
+        features_list = []
+        for i in data:
+            features_list.append(Feature(**i))
+
+        return cls(**{'features': features_list}) if data else None
 
     @classmethod
     async def add(cls, db: Database, guild_id: int, feature: str):

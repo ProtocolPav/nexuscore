@@ -1,5 +1,7 @@
 from sanic_ext import openapi
 
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 from src.database import Database
@@ -17,14 +19,18 @@ class ChannelsModel(BaseModel):
     channels: list[Channel]
 
     @classmethod
-    async def fetch(cls, db: Database, guild_id: int) -> "ChannelsModel":
+    async def fetch(cls, db: Database, guild_id: int) -> Optional["ChannelsModel"]:
         data = await db.pool.fetch("""
                                    SELECT channel_type, channel_id FROM guilds.channels
                                    WHERE guild_id = $1
                                    """,
                                    guild_id)
 
-        return cls(**{'channels': data})
+        channels_list = []
+        for i in data:
+            channels_list.append(Channel(**i))
+
+        return cls(**{'channels': channels_list}) if data else None
 
     @classmethod
     async def add(cls, db: Database, guild_id: int, channel_type: str, channel_id: int):
