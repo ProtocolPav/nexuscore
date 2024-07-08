@@ -70,9 +70,9 @@ class UserObjectiveModel(BaseModel):
 class UserQuestModel(BaseModel):
     quest_id: int = Field(description="The quest ID", examples=[45])
     accepted_on: datetime = Field(description="The time that the user accepted this quest",
-                                  examples=['2024-05-05T05:34:21.123456Z'])
+                                  examples=['2024-05-05 05:34:21.123456'])
     started_on: Optional[datetime] = Field(description="The time the user actually started to complete the quest",
-                                           examples=['2024-03-21T12:33:45.123456Z'])
+                                           examples=['2024-03-21 12:33:45.123456'])
     status: Literal['in_progress', 'completed', 'failed']
     objectives: list[UserObjectiveModel]
 
