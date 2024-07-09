@@ -148,12 +148,11 @@ class UserQuestModel(BaseModel):
                                UPDATE users.quests
                                SET accepted_on = $1,
                                    started_on = $2,
-                                   objectives_completed = $3,
-                                   status = $4
-                               WHERE thorny_id = $5
-                               AND quest_id = $6
+                                   status = $3
+                               WHERE thorny_id = $4
+                               AND quest_id = $5
                                """,
-                              self.accepted_on, self.started_on, self.objectives_completed,
+                              self.accepted_on, self.started_on,
                               self.status, thorny_id, self.quest_id)
 
     @classmethod
