@@ -9,13 +9,13 @@ import json
 from src.database import Database
 
 
-@openapi.component
+@openapi.component()
 class DailyPlaytime(BaseModel):
     day: date
     playtime: float
 
 
-@openapi.component
+@openapi.component()
 class MonthlyPlaytime(BaseModel):
     month: date
     playtime: float
