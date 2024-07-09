@@ -5,7 +5,10 @@ from typing_extensions import Optional
 
 from src.database import Database
 
+from sanic_ext import openapi
 
+
+@openapi.component()
 class UserModel(BaseModel):
     thorny_id: int = Field(description="The ThornyID of a user. This is a unique number.",
                            examples=[345])
