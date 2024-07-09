@@ -7,7 +7,10 @@ from typing_extensions import Optional
 from src.database import Database
 from src.models import users
 
+from sanic_ext import openapi
 
+
+@openapi.component()
 class ProjectModel(BaseModel):
     project_id: str = Field(description="The id of the project. Comprised of: a-z and underscores",
                             examples=['my_cool_project'])
@@ -23,20 +26,22 @@ class ProjectModel(BaseModel):
                              examples=['2024-05-05'])
     completed_on: Optional[date] = Field(description="The date the project was completed on",
                                          examples=['2024-07-05'])
-    owner: users.UserModel = Field(description="The owner of the project, in the form of a User object")
+    owner: users.UserModel = Field(description="The owner of the project, in the form of a User object",
+                                   examples=[123])
 
     @classmethod
-    async def new(cls, db: Database, model: "ProjectCreateModel"):
-        project_id = re.sub(r'[^a-z0-9_]', '', model.name.lower().replace(' ', '_'))
-
+    async def new(cls, db: Database, project_id: str, model: "ProjectCreateModel"):
         await db.pool.execute("""
                                 with project_table as (
                                     insert into projects.project(project_id,
                                                                  name, 
                                                                  description, 
                                                                  coordinates,
-                                                                 owner_id)
-                                    values($1, $2, $3, $4, $5)
+                                                                 owner_id,
+                                                                 coordinates_x,
+                                                                 coordinates_y,
+                                                                 coordinates_z)
+                                    values($1, $2, $3, $4, $5, 0, 0, 0)
                                 ),
                                 members_table as (
                                     insert into projects.members(project_id, user_id)
@@ -62,7 +67,7 @@ class ProjectModel(BaseModel):
                                       project_id)
 
         if data:
-            owner = users.UserModel.fetch(db, data['owner_id'])
+            owner = await users.UserModel.fetch(db, data['owner_id'])
 
             return cls(**data, owner=owner)
         else:
@@ -97,6 +102,14 @@ class ProjectModel(BaseModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
+class AllProjectsModel(BaseModel):
+    projects: list[ProjectModel]
+
+    @classmethod
+    def doc_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
 class ProjectCreateModel(BaseModel):
     name: str = Field(description="The name of the project",
                       examples=['My Cool Project'])
@@ -104,8 +117,12 @@ class ProjectCreateModel(BaseModel):
                              examples=['This is a sick project with big houses...'])
     coordinates: tuple[int, int, int] = Field(description="The coordinates of the project",
                                               examples=[[333, 55, -65]])
-    owner_id: int = Field("The ThornyID of the project owner",
+    owner_id: int = Field(description="The ThornyID of the project owner",
                           examples=[44])
+
+    @classmethod
+    def doc_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
 class ProjectUpdateModel(BaseModel):
@@ -123,3 +140,7 @@ class ProjectUpdateModel(BaseModel):
                                          examples=['2024-07-05'])
     owner_id: int = Field("The ThornyID of the project owner",
                           examples=[44])
+
+    @classmethod
+    def doc_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
