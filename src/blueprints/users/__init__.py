@@ -65,6 +65,8 @@ async def update_thorny_id(request: Request, db: Database, thorny_id: int, body:
 
     This updates a user. All fields are optional, meaning you may
     set a field to `null` to not update it.
+
+    `whitelist` does not apply to this. If you set it to null, it will become null.
     """
     model = await users.UserModel.fetch(db, thorny_id)
 
@@ -74,7 +76,7 @@ async def update_thorny_id(request: Request, db: Database, thorny_id: int, body:
     update_dict = {}
 
     for k, v in body.model_dump().items():
-        if v is not None:
+        if v is not None or k == 'whitelist':
             update_dict[k] = v
 
     model = model.model_copy(update=update_dict)
