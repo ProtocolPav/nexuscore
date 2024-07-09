@@ -20,7 +20,7 @@ class MembersModel(BaseModel):
 
         all_members = []
         for member in data.get('members', []):
-            all_members.append(users.UserModel.fetch(db, member))
+            all_members.append(await users.UserModel.fetch(db, member))
 
         return cls(**{'members': all_members}) if data else None
 
