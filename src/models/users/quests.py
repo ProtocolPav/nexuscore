@@ -164,7 +164,6 @@ class UserQuestModel(BaseModel):
 class UserQuestUpdateModel(BaseModel):
     accepted_on: Optional[datetime]
     started_on: Optional[datetime]
-    objectives_completed: Optional[int]
     status: Optional[Literal['completed']]
 
     @classmethod
