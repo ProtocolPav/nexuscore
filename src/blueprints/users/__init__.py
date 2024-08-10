@@ -187,7 +187,7 @@ async def user_by_gamertag(request: Request, db: Database, guild_id: int, gamert
     This acts the same as `Get by ThornyID`.
     This will check either the whitelisted gamertag or the user-entered gamertag.
     """
-    thorny_id = await users.UserModel.get_thorny_id(db, guild_id, gamertag=gamertag)
+    thorny_id = await users.UserModel.get_thorny_id(db, guild_id, gamertag=gamertag.replace('%20', ' '))
 
     if not thorny_id:
         raise exceptions.NotFound("Could not find this user, are you sure the guild and gamertag is correct?")
