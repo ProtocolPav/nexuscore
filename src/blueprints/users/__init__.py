@@ -23,7 +23,7 @@ async def create_user(request: Request, db: Database, body: users.UserCreateMode
     If a user with these ID's already exists, it returns a 500.
     """
     if await users.UserModel.get_thorny_id(db, body.guild_id, body.discord_id):
-        raise exceptions.ServerError(message="Could not create the user as it already exists")
+        raise exceptions.SanicException(status_code=500, message="Could not create the user as it already exists")
     else:
         await users.UserModel.new(db, body.guild_id, body.discord_id, body.username)
 
