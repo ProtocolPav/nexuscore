@@ -32,7 +32,7 @@ async def create_project(request: Request, db: Database, body: projects.ProjectC
         model = await projects.ProjectModel.fetch(db, project_id)
         return sanic.json(model.model_dump(), default=str)
     else:
-        raise sanic.ServerError("This project already exists!")
+        raise sanic.SanicException(status_code=500, message="This project already exists!")
 
 
 @project_blueprint.route('/', methods=['GET'])

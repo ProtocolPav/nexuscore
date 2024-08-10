@@ -27,7 +27,7 @@ async def create_guild(request: Request, db: Database, body: guilds.GuildCreateM
     model = await guilds.GuildModel.fetch(db, body.guild_id)
 
     if model:
-        raise exceptions.ServerError("This guild already exists!")
+        raise exceptions.SanicException(status_code=500, message="This guild already exists!")
 
     await guilds.GuildModel.new(db, body.guild_id, body.name)
 
@@ -50,7 +50,7 @@ async def get_guild(request: Request, db: Database, guild_id: int):
     model = await guilds.GuildModel.fetch(db, guild_id)
 
     if not model:
-        raise exceptions.ServerError("Could not find guild. Are you sure the ID is correct?")
+        raise exceptions.SanicException(status_code=500, message="Could not find guild. Are you sure the ID is correct?")
 
     return sanic.json(model.model_dump(), default=str)
 
@@ -100,7 +100,7 @@ async def get_features(request: Request, db: Database, guild_id: int):
     model = await guilds.FeaturesModel.fetch(db, guild_id)
 
     if not model:
-        raise exceptions.ServerError("Could not find guild. Are you sure the ID is correct?")
+        raise exceptions.SanicException(status_code=500, message="Could not find guild. Are you sure the ID is correct?")
 
     return sanic.json(model.model_dump(), default=str)
 
@@ -119,7 +119,7 @@ async def get_channels(request: Request, db: Database, guild_id: int):
     model = await guilds.ChannelsModel.fetch(db, guild_id)
 
     if not model:
-        raise exceptions.ServerError("Could not find guild. Are you sure the ID is correct?")
+        raise exceptions.SanicException(status_code=500, message="Could not find guild. Are you sure the ID is correct?")
 
     return sanic.json(model.model_dump(), default=str)
 
