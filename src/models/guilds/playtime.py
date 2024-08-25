@@ -1,101 +1,61 @@
 import json
-from datetime import datetime, date
+from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sanic_ext import openapi
 
 from src.database import Database
 
 
-class GuildModel(BaseModel):
-    guild_id: int
-    name: str
-    currency_name: str
-    currency_emoji: str
-    level_up_message: str
-    join_message: str
-    leave_message: str
-    xp_multiplier: float
-    active: bool
-
-    @classmethod
-    async def fetch(cls, db: Database, guild_id: int):
-        data = await db.pool.fetchrow("""
-                                      SELECT * FROM guilds.guild
-                                      WHERE guild_id = $1
-                                      """,
-                                      guild_id)
-
-        return cls(**data)
-
-
-class FeatureModel(BaseModel):
-    feature: str
-    configured: bool
-
-    @classmethod
-    async def fetch_all_features(cls, db: Database, guild_id: int):
-        data = await db.pool.fetch("""
-                                   SELECT feature, configured FROM guilds.features
-                                   WHERE guild_id = $1
-                                   """,
-                                   guild_id)
-
-        features = []
-        for i in data:
-            features.append(cls(**i))
-
-        return features
-
-
-class ChannelModel(BaseModel):
-    channel_type: str
-    channel_id: int
-
-    @classmethod
-    async def fetch_all_channels(cls, db: Database, guild_id: int):
-        data = await db.pool.fetch("""
-                                   SELECT channel_type, channel_id FROM guilds.channels
-                                   WHERE guild_id = $1
-                                   """,
-                                   guild_id)
-
-        channels = []
-        for i in data:
-            channels.append(cls(**i))
-
-        return channels
-
-
+@openapi.component()
 class DailyPlaytime(BaseModel):
-    day: date
-    total: float
-    unique_players: int
-    total_sessions: int
-    average_playtime_per_session: float
+    day: date = Field(description="The day this data is about",
+                      examples=['2024-05-05'])
+    total: float = Field(description="The total playtime that day in seconds",
+                         examples=[44544.4322])
+    unique_players: int = Field(description="How many unique players played that day",
+                                examples=[43])
+    total_sessions: int = Field(description="The total amount of sessions that day. "
+                                            "(A session is when a user connects and disconnects)",
+                                examples=[443])
+    average_playtime_per_session: float = Field(description="The average playtime per session today in seconds",
+                                                examples=[405.325])
 
 
+@openapi.component()
 class WeeklyPlaytime(BaseModel):
-    week: int
-    total: float
-    unique_players: int
-    total_sessions: int
-    average_playtime_per_session: float
+    week: int = Field(description="The week of the year this data is about",
+                      examples=[23])
+    total: float = Field(description="The total playtime that week in seconds",
+                         examples=[44544.4322])
+    unique_players: int = Field(description="How many unique players played that week",
+                                examples=[43])
+    total_sessions: int = Field(description="The total amount of sessions that week. "
+                                            "(A session is when a user connects and disconnects)",
+                                examples=[443])
+    average_playtime_per_session: float = Field(description="The average playtime per session this week in seconds",
+                                                examples=[405.325])
 
 
+@openapi.component()
 class MonthlyPlaytime(BaseModel):
-    month: date
-    total: float
-    unique_players: int
+    month: date = Field(description="The month this data is about. Always the first day of that month",
+                        examples=['2024-05-01'])
+    total: float = Field(description="The total playtime that month in seconds",
+                         examples=[4554544.4322])
+    unique_players: int = Field(description="How many unique players played that month",
+                                examples=[432])
 
 
 class GuildPlaytimeAnalysis(BaseModel):
-    total_playtime: float
-    total_unique_players: int
-    daily_playtime: list[DailyPlaytime]
-    weekly_playtime: list[WeeklyPlaytime]
-    monthly_playtime: list[MonthlyPlaytime]
+    total_playtime: float = Field(description="The total playtime of this guild in seconds",
+                                  examples=[1999432544.55433])
+    total_unique_players: int = Field(description="The total unique players that have played on this guild",
+                                      examples=[4433])
+    daily_playtime: list[DailyPlaytime] = Field(description="Data about the last 7 days of playtime")
+    weekly_playtime: list[WeeklyPlaytime] = Field(description="Data about the last 8 weeks of playtime")
+    monthly_playtime: list[MonthlyPlaytime] = Field(description="Data about the last 12 months of playtime")
     peak_playtime_periods: None = None
     peak_active_periods: None = None
     daily_playtime_distribution: None = None
@@ -103,7 +63,7 @@ class GuildPlaytimeAnalysis(BaseModel):
     predictive_insights: None = None
 
     @classmethod
-    async def fetch(cls, db: Database, guild_id: int):
+    async def fetch(cls, db: Database, guild_id: int) -> "GuildPlaytimeAnalysis":
         data = await db.pool.fetchrow("""
                     with totals as (
                         select 
@@ -141,6 +101,7 @@ class GuildPlaytimeAnalysis(BaseModel):
                     weekly_playtime as (
                         select 
                             extract(week from sv.connect_time) as week,
+                            extract(year from sv.connect_time) as year,
                             sum(sv.playtime) as total,
                             count(distinct sv.thorny_id) as unique_players,
                             count(*) as total_sessions,
@@ -153,8 +114,8 @@ class GuildPlaytimeAnalysis(BaseModel):
                             users."user".thorny_id = sv.thorny_id
                         where
                             users."user".guild_id = $1
-                        group by week
-                        order by week desc 
+                        group by year, week
+                        order by year desc, week desc 
                         limit 8
                     ),
                     monthly_playtime as (
@@ -174,7 +135,7 @@ class GuildPlaytimeAnalysis(BaseModel):
                         order by month desc 
                         limit 12
                     )
-                    
+
                     select 
                         $1 as guild_id,
                         coalesce(
@@ -225,62 +186,23 @@ class GuildPlaytimeAnalysis(BaseModel):
         return cls(**processed_dict)
 
     @classmethod
-    def view_schema(cls):
+    def doc_schema(cls):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
-class LeaderboardEntry(BaseModel):
-    value: float | int | str
-    thorny_id: int
-    discord_id: int
-
-
-class LeaderboardModel(BaseModel):
-    leaderboard: list[LeaderboardEntry]
-
-    @classmethod
-    async def get_playtime(cls, db: Database, month_start: date, guild_id: int):
-        month_end = datetime(year=month_start.year, month=month_start.month+1, day=1)
-        data = await db.pool.fetchrow("""
-                    with t as (
-                    select extract(epoch from sum(playtime)) as playtime, sv.thorny_id, u.user_id from events.sessions_view sv 
-                    inner join users."user" u 
-                    on u.thorny_id = sv.thorny_id 
-                    where sv.connect_time between $1 and $2
-                    and u.guild_id = $3
-                    group by sv.thorny_id, u.user_id
-                    order by playtime desc
-                    )
-                    
-                    select coalesce(
-                        (
-                        select json_agg(json_build_object('value', t.playtime,
-                                                          'thorny_id', t.thorny_id,
-                                                          'discord_id', t.user_id))
-                        from t
-                        ),
-                        '[]'::json
-                    ) as leaderboard
-                    """, month_start, month_end, guild_id)
-
-        return cls(**{'leaderboard': json.loads(data['leaderboard'])})
-
-    @classmethod
-    def view_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
-
-
+@openapi.component()
 class OnlineEntry(BaseModel):
     thorny_id: int
     discord_id: int
-    session: datetime
+    session: datetime = Field(description="The date and time when the session started",
+                              examples=['2024-05-05 13:44:33.123456'])
 
 
-class OnlineUsersSummary(BaseModel):
+class OnlineUsersModel(BaseModel):
     users: list[OnlineEntry]
 
     @classmethod
-    async def build(cls, db: Database, guild_id: int):
+    async def fetch(cls, db: Database, guild_id: int) -> "OnlineUsersModel":
         data = await db.pool.fetchrow("""
                                       SELECT COALESCE(
                                                       JSON_AGG(JSON_BUILD_OBJECT('thorny_id', sv.thorny_id,
@@ -298,15 +220,5 @@ class OnlineUsersSummary(BaseModel):
         return cls(**{'users': json.loads(data['users'])})
 
     @classmethod
-    def view_schema(cls):
+    def doc_schema(cls):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
-
-
-openapi.component(MonthlyPlaytime)
-openapi.component(DailyPlaytime)
-openapi.component(WeeklyPlaytime)
-openapi.component(GuildModel)
-openapi.component(FeatureModel)
-openapi.component(ChannelModel)
-openapi.component(LeaderboardEntry)
-openapi.component(OnlineEntry)
