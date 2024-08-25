@@ -124,11 +124,11 @@ class InteractionSummary(BaseModel):
                                                                       'kill', k."sum",
                                                                       'die', d."sum",
                                                                       'use', u."sum")
-                                             from (select sum("count") as "sum" from blocks_mined) as m,
-                                                  (select sum("count") as "sum" from blocks_placed) as p,
-                                                  (select sum("count") as "sum" from kills) as k,
-                                                  (select sum("count") as "sum" from deaths) as d,
-                                                  (select sum("count") as "sum" from uses) as u
+                                             from (select coalesce(sum("count"), 0) as "sum" from blocks_mined) as m,
+                                                  (select coalesce(sum("count"), 0) as "sum" from blocks_placed) as p,
+                                                  (select coalesce(sum("count"), 0) as "sum" from kills) as k,
+                                                  (select coalesce(sum("count"), 0) as "sum" from deaths) as d,
+                                                  (select coalesce(sum("count"), 0) as "sum" from uses) as u
                                             ),
                                             '[]'::json
                                         ) as totals
