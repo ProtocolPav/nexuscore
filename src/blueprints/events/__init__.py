@@ -47,3 +47,21 @@ async def interaction_event(request: Request, db: Database):
     await events.InteractionModel.new(db, model)
 
     return sanic.HTTPResponse(status=201)
+
+
+@events_blueprint.route('/relay', methods=['POST'])
+@openapi.body(content={'application/json': events.RelayModel.model_json_schema()})
+@openapi.response(status=201, description='Success')
+async def server_relay_event(request: Request, db: Database):
+    """
+    Webhook Relay
+
+    Relays a message to the discord server via a webhook.
+    Essentially acts as a wrapper, instead of calling a HTTP to the
+    webhook, just send a POST to here.
+    """
+    model = events.RelayModel(**request.json)
+
+    await model.relay()
+
+    return sanic.HTTPResponse(status=201)

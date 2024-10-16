@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from typing import Literal
 
+import httpx
 from pydantic import StringConstraints, BaseModel
 from typing_extensions import Annotated, Optional
 
@@ -30,6 +31,39 @@ class ConnectionModel(BaseModel):
 class ConnectionCreateModel(BaseModel):
     type: Literal["connect", "disconnect"]
     thorny_id: int
+
+
+class RelayModel(BaseModel):
+    type: Literal["message", "start", "stop", "crash", "join", "leave", "other"]
+    content: str
+    embed_title: str
+    embed_content: str
+    name: str
+
+
+    def generate_embed(self):
+        if self.type == 'stop':
+            return {'title': self.embed_title, 'color': 13763629, 'description': self.embed_content}
+        elif self.type == 'start':
+            return {'title': self.embed_title, 'color': 776785, 'description': self.embed_content}
+        elif self.type == 'crash':
+            return {'title': self.embed_title, 'color': 16738740, 'description': self.embed_content}
+        elif self.type == 'join':
+            return {'title': self.embed_title, 'color': 40544, 'description': self.embed_content}
+        elif self.type == 'leave':
+            return {'title': self.embed_title, 'color': 14893620, 'description': self.embed_content}
+        elif self.type == 'other':
+            return {'title': self.embed_title, 'color': 14679808, 'description': self.embed_content}
+
+    async def relay(self):
+        webhook_url = "https://discord.com/api/webhooks/1220073150944120852/sm-znmdkPUkhw33n_jquHb97qLcaOlCOsHdaRY-zWednGIaDU4irO6rE8iVrvwBP8-FG"
+        webhook_content = {'username': self.name or 'Server',
+                           'content': self.content,
+                           'embeds': [] if self.type == 'message' else [self.generate_embed()],
+                           'attachments': []}
+
+        async with httpx.AsyncClient() as client:
+            await client.request(method="POST", url=webhook_url, json=webhook_content)
 
 
 # Either: minecraft:your_id_name
