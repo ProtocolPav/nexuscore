@@ -52,7 +52,7 @@ async def get_user(request: Request, db: Database, thorny_id: int):
     return sanic.json(user_model.model_dump(), default=str)
 
 
-@user_blueprint.route('/<thorny_id:int>', methods=['PATCH'])
+@user_blueprint.route('/<thorny_id:int>', methods=['PATCH', 'PUT'])
 @openapi.definition(body={'application/json': users.UserUpdateModel.doc_schema()})
 @openapi.response(status=200,
                   content={'application/json': users.UserModel.doc_schema()},
@@ -105,7 +105,7 @@ async def get_profile(request: Request, db: Database, thorny_id: int):
     return sanic.json(profile_model.model_dump(), default=str)
 
 
-@user_blueprint.route('/<thorny_id:int>/profile', methods=['PATCH'])
+@user_blueprint.route('/<thorny_id:int>/profile', methods=['PATCH', 'PUT'])
 @openapi.definition(body={'application/json': users.ProfileUpdateModel.doc_schema()})
 @openapi.response(status=200,
                   content={'application/json': users.ProfileModel.doc_schema()},

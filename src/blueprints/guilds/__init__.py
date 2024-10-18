@@ -55,7 +55,7 @@ async def get_guild(request: Request, db: Database, guild_id: int):
     return sanic.json(model.model_dump(), default=str)
 
 
-@guild_blueprint.route('/<guild_id:int>', methods=['PATCH'])
+@guild_blueprint.route('/<guild_id:int>', methods=['PATCH', 'PUT'])
 @openapi.response(status=200,
                   content={'application/json': guilds.GuildModel.doc_schema()},
                   description='Success')

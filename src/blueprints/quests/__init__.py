@@ -55,7 +55,7 @@ async def get_quest(request: Request, db: Database, quest_id: int):
     return sanic.json(quest_view.model_dump(), default=str)
 
 
-@quest_blueprint.route('/<quest_id:int>', methods=['PATCH'])
+@quest_blueprint.route('/<quest_id:int>', methods=['PATCH', 'PUT'])
 @openapi.body(content={'application/json': quest.QuestUpdateModel.model_json_schema()})
 @openapi.response(status=200,
                   content={'application/json': QuestView.view_schema()})
@@ -79,7 +79,7 @@ async def update_quest(request: Request, db: Database, quest_id: int):
     return sanic.json(model.model_dump(), default=str)
 
 
-@quest_blueprint.route('/reward/<reward_id:int>', methods=['PATCH'])
+@quest_blueprint.route('/reward/<reward_id:int>', methods=['PATCH', 'PUT'])
 @openapi.body(content={'application/json': quest.RewardUpdateModel.model_json_schema()})
 @openapi.response(status=200,
                   content={'application/json': QuestView.view_schema()})
@@ -103,7 +103,7 @@ async def update_reward(request: Request, db: Database, reward_id: int):
     return sanic.json(model.model_dump(), default=str)
 
 
-@quest_blueprint.route('/objective/<objective_id:int>', methods=['PATCH'])
+@quest_blueprint.route('/objective/<objective_id:int>', methods=['PATCH', 'PUT'])
 @openapi.body(content={'application/json': quest.ObjectiveUpdateModel.model_json_schema()})
 @openapi.response(status=200,
                   content={'application/json': QuestView.view_schema()})
