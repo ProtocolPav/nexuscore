@@ -58,10 +58,12 @@ InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_]+$')]
 class ObjectiveModel(BaseModel):
     objective_id: int
     quest_id: int
+    description: str
     objective: InteractionRef
     order: int
     objective_count: int
     objective_type: Literal["kill", "mine"]
+    natural_block: bool
     objective_timer: Optional[float]
     required_mainhand: Optional[InteractionRef]
     required_location: Optional[tuple[int, int]]
@@ -72,10 +74,12 @@ class ObjectiveModel(BaseModel):
         data = await db.pool.fetchrow("""
                                        SELECT objective_id,
                                               quest_id,
+                                              description,
                                               objective,
                                               "order",
                                               objective_count,
                                               objective_type,
+                                              natural_block,
                                               EXTRACT(EPOCH from objective_timer) as objective_timer,
                                               required_mainhand,
                                               required_location,
@@ -106,18 +110,22 @@ class ObjectiveModel(BaseModel):
                                   objective_timer = $4,
                                   required_mainhand = $5,
                                   required_location = $6,
-                                  location_radius = $7
-                              WHERE objective_id = $8
+                                  location_radius = $7,
+                                  description = $8,
+                                  natural_block = $9
+                              WHERE objective_id = $10
                               """,
                               self.objective, self.objective_count, self.objective_type,
                               self.objective_timer, self.required_mainhand, self.required_location,
-                              self.location_radius, self.objective_id)
+                              self.location_radius, self.description, self.natural_block, self.objective_id)
 
 
 class ObjectiveUpdateModel(BaseModel):
     objective: Optional[InteractionRef]
+    description: Optional[str]
     objective_count: Optional[int]
     objective_type: Optional[Literal["kill", "mine"]]
+    natural_block: Optional[bool]
     objective_timer: Optional[float]
     required_mainhand: Optional[InteractionRef]
     required_location: Optional[tuple[int, int]]
@@ -128,6 +136,7 @@ class RewardModel(BaseModel):
     reward_id: int
     quest_id: int
     objective_id: int
+    display_name: Optional[str]
     balance: Optional[int]
     item: Optional[InteractionRef]
     count: Optional[int]
@@ -158,19 +167,23 @@ class RewardModel(BaseModel):
                               SET objective_id = $1,
                                   balance = $2,
                                   item = $3,
-                                  count = $4
-                              WHERE reward_id = $5
+                                  count = $4,
+                                  display_name = $5
+                              WHERE reward_id = $6
                               """,
-                              self.objective_id, self.balance, self.item, self.count, self.reward_id)
+                              self.objective_id, self.balance, self.item, self.count,
+                              self.display_name, self.reward_id)
 
 
 class RewardUpdateModel(BaseModel):
+    display_name: Optional[str]
     balance: Optional[int]
     item: Optional[InteractionRef]
     count: Optional[int]
 
 
 class RewardCreateModel(BaseModel):
+    display_name: Optional[str]
     balance: Optional[int]
     item: Optional[InteractionRef]
     count: Optional[int]
@@ -186,8 +199,10 @@ class QuestCreateModel(BaseModel):
 class ObjectiveCreateModel(BaseModel):
     objective: InteractionRef
     order: int
+    description: str
     objective_count: int
     objective_type: Literal["kill", "mine"]
+    natural_block: bool
     objective_timer: Optional[int]
     required_mainhand: Optional[InteractionRef]
     required_location: Optional[tuple[int, int]]
