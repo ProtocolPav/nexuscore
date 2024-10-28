@@ -98,6 +98,26 @@ class InteractionModel(BaseModel):
                               model.thorny_id, model.type, model.position_x, model.position_y,
                               model.position_z, model.reference, model.mainhand, model.dimension)
 
+    @classmethod
+    async def check_coordinates(cls, db: Database, coordinates: tuple[int, int, int]) -> bool:
+        exists = await db.pool.fetchrow("""
+                                        SELECT
+                                        CASE WHEN EXISTS 
+                                        (
+                                            SELECT * FROM events.interactions i WHERE 
+                                            i.position_x = $1
+                                            and i.position_y = $2
+                                            and i.position_z = $3
+                                            and type = 'place'
+                                        )
+                                        THEN true 
+                                        ELSE false
+                                        END
+                                        """,
+                                       coordinates[0], coordinates[1], coordinates[2])
+
+        return exists['case']
+
 
 class InteractionCreateModel(BaseModel):
     thorny_id: int
