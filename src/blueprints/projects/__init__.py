@@ -69,7 +69,7 @@ async def get_project(request: Request, db: Database, project_id: str):
     return sanic.json(model.model_dump(), default=str)
 
 
-@project_blueprint.route('/<project_id:str>', methods=['PATCH'])
+@project_blueprint.route('/<project_id:str>', methods=['PATCH', 'PUT'])
 @openapi.body(content={'application/json': projects.ProjectUpdateModel.doc_schema()})
 @openapi.response(status=200,
                   description='Success',

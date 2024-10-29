@@ -6,6 +6,7 @@ from src.database import Database
 from sanic_ext import openapi
 
 from src.models import events, users
+from src.models.events import InteractionModel
 
 events_blueprint = Blueprint('events', '/events')
 
@@ -47,6 +48,20 @@ async def interaction_event(request: Request, db: Database):
     await events.InteractionModel.new(db, model)
 
     return sanic.HTTPResponse(status=201)
+
+
+@events_blueprint.route('/interaction', methods=['GET'])
+@openapi.response(status=201, description='Success')
+async def interaction_check(request: Request, db: Database):
+    """
+    Check Interaction Coordinates
+
+    Checks if a given set of coordinates exist.
+    args: x, y, z
+    """
+    coordinates = (int(request.args['x'][0]), int(request.args['y'][0]), int(request.args['z'][0]))
+
+    return sanic.json(body={'exists': await InteractionModel.check_coordinates(db, coordinates)})
 
 
 @events_blueprint.route('/relay', methods=['POST'])
