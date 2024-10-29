@@ -65,7 +65,9 @@ class QuestView(BaseModel):
                                                                                          required_mainhand,
                                                                                          required_location,
                                                                                          location_radius,
-                                                                                         "order")
+                                                                                         "order",
+                                                                                         description,
+                                                                                         natural_block)
                                                             values($1, 
                                                                    $2, 
                                                                    $3, 
@@ -76,7 +78,9 @@ class QuestView(BaseModel):
                                                                    $6, 
                                                                    $7, 
                                                                    $8, 
-                                                                   $9)
+                                                                   $9,
+                                                                   $10,
+                                                                   $11)
         
                                                             returning objective_id
                                                         )
@@ -85,15 +89,22 @@ class QuestView(BaseModel):
                                                        quest_id['id'], objective.objective, objective.objective_count,
                                                        objective.objective_type, objective.objective_timer,
                                                        objective.required_mainhand, objective.required_location,
-                                                       objective.location_radius, objective.order)
+                                                       objective.location_radius, objective.order, objective.description,
+                                                       objective.natural_block)
 
                     if objective.rewards:
                         for reward in objective.rewards:
                             await conn.execute("""
-                                               INSERT INTO quests.reward(quest_id, objective_id, balance, item, count)
-                                               VALUES($1, $2, $3, $4, $5)
+                                               INSERT INTO quests.reward(quest_id, 
+                                                                         objective_id,
+                                                                         balance,
+                                                                         item,
+                                                                         count,
+                                                                         display_name)
+                                               VALUES($1, $2, $3, $4, $5, $6)
                                                """,
-                                               quest_id['id'], objective_id['id'], reward.balance, reward.item, reward.count)
+                                               quest_id['id'], objective_id['id'], reward.balance, reward.item, reward.count,
+                                               reward.display_name)
 
 
 class QuestCreateView(BaseModel):
