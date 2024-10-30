@@ -52,7 +52,7 @@ class QuestUpdateModel(BaseModel):
 
 
 # minecraft:your_id_name
-InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_]+$')]
+InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[0-9a-z_]+$')]
 
 
 class ObjectiveModel(BaseModel):
