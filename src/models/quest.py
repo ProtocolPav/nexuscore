@@ -52,7 +52,7 @@ class QuestUpdateModel(BaseModel):
 
 
 # minecraft:your_id_name
-InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_]+$')]
+InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[0-9a-z_]+$')]
 
 
 class ObjectiveModel(BaseModel):
@@ -60,9 +60,10 @@ class ObjectiveModel(BaseModel):
     quest_id: int
     description: str
     objective: InteractionRef
+    display: Optional[str]
     order: int
     objective_count: int
-    objective_type: Literal["kill", "mine"]
+    objective_type: Literal["kill", "mine", "encounter"]
     natural_block: bool
     objective_timer: Optional[float]
     required_mainhand: Optional[InteractionRef]
@@ -76,6 +77,7 @@ class ObjectiveModel(BaseModel):
                                               quest_id,
                                               description,
                                               objective,
+                                              display,
                                               "order",
                                               objective_count,
                                               objective_type,
