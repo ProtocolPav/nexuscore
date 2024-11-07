@@ -203,7 +203,7 @@ class ObjectiveCreateModel(BaseModel):
     order: int
     description: str
     objective_count: int
-    objective_type: Literal["kill", "mine"]
+    objective_type: Literal["kill", "mine", "encounter"]
     natural_block: bool
     objective_timer: Optional[int]
     required_mainhand: Optional[InteractionRef]
