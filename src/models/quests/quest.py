@@ -1,6 +1,6 @@
 from datetime import datetime, date
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 from typing_extensions import Optional
 
 from src.database import Database
@@ -53,6 +53,30 @@ class QuestModel(BaseModel):
     @classmethod
     def doc_schema(cls):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
+class QuestListModel(RootModel):
+    root: list[QuestModel]
+
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+    @staticmethod
+    async def fetch(db: Database):
+        quest_ids = await db.pool.fetchrow("""
+                                           SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids
+                                           FROM quests.quest
+                                           """)
+
+        quests = []
+        for quest_id in quest_ids.get('ids', []):
+            quests.append(await QuestModel.fetch(db, quest_id))
+
+        quests.sort(key= lambda x: x.start_time, reverse=True)
+        return QuestListModel(root=quests)
 
 
 class QuestUpdateModel(BaseModel):

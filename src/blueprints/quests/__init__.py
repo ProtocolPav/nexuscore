@@ -1,6 +1,6 @@
 from sanic import Blueprint, Request
 import sanic
-from sanic_ext import openapi
+from sanic_ext import openapi, validate
 
 from src.database import Database
 
@@ -29,16 +29,16 @@ async def create_quest(request: Request, db: Database):
 
 @quest_blueprint.route('/', methods=['GET'])
 @openapi.response(status=200,
-                  content={'application/json': ...})
+                  content={'application/json': quests.QuestListModel.doc_schema()})
 async def get_all_quests(request: Request, db: Database):
     """
     Get All Quests
 
-    Returns all quests ordered by start date
+    Returns all quests ordered by start date, recent first
     """
-    view = await AllQuestsView.build(db)
+    quests_model = await quests.QuestListModel.fetch_all(db)
 
-    return sanic.json(view.model_dump(), default=str)
+    return sanic.json(quests_model.model_dump(), default=str)
 
 
 @quest_blueprint.route('/<quest_id:int>', methods=['GET'])
