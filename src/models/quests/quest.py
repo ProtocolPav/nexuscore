@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import Optional
 
 from src.database import Database
-from src.models.quest_templates.objective import ObjectiveModel
+from src.models.quests.objective import ObjectiveCreateModel
 
 
 class QuestModel(BaseModel):
@@ -18,10 +18,9 @@ class QuestModel(BaseModel):
                        examples=['Adventure across Padova'])
     description: str = Field(description="The description of the quest",
                              examples=['Embark on a huge adventure...'])
-    objectives: list[ObjectiveModel]
 
     @classmethod
-    async def new(cls, db: Database, model: "QuestCreateModel") -> int:
+    async def new(cls, db: Database, model: "QuestCreateModel"):
         ...
 
     @classmethod
@@ -72,6 +71,7 @@ class QuestCreateModel(BaseModel):
     end_time: datetime
     title: str
     description: str
+    objectives: list[ObjectiveCreateModel]
 
     @classmethod
     def doc_schema(cls):
