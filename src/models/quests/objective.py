@@ -21,6 +21,8 @@ class ObjectiveModel(BaseModel):
     description: str = Field(description="The description of the objective")
     objective: InteractionRef = Field(description="The target of the objective",
                                       examples=["minecraft:dirt", 'minecraft:skeleton'])
+    display: Optional[str] = Field(description="Override with a custom objective task display",
+                                   examples=['Visit Location XYZ'])
     order: int = Field(description="The order of the objective",
                        examples=[1])
     objective_count: int = Field(description="How much until the objective is completed",
@@ -44,6 +46,7 @@ class ObjectiveModel(BaseModel):
                                               quest_id,
                                               description,
                                               objective,
+                                              display,
                                               "order",
                                               objective_count,
                                               objective_type,
@@ -111,6 +114,8 @@ class ObjectivesListModel(RootModel):
 
 class ObjectiveCreateModel(BaseModel):
     objective: InteractionRef
+    display: Optional[str] = Field(description="Override with a custom objective task display",
+                                   examples=['Visit Location XYZ'])
     order: int
     description: str
     objective_count: int
