@@ -8,7 +8,7 @@ from src.database import Database
 from src.models import guilds
 
 
-guild_blueprint = Blueprint("guild_routes", url_prefix='/guilds')
+guild_blueprint = Blueprint("guilds", url_prefix='/guilds')
 
 
 @guild_blueprint.route('/', methods=['POST'])
