@@ -6,12 +6,14 @@ from src.database import Database
 
 from src.models import quests
 
-quest_blueprint = Blueprint("quest_routes", url_prefix='/quests')
+quest_blueprint = Blueprint("quests", url_prefix='/quests')
 
 
 @quest_blueprint.route('/', methods=['POST'])
 @openapi.body(content={'application/json': quests.QuestCreateModel.doc_schema()})
-@openapi.response(status=201, description="Success")
+@openapi.response(status=201,
+                  content={'application/json': quests.QuestModel.doc_schema()},
+                  description='Success')
 async def create_quest(request: Request, db: Database):
     """
     Create New Quest
@@ -20,11 +22,12 @@ async def create_quest(request: Request, db: Database):
     Some fields are optional and can be `null` while others are required.
     Check the schema for more info on that.
     """
-    view = QuestCreateView(**request.json)
+    quest_create_model = quests.QuestCreateModel(**request.json)
 
-    await QuestView.new(db, view)
+    quest_id = await quests.QuestModel.new(db, quest_create_model)
+    quest_model = await quests.QuestModel.fetch(db, quest_id)
 
-    return sanic.HTTPResponse(status=201)
+    return sanic.json(status=201, body=quest_model.model_dump(), default=str)
 
 
 @quest_blueprint.route('/', methods=['GET'])
@@ -105,10 +108,10 @@ async def update_quest(request: Request, db: Database, quest_id: int):
 
     Update a quest
     """
-    model: quest.QuestModel = await quest.QuestModel.fetch(db, quest_id)
+    model: quests.QuestModel = await quests.QuestModel.fetch(db, quest_id)
     update_dict = {}
 
-    for k, v in quest.QuestUpdateModel(**request.json).model_dump().items():
+    for k, v in quests.QuestUpdateModel(**request.json).model_dump().items():
         if v is not None:
             update_dict[k] = v
 
@@ -128,10 +131,10 @@ async def update_reward(request: Request, db: Database, reward_id: int):
 
     Update an objective's reward
     """
-    model: quest.RewardModel = await quest.RewardModel.fetch(db, reward_id)
+    model: quests.RewardModel = await quests.RewardModel.fetch(db, reward_id)
     update_dict = {}
 
-    for k, v in quest.RewardUpdateModel(**request.json).model_dump().items():
+    for k, v in quests.RewardUpdateModel(**request.json).model_dump().items():
         if v is not None:
             update_dict[k] = v
 
@@ -151,10 +154,10 @@ async def update_objective(request: Request, db: Database, objective_id: int):
 
     Update a quest's objective
     """
-    model: quest.ObjectiveModel = await quest.ObjectiveModel.fetch(db, objective_id)
+    model: quests.ObjectiveModel = await quests.ObjectiveModel.fetch(db, objective_id)
     update_dict = {}
 
-    for k, v in quest.ObjectiveUpdateModel(**request.json).model_dump().items():
+    for k, v in quests.ObjectiveUpdateModel(**request.json).model_dump().items():
         if v is not None:
             update_dict[k] = v
 
