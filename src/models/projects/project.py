@@ -86,15 +86,13 @@ class ProjectModel(BaseModel):
                                UPDATE projects.project
                                SET name = $1,
                                    thread_id = $2,
-                                   coordinates_x = $3,
-                                   coordinates_y = $4,
-                                   coordinates_z = $5,
-                                   description = $6,
-                                   completed_on = $7,
-                                   owner_id = $8
-                               WHERE project_id = $9
+                                   coordinates = $3,
+                                   description = $4,
+                                   completed_on = $5,
+                                   owner_id = $6
+                               WHERE project_id = $7
                                """,
-                              self.name, self.thread_id, self.coordinates_x, self.coordinates_y, self.coordinates_z,
+                              self.name, self.thread_id, self.coordinates,
                               self.description, self.completed_on, self.owner_id, self.project_id)
 
     @classmethod
