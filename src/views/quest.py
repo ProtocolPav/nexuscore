@@ -67,7 +67,8 @@ class QuestView(BaseModel):
                                                                                          location_radius,
                                                                                          "order",
                                                                                          description,
-                                                                                         natural_block)
+                                                                                         natural_block,
+                                                                                         display)
                                                             values($1, 
                                                                    $2, 
                                                                    $3, 
@@ -80,7 +81,8 @@ class QuestView(BaseModel):
                                                                    $8, 
                                                                    $9,
                                                                    $10,
-                                                                   $11)
+                                                                   $11,
+                                                                   $12)
         
                                                             returning objective_id
                                                         )
@@ -90,7 +92,7 @@ class QuestView(BaseModel):
                                                        objective.objective_type, objective.objective_timer,
                                                        objective.required_mainhand, objective.required_location,
                                                        objective.location_radius, objective.order, objective.description,
-                                                       objective.natural_block)
+                                                       objective.natural_block, objective.display)
 
                     if objective.rewards:
                         for reward in objective.rewards:

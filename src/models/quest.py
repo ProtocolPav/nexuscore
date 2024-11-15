@@ -202,6 +202,7 @@ class ObjectiveCreateModel(BaseModel):
     objective: InteractionRef
     order: int
     description: str
+    display: Optional[str]
     objective_count: int
     objective_type: Literal["kill", "mine", "encounter"]
     natural_block: bool
