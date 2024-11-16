@@ -8,7 +8,7 @@ from sanic_ext import openapi, validate
 from src.database import Database
 from src.models import projects
 
-project_blueprint = Blueprint("project_routes", url_prefix='/projects')
+project_blueprint = Blueprint("projects", url_prefix='/projects')
 
 
 @project_blueprint.route('/', methods=['POST'])
