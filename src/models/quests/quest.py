@@ -1,12 +1,14 @@
 from datetime import datetime, date
 
 from pydantic import BaseModel, Field, RootModel
+from sanic_ext import openapi
 from typing_extensions import Optional
 
 from src.database import Database
 from src.models.quests.objective import ObjectiveCreateModel
 
 
+@openapi.component()
 class QuestModel(BaseModel):
     quest_id: int = Field(description="The ID of the quest",
                           examples=[4])

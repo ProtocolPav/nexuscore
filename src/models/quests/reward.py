@@ -12,6 +12,7 @@ from sanic_ext import openapi
 InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
 
+@openapi.component()
 class RewardModel(BaseModel):
     reward_id: int
     quest_id: int
@@ -75,6 +76,7 @@ class RewardsListModel(RootModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
+@openapi.component()
 class RewardCreateModel(BaseModel):
     balance: Optional[int]
     item: Optional[InteractionRef]

@@ -1,7 +1,7 @@
 from datetime import datetime, date
 
 from pydantic import BaseModel, Field, StringConstraints, RootModel
-from typing import Annotated, Optional, Literal, Union
+from typing import Annotated, Optional, Literal, Union, List, Iterator
 from typing_extensions import Optional
 
 from src.database import Database
@@ -15,6 +15,7 @@ InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')
 ObjectiveType = Literal["kill", "mine", "encounter"]
 
 
+@openapi.component()
 class ObjectiveModel(BaseModel):
     objective_id: int = Field(description="The ID of the objective")
     quest_id: int = Field(description="The ID of the quest")
@@ -85,12 +86,12 @@ class ObjectiveModel(BaseModel):
 
 
 class ObjectivesListModel(RootModel):
-    root: list[ObjectiveModel]
+    root: List[ObjectiveModel]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[ObjectiveModel]:
         return iter(self.root)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> ObjectiveModel:
         return self.root[item]
 
     @classmethod
@@ -112,6 +113,7 @@ class ObjectivesListModel(RootModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
+@openapi.component()
 class ObjectiveCreateModel(BaseModel):
     objective: InteractionRef
     display: Optional[str] = Field(description="Override with a custom objective task display",
