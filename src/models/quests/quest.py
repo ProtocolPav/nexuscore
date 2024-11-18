@@ -139,6 +139,7 @@ class QuestListModel(RootModel):
         quest_ids = await db.pool.fetchrow("""
                                            SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids
                                            FROM quests.quest
+                                           WHERE NOW() BETWEEN start_time AND end_time
                                            """)
 
         quests = []
