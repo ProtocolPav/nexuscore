@@ -7,17 +7,6 @@ from src.blueprints import blueprint_group
 
 app = Sanic("nexuscore")
 
-"""
-GET retrieve all or just one resource.
-
-POST is normally for create a new resource.
-
-PUT used to update a resource
-
-DELETE delete a resource
-"""
-
-
 @app.route('/healthcheck')
 async def health_check(request: Request):
     """

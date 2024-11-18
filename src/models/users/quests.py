@@ -9,7 +9,7 @@ import json
 from sanic_ext import openapi
 
 from src.database import Database
-from src.views.quest import QuestView
+from src.models.quests import QuestModel, ObjectivesListModel
 
 
 @openapi.component()
@@ -117,7 +117,7 @@ class UserQuestModel(BaseModel):
 
     @classmethod
     async def new(cls, db: Database, thorny_id: int, quest_id: int):
-        quest_view = await QuestView.build(db, quest_id)
+        objectives_list = await ObjectivesListModel.fetch(db, quest_id)
 
         async with db.pool.acquire() as conn:
             async with conn.transaction():
@@ -127,7 +127,7 @@ class UserQuestModel(BaseModel):
                                    """,
                                    quest_id, thorny_id)
 
-                for objective in quest_view.objectives:
+                for objective in objectives_list:
                     await conn.execute("""
                                        INSERT INTO users.objectives(quest_id, thorny_id, objective_id)
                                        VALUES($1, $2, $3)
