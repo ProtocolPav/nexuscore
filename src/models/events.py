@@ -60,7 +60,9 @@ class RelayModel(BaseModel):
         webhook_content = {'username': self.name or 'Server',
                            'content': self.content,
                            'embeds': [] if self.type == 'message' else [self.generate_embed()],
-                           'attachments': []}
+                           'attachments': [],
+                           'allowed_mentions': {'parse': []}
+                           }
 
         async with httpx.AsyncClient() as client:
             await client.request(method="POST", url=webhook_url, json=webhook_content)

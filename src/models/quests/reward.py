@@ -20,6 +20,7 @@ class RewardModel(BaseModel):
     balance: Optional[int]
     item: Optional[InteractionRef]
     count: Optional[int]
+    display_name: Optional[str]
 
     @classmethod
     async def fetch(cls, db: Database, reward_id: int):
@@ -37,10 +38,11 @@ class RewardModel(BaseModel):
                               SET objective_id = $1,
                                   balance = $2,
                                   item = $3,
-                                  count = $4
-                              WHERE reward_id = $5
+                                  count = $4,
+                                  display_name = $5
+                              WHERE reward_id = $6
                               """,
-                              self.objective_id, self.balance, self.item, self.count, self.reward_id)
+                              self.objective_id, self.balance, self.item, self.count, self.display_name, self.reward_id)
 
     @classmethod
     def doc_schema(cls):
@@ -79,6 +81,7 @@ class RewardsListModel(RootModel):
 @openapi.component()
 class RewardCreateModel(BaseModel):
     balance: Optional[int]
+    display_name: Optional[str]
     item: Optional[InteractionRef]
     count: Optional[int]
 
