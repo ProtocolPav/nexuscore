@@ -5,7 +5,7 @@ from sanic_ext import openapi, validate
 from src.database import Database
 from src.models import users
 
-user_blueprint = Blueprint("user_routes", url_prefix='/users')
+user_blueprint = Blueprint("users", url_prefix='/users')
 
 
 @user_blueprint.route('/', methods=['POST'])

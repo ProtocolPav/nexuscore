@@ -1,60 +1,43 @@
-from typing import Optional
+from datetime import datetime, date
+
+from pydantic import BaseModel, Field, RootModel
+from sanic_ext import openapi
+from typing_extensions import Optional
 
 from src.database import Database
-from src.models.quest import QuestModel, RewardModel, ObjectiveModel, QuestCreateModel, ObjectiveCreateModel
-
-from pydantic import BaseModel
-
-from sanic_ext import openapi
+from src.models.quests.objective import ObjectiveCreateModel
 
 
-class QuestView(BaseModel):
-    quest: QuestModel
-    rewards: Optional[list[RewardModel]]
-    objectives: Optional[list[ObjectiveModel]]
-
-    @classmethod
-    async def build(cls, db: Database, quest_id: int) -> "QuestView":
-        quest = await QuestModel.fetch(db, quest_id)
-        all_rewards = await RewardModel.get_all_rewards(db, quest_id)
-        all_objectives = await ObjectiveModel.get_all_objectives(db, quest_id)
-
-        rewards = []
-        for r_id in all_rewards:
-            rewards.append(await RewardModel.fetch(db, r_id))
-
-        objectives = []
-        for obj_id in all_objectives:
-            objectives.append(await ObjectiveModel.fetch(db, obj_id))
-
-        objectives.sort(key=lambda x: x.order)
-
-        return cls(quest=quest, rewards=rewards, objectives=objectives)
+@openapi.component()
+class QuestModel(BaseModel):
+    quest_id: int = Field(description="The ID of the quest",
+                          examples=[4])
+    start_time: datetime = Field(description="When this quest will begin to be available to be accepted",
+                                 examples=["2024-03-03 04:00:00"])
+    end_time: datetime = Field(description="The time that this quest will no longer be available to be accepted",
+                               examples=["2024-05-03 04:00:00"])
+    title: str = Field(description="The quest title",
+                       examples=['Adventure across Padova'])
+    description: str = Field(description="The description of the quest",
+                             examples=['Embark on a huge adventure...'])
 
     @classmethod
-    def view_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
-
-    @classmethod
-    async def new(cls, db: Database, create_view: "QuestCreateView"):
-        quest_model = create_view.quest
-
+    async def new(cls, db: Database, model: "QuestCreateModel") -> int:
         async with db.pool.acquire() as conn:
             async with conn.transaction():
                 quest_id = await conn.fetchrow("""
                                                 with quest_table as (
                                                     insert into quests.quest(start_time, end_time, title, description)
                                                     values($1, $2, $3, $4)
-                
+
                                                     returning quest_id
                                                 )
                                                 select quest_id as id from quest_table
                                                """,
-                                               quest_model.start_time, quest_model.end_time,
-                                               quest_model.title, quest_model.description)
+                                               model.start_time, model.end_time,
+                                               model.title, model.description)
 
-                objective_model = create_view.objectives
-                for objective in objective_model:
+                for objective in model.objectives:
                     objective_id = await conn.fetchrow("""
                                                         with objective_table as (
                                                             insert into quests.objective(quest_id,
@@ -83,7 +66,7 @@ class QuestView(BaseModel):
                                                                    $10,
                                                                    $11,
                                                                    $12)
-        
+
                                                             returning objective_id
                                                         )
                                                         select objective_id as id from objective_table
@@ -108,50 +91,86 @@ class QuestView(BaseModel):
                                                quest_id['id'], objective_id['id'], reward.balance, reward.item, reward.count,
                                                reward.display_name)
 
-
-class QuestCreateView(BaseModel):
-    quest: QuestCreateModel
-    objectives: Optional[list[ObjectiveCreateModel]]
+                return quest_id['id']
 
     @classmethod
-    def view_schema(cls):
+    async def fetch(cls, db: Database, quest_id: int):
+        data = await db.pool.fetchrow("""
+                                       SELECT quest_id,
+                                              start_time,
+                                              end_time,
+                                              title,
+                                              description
+                                       FROM quests.quest
+                                       WHERE quest_id = $1
+                                       """,
+                                      quest_id)
+
+        return cls(**data) if data else None
+
+    async def update(self, db: Database):
+        await db.pool.execute("""
+                              UPDATE quests.quest
+                              SET start_time = $1,
+                                  end_time = $2,
+                                  title = $3,
+                                  description = $4
+                              WHERE quest_id = $5
+                              """,
+                              self.start_time, self.end_time,
+                              self.title, self.description, self.quest_id)
+
+    @classmethod
+    def doc_schema(cls):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
-class AllQuestsView(BaseModel):
-    current: list[QuestView]
-    past: list[QuestView]
-    future: list[QuestView]
+class QuestListModel(RootModel):
+    root: list[QuestModel]
+
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+    @staticmethod
+    async def fetch(db: Database):
+        quest_ids = await db.pool.fetchrow("""
+                                           SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids
+                                           FROM quests.quest
+                                           """)
+
+        quests = []
+        for quest_id in quest_ids.get('ids', []):
+            quests.append(await QuestModel.fetch(db, quest_id))
+
+        quests.sort(key= lambda x: x.start_time, reverse=True)
+        return QuestListModel(root=quests)
 
     @classmethod
-    async def build(cls, db: Database) -> "AllQuestsView":
-        current_quest_ids = await db.pool.fetchrow("""
-                                                   SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids FROM quests.quest
-                                                   WHERE NOW() BETWEEN start_time AND end_time
-                                                   """)
-
-        past_quest_ids = await db.pool.fetchrow("""
-                                                SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids FROM quests.quest
-                                                WHERE end_time < NOW()
-                                                """)
-
-        future_quest_ids = await db.pool.fetchrow("""
-                                                  SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids FROM quests.quest
-                                                  WHERE start_time > NOW()
-                                                  """)
-
-        current = [await QuestView.build(db, x) for x in current_quest_ids['ids']]
-        past = [await QuestView.build(db, x) for x in past_quest_ids['ids']]
-        future = [await QuestView.build(db, x) for x in future_quest_ids['ids']]
-
-        return cls(current=current, past=past, future=future)
-
-    @classmethod
-    def view_schema(cls):
+    def doc_schema(cls):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
-# Define components in the OpenAPI schema
-# This can be done via a decorator, but for some reason
-# the decorator stops intellisense from working
-openapi.component(QuestView)
+class QuestUpdateModel(BaseModel):
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
+    title: Optional[str]
+    description: Optional[str]
+
+    @classmethod
+    def doc_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
+class QuestCreateModel(BaseModel):
+    start_time: datetime
+    end_time: datetime
+    title: str
+    description: str
+    objectives: list[ObjectiveCreateModel]
+
+    @classmethod
+    def doc_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
