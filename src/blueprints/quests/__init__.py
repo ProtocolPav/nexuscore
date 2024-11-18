@@ -39,7 +39,7 @@ async def get_all_quests(request: Request, db: Database):
 
     Returns all quests ordered by start date, recent first
     """
-    quests_model = await quests.QuestListModel.fetch_all(db)
+    quests_model = await quests.QuestListModel.fetch(db)
 
     return sanic.json(quests_model.model_dump(), default=str)
 
