@@ -106,6 +106,8 @@ class ObjectivesListModel(RootModel):
         for objective_id in objective_ids.get('ids', []):
             objectives.append(await ObjectiveModel.fetch(db, quest_id, objective_id))
 
+        objectives.sort(key=lambda x: x.order)
+
         return cls(root=objectives)
 
     @classmethod
