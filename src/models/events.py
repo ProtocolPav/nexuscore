@@ -75,7 +75,7 @@ InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[0-9a-z_*]+$'
 class InteractionModel(BaseModel):
     interaction_id: int
     thorny_id: int
-    type: Literal["kill", "mine", "place", "use", "die"]
+    type: Literal["kill", "mine", "place", "use", "die", "scriptevent"]
     position_x: int
     position_y: int
     position_z: int
@@ -123,7 +123,7 @@ class InteractionModel(BaseModel):
 
 class InteractionCreateModel(BaseModel):
     thorny_id: int
-    type: Literal["kill", "mine", "place", "use", "die"]
+    type: Literal["kill", "mine", "place", "use", "die", "scriptevent"]
     position_x: int
     position_y: int
     position_z: int
