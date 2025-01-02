@@ -48,10 +48,9 @@ class PlayerListModel(RootModel):
     async def update(db: Database, model: "PlayerListCreateModel"):
         async with db.pool.acquire() as conn:
             async with conn.transaction():
-                await conn.execute("TRUNCATE events.locations")
                 await conn.execute("""
-                                   INSERT INTO events.locations
-                                   VALUES($1::json)
+                                   UPDATE events.locations
+                                   SET location_data = $1::json
                                    """, json.dumps(model.model_dump()))
 
     @classmethod
