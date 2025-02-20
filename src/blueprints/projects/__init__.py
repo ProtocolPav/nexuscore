@@ -3,6 +3,7 @@ from typing import Literal
 
 from sanic import Blueprint, Request, HTTPResponse
 import sanic
+from sanic.views import HTTPMethodView
 from sanic_ext import openapi, validate
 
 from src.database import Database
@@ -10,44 +11,43 @@ from src.models import projects
 
 project_blueprint = Blueprint("projects", url_prefix='/projects')
 
+class ProjectsBaseRoute(HTTPMethodView):
+    @openapi.response(status=200,
+                      description="Success",
+                      content={'application/json': projects.AllProjectsModel.doc_schema()})
+    async def get(self, request: Request, db: Database):
+        """
+        Get All Projects
 
-@project_blueprint.route('/', methods=['POST'])
-@openapi.definition(body={'application/json': projects.ProjectCreateModel.doc_schema()})
-@openapi.response(status=200,
-                  description='Success',
-                  content={'application/json': projects.ProjectModel.doc_schema()})
-@validate(json=projects.ProjectCreateModel)
-async def create_project(request: Request, db: Database, body: projects.ProjectCreateModel):
-    """
-    Create Project
+        Get a list of Projects
+        """
+        all_projects = await projects.ProjectModel.fetch_all(db)
 
-    Creates a new project, inserts a status and content.
-    """
-    project_id = re.sub(r'[^a-z0-9_]', '', body.name.lower().replace(' ', '_'))
+        return sanic.json(projects.AllProjectsModel(**{'projects': all_projects}).model_dump(), default=str)
 
-    model = await projects.ProjectModel.fetch(db, project_id)
+    @openapi.definition(body={'application/json': projects.ProjectCreateModel.doc_schema()})
+    @openapi.response(status=200,
+                      description='Success',
+                      content={'application/json': projects.ProjectModel.doc_schema()})
+    @validate(json=projects.ProjectCreateModel)
+    async def post(self, request: Request, db: Database, body: projects.ProjectCreateModel):
+        """
+        Create Project
 
-    if not model:
-        await projects.ProjectModel.new(db, project_id, body)
+        Creates a new project, inserts a status and content.
+        """
+        project_id = re.sub(r'[^a-z0-9_]', '', body.name.lower().replace(' ', '_'))
+
         model = await projects.ProjectModel.fetch(db, project_id)
-        return sanic.json(model.model_dump(), default=str)
-    else:
-        raise sanic.SanicException(status_code=500, message="This project already exists!")
 
+        if not model:
+            await projects.ProjectModel.new(db, project_id, body)
+            model = await projects.ProjectModel.fetch(db, project_id)
+            return sanic.json(model.model_dump(), default=str)
+        else:
+            raise sanic.SanicException(status_code=500, message="This project already exists!")
 
-@project_blueprint.route('/', methods=['GET'])
-@openapi.response(status=200,
-                  description="Success",
-                  content={'application/json': projects.AllProjectsModel.doc_schema()})
-async def get_all_projects(request: Request, db: Database):
-    """
-    Get All Projects
-
-    Get a list of Projects
-    """
-    all_projects = await projects.ProjectModel.fetch_all(db)
-
-    return sanic.json(projects.AllProjectsModel(**{'projects': all_projects}).model_dump(), default=str)
+project_blueprint.add_route(ProjectsBaseRoute.as_view(), '/')
 
 
 @project_blueprint.route('/<project_id:str>', methods=['GET'])

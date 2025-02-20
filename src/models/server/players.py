@@ -58,6 +58,7 @@ class PlayerListModel(RootModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
+@openapi.component()
 class PlayerCreateModel(BaseModel):
     gamertag: str
     location: tuple[int, int, int]
