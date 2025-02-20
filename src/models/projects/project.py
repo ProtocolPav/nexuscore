@@ -54,8 +54,6 @@ class ProjectModel(BaseModel):
                                     insert into projects.status(project_id, status)
                                     values($1, 'pending')
                                 )
-                                insert into projects.content(project_id, content, user_id)
-                                values($1, '<p>Looking really empty in here. You should totally write up this page, yo!</p>', $5)
                                """,
                               project_id, model.name, model.description, model.coordinates, model.owner_id)
 
