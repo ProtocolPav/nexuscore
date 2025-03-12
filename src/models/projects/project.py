@@ -37,11 +37,9 @@ class ProjectModel(BaseModel):
                                                                  name, 
                                                                  description, 
                                                                  coordinates,
-                                                                 owner_id,
-                                                                 coordinates_x,
-                                                                 coordinates_y,
-                                                                 coordinates_z)
-                                    values($1, $2, $3, $4, $5, 0, 0, 0)
+                                                                 owner_id)
+                                    values($1, $2, $3, $4, $5)
+                                    RETURNING project_id
                                 ),
                                 members_table as (
                                     insert into projects.members(project_id, user_id)
@@ -51,8 +49,7 @@ class ProjectModel(BaseModel):
                                     insert into projects.status(project_id, status)
                                     values($1, 'pending')
                                 )
-                                insert into projects.content(project_id, content, user_id)
-                                values($1, '<p>Looking really empty in here. You should totally write up this page, yo!</p>', $5)
+                                SELECT project_id FROM project_table
                                """,
                               project_id, model.name, model.description, model.coordinates, model.owner_id)
 
