@@ -1,4 +1,4 @@
-FROM python:3.10.8-buster
+FROM python:3.11.8-alpine
 
 COPY requirements.txt /nexuscore/requirements.txt
 
