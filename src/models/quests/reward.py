@@ -61,7 +61,7 @@ class RewardsListModel(RootModel):
     @classmethod
     async def fetch(cls, db: Database, quest_id: int, objective_id: int):
         reward_ids = await db.pool.fetchrow("""
-                                            SELECT array_agg(reward_id) as ids FROM quests.reward
+                                            SELECT coalesce(array_agg(reward_id), '{}'::integer[]) as ids FROM quests.reward
                                             WHERE quest_id = $1
                                             AND objective_id = $2
                                             """,
