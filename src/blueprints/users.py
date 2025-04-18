@@ -28,7 +28,7 @@ async def create_user(request: Request, db: Database, body: users.UserCreateMode
         await users.UserModel.new(db, body.guild_id, body.discord_id, body.username)
 
         thorny_id = await users.UserModel.get_thorny_id(db, body.guild_id, body.discord_id)
-        user_view = await users.UserModel.build(db, thorny_id)
+        user_view = await users.UserModel.fetch(db, thorny_id)
 
     return sanic.json(status=201, body=user_view.model_dump(), default=str)
 

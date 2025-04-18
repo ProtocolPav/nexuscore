@@ -1,8 +1,7 @@
-import re
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
-from typing_extensions import Optional
+from typing_extensions import Literal, Optional
 
 from src.database import Database
 from src.models import users
@@ -28,6 +27,10 @@ class ProjectModel(BaseModel):
                                          examples=['2024-07-05'])
     owner: users.UserModel = Field(description="The owner of the project, in the form of a User object",
                                    examples=[123])
+    status: Literal["pending", "ongoing", "abandoned", "completed"] = Field(description="The project status",
+                                                                            examples=['ongoing'])
+    status_since: datetime = Field(description="When the status was last updated",
+                            examples=["2024-07-05 15:15:00"])
 
     @classmethod
     async def new(cls, db: Database, project_id: str, model: "ProjectCreateModel"):
@@ -58,8 +61,10 @@ class ProjectModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, project_id: str) -> Optional["ProjectModel"]:
         data = await db.pool.fetchrow("""
-                                       SELECT * FROM projects.project
-                                       WHERE project_id = $1
+                                       SELECT p.*, s.status, s.since AS status_since FROM projects.project p
+                                       INNER JOIN projects.status s ON p.project_id = s.project_id
+                                       WHERE p.project_id = $1
+                                       ORDER BY s.since DESC
                                        """,
                                       project_id)
 

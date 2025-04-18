@@ -56,7 +56,7 @@ class RelayModel(BaseModel):
             return {'title': self.embed_title, 'color': 14679808, 'description': self.embed_content}
 
     async def relay(self):
-        webhook_url = "https://discord.com/api/webhooks/1220073150944120852/sm-znmdkPUkhw33n_jquHb97qLcaOlCOsHdaRY-zWednGIaDU4irO6rE8iVrvwBP8-FG"
+        config = json.load(open('./config.json', 'r'))
         webhook_content = {'username': self.name or 'Server',
                            'content': self.content,
                            'embeds': [] if self.type == 'message' else [self.generate_embed()],
@@ -65,7 +65,7 @@ class RelayModel(BaseModel):
                            }
 
         async with httpx.AsyncClient() as client:
-            await client.request(method="POST", url=webhook_url, json=webhook_content)
+            await client.request(method="POST", url=config['webhook_url'], json=webhook_content)
 
 
 # Either: minecraft:your_id_name
@@ -75,7 +75,7 @@ InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[0-9a-z_*]+$'
 class InteractionModel(BaseModel):
     interaction_id: int
     thorny_id: int
-    type: Literal["kill", "mine", "place", "use", "die"]
+    type: Literal["kill", "mine", "place", "use", "die", "scriptevent"]
     position_x: int
     position_y: int
     position_z: int
@@ -123,7 +123,7 @@ class InteractionModel(BaseModel):
 
 class InteractionCreateModel(BaseModel):
     thorny_id: int
-    type: Literal["kill", "mine", "place", "use", "die"]
+    type: Literal["kill", "mine", "place", "use", "die", "scriptevent"]
     position_x: int
     position_y: int
     position_z: int

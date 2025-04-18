@@ -20,7 +20,12 @@ class LeaderboardModel(BaseModel):
 
     @classmethod
     async def fetch_playtime(cls, db: Database, month_start: date, guild_id: int) -> "LeaderboardModel":
-        month_end = datetime(year=month_start.year, month=month_start.month + 1, day=1)
+        if month_start.month % 12 + 1 == 1:
+            year = month_start.year + 1
+        else:
+            year = month_start.year
+
+        month_end = datetime(year=year, month=month_start.month % 12 + 1, day=1)
         data = await db.pool.fetchrow("""
                     with t as (
                     select extract(epoch from sum(playtime)) as playtime, sv.thorny_id, u.user_id from events.sessions_view sv 
