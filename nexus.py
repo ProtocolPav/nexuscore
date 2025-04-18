@@ -4,7 +4,6 @@ from sanic import Sanic, Request, HTTPResponse
 from src.database import Database
 
 from src.blueprints import blueprint_group
-from src.models import server
 
 app = Sanic("nexuscore")
 
@@ -32,3 +31,4 @@ if __name__ == "__main__":
 
     print(config['title'])
     app.run(host="0.0.0.0", fast=True, debug=True)
+    # app.run(host="0.0.0.0", dev=True)
