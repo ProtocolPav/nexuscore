@@ -32,3 +32,4 @@ if __name__ == "__main__":
 
     print(config['title'])
     app.run(host="0.0.0.0", fast=True, debug=True)
+    # app.run(host="0.0.0.0", dev=True)

@@ -34,7 +34,7 @@ class PlayerListModel(RootModel):
     async def fetch(db: Database):
         data = await db.pool.fetchrow("""
                                       SELECT COALESCE(location_data, '{}'::json) as locations
-                                      FROM events.locations
+                                      FROM server.locations
                                       """)
         players = []
 
@@ -49,7 +49,7 @@ class PlayerListModel(RootModel):
         async with db.pool.acquire() as conn:
             async with conn.transaction():
                 await conn.execute("""
-                                   UPDATE events.locations
+                                   UPDATE server.locations
                                    SET location_data = $1::json
                                    """, json.dumps(model.model_dump()))
 
