@@ -4,7 +4,6 @@ from sanic import Sanic, Request, HTTPResponse
 from src.database import Database
 
 from src.blueprints import blueprint_group
-from src.models import server
 
 app = Sanic("nexuscore")
 
