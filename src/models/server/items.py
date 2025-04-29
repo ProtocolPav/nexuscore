@@ -97,3 +97,13 @@ class ItemCreateModel(BaseModel):
     @classmethod
     def doc_schema(cls):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+
+@openapi.component()
+class ItemUpdateModel(BaseModel):
+    current_uses: int = Field(description="The current uses of this item",
+                          examples=[40])
+
+    @classmethod
+    def doc_schema(cls):
+        return cls.model_json_schema(ref_template="#/components/schemas/{model}")

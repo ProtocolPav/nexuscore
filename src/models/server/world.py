@@ -21,7 +21,8 @@ class WorldModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, guild_id: int) -> Optional["WorldModel"]:
         data = await db.pool.fetchrow("""
-                                       SELECT overworld_border,
+                                       SELECT guild_id,
+                                              overworld_border,
                                               nether_border,
                                               end_border
                                        FROM server.world

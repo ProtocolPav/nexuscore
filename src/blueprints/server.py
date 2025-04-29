@@ -100,7 +100,7 @@ async def get_item(request: Request, db: Database, item_id: str):
                   content={'application/json': server.ItemModel.doc_schema()},
                   description='Success')
 @openapi.response(status=404, description='Item does not exist')
-@validate(json=server.ItemCreateModel)
+@validate(json=server.ItemUpdateModel)
 async def update_item(request: Request, db: Database, item_id: str, body: server.ItemCreateModel):
     """
     Update Item
@@ -162,7 +162,7 @@ async def update_world(request: Request, db: Database, guild_id: int, body: serv
     model = await server.WorldModel.fetch(db, guild_id)
 
     if not model:
-        raise exceptions.NotFound("Could not find this item")
+        raise exceptions.NotFound("Could not find this world")
 
     update_dict = {}
 
