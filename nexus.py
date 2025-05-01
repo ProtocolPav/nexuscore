@@ -3,7 +3,7 @@ import json
 from sanic import Sanic, Request, HTTPResponse
 from src.database import Database
 
-from src.blueprints import blueprint_group
+from src.routes import blueprint_group
 
 app = Sanic("nexuscore")
 app.config.OAS_URL_PREFIX = "/api/docs"
