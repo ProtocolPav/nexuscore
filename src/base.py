@@ -10,11 +10,11 @@ class BaseModel(pydantic.BaseModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
     @classmethod
-    async def fetch(cls, db: Database, *args, **kwargs):
+    async def fetch(cls, db: Database, *args, **kwargs) -> "BaseModel":
         raise NotImplementedError("fetch() must be implemented in subclasses")
 
     @classmethod
-    async def create(cls, db: Database, *args, **kwargs):
+    async def create(cls, db: Database, *args, **kwargs) -> "BaseModel":
         raise NotImplementedError("create() must be implemented in subclasses")
 
     async def update(self, db: Database):
@@ -47,5 +47,5 @@ class BaseList(pydantic.RootModel[List[T]], Generic[T]):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
     @classmethod
-    async def fetch(cls, db: Database, *args, **kwargs):
+    async def fetch(cls, db: Database, *args, **kwargs) -> "BaseList[T]":
         raise NotImplementedError("fetch() must be implemented in subclasses")
