@@ -1,5 +1,5 @@
 from pydantic import Field, StringConstraints
-from typing import Annotated, Literal, List, Iterator, Optional
+from typing import Annotated, Literal, Optional
 from src.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
@@ -39,10 +39,10 @@ class ObjectiveBaseModel(BaseModel):
 
 @openapi.component()
 class ObjectiveModel(ObjectiveBaseModel):
-    objective_id: int = Field(description="The ID of the objective",
-                              json_schema_extra={"example": 43})
-    quest_id: int = Field(description="The ID of the quest",
+    quest_id: int = Field(description="The ID of the quest this objective belongs to",
                           json_schema_extra={"example": 732})
+    objective_id: int = Field(description="The ID of this objective",
+                              json_schema_extra={"example": 43})
 
     @classmethod
     async def fetch(cls, db: Database, quest_id: int = None, objective_id: int = None, *args):
