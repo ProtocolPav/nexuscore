@@ -1,17 +1,14 @@
 from datetime import datetime, date
+from src.base import BaseModel, BaseList, optional_model
 
-from pydantic import BaseModel, Field, RootModel
+from pydantic import Field
 from sanic_ext import openapi
-from typing_extensions import Optional
 
 from src.database import Database
 from src.models.quests.objective import ObjectiveCreateModel
 
 
-@openapi.component()
-class QuestModel(BaseModel):
-    quest_id: int = Field(description="The ID of the quest",
-                          examples=[4])
+class QuestBaseModel(BaseModel):
     start_time: datetime = Field(description="When this quest will begin to be available to be accepted",
                                  examples=["2024-03-03 04:00:00"])
     end_time: datetime = Field(description="The time that this quest will no longer be available to be accepted",
@@ -21,8 +18,14 @@ class QuestModel(BaseModel):
     description: str = Field(description="The description of the quest",
                              examples=['Embark on a huge adventure...'])
 
+
+@openapi.component()
+class QuestModel(QuestBaseModel):
+    quest_id: int = Field(description="The ID of the quest",
+                          examples=[4])
+
     @classmethod
-    async def new(cls, db: Database, model: "QuestCreateModel") -> int:
+    async def create(cls, db: Database, model: "QuestCreateModel" = None, *args) -> int:
         async with db.pool.acquire() as conn:
             async with conn.transaction():
                 quest_id = await conn.fetchrow("""
@@ -94,7 +97,7 @@ class QuestModel(BaseModel):
                 return quest_id['id']
 
     @classmethod
-    async def fetch(cls, db: Database, quest_id: int):
+    async def fetch(cls, db: Database, quest_id: int = None, *args):
         data = await db.pool.fetchrow("""
                                        SELECT quest_id,
                                               start_time,
@@ -120,58 +123,26 @@ class QuestModel(BaseModel):
                               self.start_time, self.end_time,
                               self.title, self.description, self.quest_id)
 
+
+class QuestListModel(BaseList[QuestModel]):
     @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
-
-
-class QuestListModel(RootModel):
-    root: list[QuestModel]
-
-    def __iter__(self):
-        return iter(self.root)
-
-    def __getitem__(self, item):
-        return self.root[item]
-
-    @staticmethod
-    async def fetch(db: Database):
+    async def fetch(cls, db: Database, *args):
         quest_ids = await db.pool.fetchrow("""
                                            SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids
                                            FROM quests.quest
                                            WHERE NOW() BETWEEN start_time AND end_time
                                            """)
 
-        quests = []
+        quests: list[QuestModel] = []
         for quest_id in quest_ids.get('ids', []):
             quests.append(await QuestModel.fetch(db, quest_id))
 
         quests.sort(key= lambda x: x.start_time, reverse=True)
-        return QuestListModel(root=quests)
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+        return cls(root=quests)
 
 
-class QuestUpdateModel(BaseModel):
-    start_time: Optional[datetime]
-    end_time: Optional[datetime]
-    title: Optional[str]
-    description: Optional[str]
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+QuestUpdateModel = optional_model('QuestUpdateModel', QuestBaseModel)
 
 
-class QuestCreateModel(BaseModel):
-    start_time: datetime
-    end_time: datetime
-    title: str
-    description: str
-    objectives: list[ObjectiveCreateModel]
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+class QuestCreateModel(QuestBaseModel):
+    objectives: list[ObjectiveCreateModel] = Field(description="A list of objectives for this quest")
