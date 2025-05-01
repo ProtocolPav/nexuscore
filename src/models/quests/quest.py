@@ -6,6 +6,7 @@ from sanic_ext import openapi
 
 from src.database import Database
 from src.models.quests.objective import ObjectiveCreateModel
+from src.utils.errors import BadRequest400, NotFound404
 
 
 class QuestBaseModel(BaseModel):
@@ -98,6 +99,9 @@ class QuestModel(QuestBaseModel):
 
     @classmethod
     async def fetch(cls, db: Database, quest_id: int = None, *args):
+        if not quest_id:
+            raise BadRequest400('No quest ID provided. Please provide a quest ID to fetch a quest by')
+
         data = await db.pool.fetchrow("""
                                        SELECT quest_id,
                                               start_time,
@@ -109,7 +113,10 @@ class QuestModel(QuestBaseModel):
                                        """,
                                       quest_id)
 
-        return cls(**data) if data else None
+        if data:
+            return cls(**data)
+        else:
+            raise NotFound404(extra={'resource': 'quest', 'id': quest_id})
 
     async def update(self, db: Database):
         await db.pool.execute("""
