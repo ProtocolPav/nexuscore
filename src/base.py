@@ -3,6 +3,8 @@ from typing import Generic, TypeVar, List, Optional, get_type_hints
 
 from src.database import Database
 
+T = TypeVar('T')
+
 
 class BaseModel(pydantic.BaseModel):
     @classmethod
@@ -10,11 +12,11 @@ class BaseModel(pydantic.BaseModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
     @classmethod
-    async def fetch(cls, db: Database, *args, **kwargs) -> "BaseModel":
+    async def fetch(cls, db: Database, *args, **kwargs) -> T:
         raise NotImplementedError("fetch() must be implemented in subclasses")
 
     @classmethod
-    async def create(cls, db: Database, *args, **kwargs) -> "BaseModel":
+    async def create(cls, db: Database, *args, **kwargs) -> T:
         raise NotImplementedError("create() must be implemented in subclasses")
 
     async def update(self, db: Database):
@@ -28,9 +30,6 @@ def optional_model(name: str, base: type[BaseModel]) -> type[BaseModel]:
         for k, v in annotations.items()
     }
     return pydantic.create_model(name, **optional_fields, __base__=BaseModel)
-
-
-T = TypeVar('T')
 
 
 class BaseList(pydantic.RootModel[List[T]], Generic[T]):

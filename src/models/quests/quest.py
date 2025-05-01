@@ -10,19 +10,19 @@ from src.models.quests.objective import ObjectiveCreateModel
 
 class QuestBaseModel(BaseModel):
     start_time: datetime = Field(description="When this quest will begin to be available to be accepted",
-                                 examples=["2024-03-03 04:00:00"])
+                                 json_schema_extra={"example": "2024-03-03 04:00:00"})
     end_time: datetime = Field(description="The time that this quest will no longer be available to be accepted",
-                               examples=["2024-05-03 04:00:00"])
+                               json_schema_extra={"example": "2024-05-03 04:00:00"})
     title: str = Field(description="The quest title",
-                       examples=['Adventure across Padova'])
+                       json_schema_extra={"example": 'Skeleton Killer'})
     description: str = Field(description="The description of the quest",
-                             examples=['Embark on a huge adventure...'])
+                             json_schema_extra={"example": 'Skeletons are evil...'})
 
 
 @openapi.component()
 class QuestModel(QuestBaseModel):
     quest_id: int = Field(description="The ID of the quest",
-                          examples=[4])
+                          json_schema_extra={"example": 732})
 
     @classmethod
     async def create(cls, db: Database, model: "QuestCreateModel" = None, *args) -> int:

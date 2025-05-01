@@ -23,12 +23,13 @@ class ObjectiveBaseModel(BaseModel):
     description: str = Field(description="The description of the objective",
                              json_schema_extra={"example": 'Did you know skeletons hate diamonds...'})
     display: Optional[str] = Field(description="Override with a custom objective task display",
-                                   json_schema_extra={"example": 'Speak to The Scientist'})
+                                   json_schema_extra={"example": None})
     order: int = Field(description="The order of the objective",
                        json_schema_extra={"example": 0})
-    natural_block: bool = Field(description="Denotes whether the block mined must be natural or not")
+    natural_block: bool = Field(description="Denotes whether the block mined must be natural or not",
+                                json_schema_extra={"example": False})
     objective_timer: Optional[float] = Field(description='An optional timer for this objective in seconds',
-                                             json_schema_extra={"example": 3600.3})
+                                             json_schema_extra={"example": 30})
     required_mainhand: Optional[InteractionRef] = Field(description="An optional mainhand requirement for this objective",
                                                         json_schema_extra={"example": 'minecraft:diamond_sword'})
     required_location: Optional[list[int]] = Field(description="An optional location requirement for this objective",
