@@ -1,5 +1,5 @@
-from datetime import datetime, date
-from src.base import BaseModel, BaseList, optional_model
+from datetime import datetime
+from src.utils.base import BaseModel, BaseList, optional_model
 
 from pydantic import Field
 from sanic_ext import openapi

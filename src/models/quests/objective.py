@@ -1,6 +1,6 @@
 from pydantic import Field, StringConstraints
 from typing import Annotated, Literal, Optional
-from src.base import BaseModel, BaseList, optional_model
+from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
 
