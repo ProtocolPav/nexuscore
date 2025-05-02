@@ -96,7 +96,8 @@ class QuestListModel(BaseList[QuestModel]):
 
         quests: list[QuestModel] = []
         for quest in quest_data:
-            quests.append(QuestModel(**quest))
+            objectives = await ObjectivesListModel.fetch(db, quest['quest_id'])
+            quests.append(QuestModel(**quest, objectives=objectives))
 
         return cls(root=quests)
 

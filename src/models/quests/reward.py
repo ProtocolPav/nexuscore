@@ -79,17 +79,17 @@ class RewardModel(RewardBaseModel):
 
 class RewardsListModel(BaseList[RewardModel]):
     @classmethod
-    async def fetch(cls, db: Database, quest_id: int = None, objective_id: int = None, *args):
-        reward_ids = await db.pool.fetchrow("""
-                                            SELECT coalesce(array_agg(reward_id), '{}'::integer[]) as ids FROM quests.reward
-                                            WHERE quest_id = $1
-                                            AND objective_id = $2
-                                            """,
-                                            quest_id, objective_id)
+    async def fetch(cls, db: Database, objective_id: int = None, *args):
+        reward_data = await db.pool.fetch("""
+                                          SELECT *
+                                          FROM quests.reward
+                                          WHERE objective_id = $1
+                                          """,
+                                          objective_id)
 
-        rewards = []
-        for reward_id in reward_ids.get('ids', []):
-            rewards.append(await RewardModel.fetch(db, reward_id))
+        rewards: list[RewardModel] = []
+        for reward in reward_data:
+            rewards.append(RewardModel(**reward))
 
         return cls(root=rewards)
 
