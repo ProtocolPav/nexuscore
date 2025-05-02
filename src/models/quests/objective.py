@@ -71,9 +71,7 @@ class ObjectiveModel(ObjectiveBaseModel):
                                                                $2, 
                                                                $3, 
                                                                $4, 
-                                                               CASE WHEN $5::double precision IS NULL THEN NULL
-                                                               ELSE make_interval(secs => $5::double precision)
-                                                               END, 
+                                                               $5, 
                                                                $6, 
                                                                $7, 
                                                                $8, 
