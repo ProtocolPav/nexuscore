@@ -12,11 +12,11 @@ class BaseModel(pydantic.BaseModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
     @classmethod
-    async def fetch(cls, db: Database, *args, **kwargs) -> T:
+    async def fetch(cls, db: Database, id_, *args, **kwargs) -> T:
         raise NotImplementedError("fetch() must be implemented in subclasses")
 
     @classmethod
-    async def create(cls, db: Database, *args, **kwargs) -> T:
+    async def create(cls, db: Database, model: "BaseModel", *args, **kwargs) -> T:
         raise NotImplementedError("create() must be implemented in subclasses")
 
     async def update(self, db: Database):

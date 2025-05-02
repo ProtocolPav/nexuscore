@@ -26,7 +26,7 @@ class QuestModel(QuestBaseModel):
                           json_schema_extra={"example": 732})
 
     @classmethod
-    async def create(cls, db: Database, model: "QuestCreateModel" = None, *args) -> int:
+    async def create(cls, db: Database, model: "QuestCreateModel", *args) -> int:
         async with db.pool.acquire() as conn:
             async with conn.transaction():
                 quest_id = await conn.fetchrow("""
@@ -98,7 +98,7 @@ class QuestModel(QuestBaseModel):
                 return quest_id['id']
 
     @classmethod
-    async def fetch(cls, db: Database, quest_id: int = None, *args):
+    async def fetch(cls, db: Database, quest_id: int, *args):
         if not quest_id:
             raise BadRequest400('No quest ID provided. Please provide a quest ID to fetch a quest by')
 
