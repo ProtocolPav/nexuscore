@@ -1,6 +1,9 @@
 from sanic import Blueprint, Request
 import sanic
 from sanic_ext import openapi, validate
+from sanic_ext.extensions.openapi.definitions import RequestBody, Response
+
+from src.utils.errors import BadRequest400, NotFound404
 
 from src.database import Database
 
@@ -10,11 +13,13 @@ quest_blueprint = Blueprint("quests", url_prefix='/quests')
 
 
 @quest_blueprint.route('/', methods=['POST'])
-@openapi.body(content={'application/json': quests.QuestCreateModel.doc_schema()})
-@openapi.response(status=201,
-                  content={'application/json': quests.QuestModel.doc_schema()},
-                  description='Success')
-async def create_quest(request: Request, db: Database):
+@openapi.definition(body=RequestBody(quests.QuestCreateModel.doc_schema()),
+                    response=[
+                        Response(quests.QuestModel.doc_schema(), 201),
+                        Response(BadRequest400, 400)
+                    ])
+@validate(json=quests.QuestCreateModel)
+async def create_quest(request: Request, db: Database, body: quests.QuestCreateModel):
     """
     Create New Quest
 
@@ -22,17 +27,17 @@ async def create_quest(request: Request, db: Database):
     Some fields are optional and can be `null` while others are required.
     Check the schema for more info on that.
     """
-    quest_create_model = quests.QuestCreateModel(**request.json)
-
-    quest_id = await quests.QuestModel.create(db, quest_create_model)
+    quest_id = await quests.QuestModel.create(db, body)
     quest_model = await quests.QuestModel.fetch(db, quest_id)
 
     return sanic.json(status=201, body=quest_model.model_dump(), default=str)
 
 
 @quest_blueprint.route('/', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': quests.QuestListModel.doc_schema()})
+@openapi.definition(response=[
+                        Response(quests.QuestListModel.doc_schema(), 200),
+                        Response(NotFound404, 404)
+                    ])
 async def get_all_quests(request: Request, db: Database):
     """
     Get All Quests
@@ -45,7 +50,10 @@ async def get_all_quests(request: Request, db: Database):
 
 
 @quest_blueprint.route('/<quest_id:int>', methods=['GET'])
-@openapi.response(status=200, content={'application/json': quests.QuestModel.doc_schema()})
+@openapi.definition(response=[
+                        Response(quests.QuestModel.doc_schema(), 200),
+                        Response(NotFound404, 404)
+                    ])
 async def get_quest(request: Request, db: Database, quest_id: int):
     """
     Get Quest
@@ -58,8 +66,10 @@ async def get_quest(request: Request, db: Database, quest_id: int):
 
 
 @quest_blueprint.route('/<quest_id:int>/objectives', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': quests.ObjectivesListModel.doc_schema()})
+@openapi.definition(response=[
+                        Response(quests.ObjectivesListModel.doc_schema(), 200),
+                        Response(NotFound404, 404)
+                    ])
 async def get_objectives(request: Request, db: Database, quest_id: int):
     """
     Get All Objectives
@@ -72,8 +82,10 @@ async def get_objectives(request: Request, db: Database, quest_id: int):
 
 
 @quest_blueprint.route('/<quest_id:int>/objectives/<objective_id:int>', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': quests.ObjectiveModel.doc_schema()})
+@openapi.definition(response=[
+                        Response(quests.ObjectiveModel.doc_schema(), 200),
+                        Response(NotFound404, 404)
+                    ])
 async def get_objective(request: Request, db: Database, quest_id: int, objective_id: int):
     """
     Get Objective
@@ -86,8 +98,10 @@ async def get_objective(request: Request, db: Database, quest_id: int, objective
 
 
 @quest_blueprint.route('/<quest_id:int>/objectives/<objective_id:int>/rewards', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': quests.RewardsListModel.doc_schema()})
+@openapi.definition(response=[
+                        Response(quests.RewardsListModel.doc_schema(), 200),
+                        Response(NotFound404, 404)
+                    ])
 async def get_rewards(request: Request, db: Database, quest_id: int, objective_id: int):
     """
     Get All Rewards
@@ -100,9 +114,14 @@ async def get_rewards(request: Request, db: Database, quest_id: int, objective_i
 
 
 @quest_blueprint.route('/<quest_id:int>', methods=['PATCH', 'PUT'])
-@openapi.body(content={'application/json': quests.QuestUpdateModel.doc_schema()})
-@openapi.response(status=200, content={'application/json': quests.QuestModel.doc_schema()})
-async def update_quest(request: Request, db: Database, quest_id: int):
+@openapi.definition(body=RequestBody(quests.QuestUpdateModel.doc_schema()),
+                    response=[
+                        Response(quests.QuestModel.doc_schema(), 200),
+                        Response(BadRequest400, 400),
+                        Response(NotFound404, 404)
+                    ])
+@validate(json=quests.QuestUpdateModel)
+async def update_quest(request: Request, db: Database, quest_id: int, body: quests.QuestUpdateModel):
     """
     Update Quest
 
@@ -111,7 +130,7 @@ async def update_quest(request: Request, db: Database, quest_id: int):
     model: quests.QuestModel = await quests.QuestModel.fetch(db, quest_id)
     update_dict = {}
 
-    for k, v in quests.QuestUpdateModel(**request.json).model_dump().items():
+    for k, v in body.model_dump().items():
         if v is not None:
             update_dict[k] = v
 
@@ -123,9 +142,14 @@ async def update_quest(request: Request, db: Database, quest_id: int):
 
 
 @quest_blueprint.route('/reward/<reward_id:int>', methods=['PATCH', 'PUT'])
-@openapi.body(content={'application/json': quests.RewardUpdateModel.doc_schema()})
-@openapi.response(status=200, content={'application/json': quests.RewardModel.doc_schema()})
-async def update_reward(request: Request, db: Database, reward_id: int):
+@openapi.definition(body=RequestBody(quests.RewardUpdateModel.doc_schema()),
+                    response=[
+                        Response(quests.RewardModel.doc_schema(), 200),
+                        Response(BadRequest400, 400),
+                        Response(NotFound404, 404)
+                    ])
+@validate(json=quests.RewardUpdateModel)
+async def update_reward(request: Request, db: Database, reward_id: int, body: quests.RewardUpdateModel):
     """
     Update Reward
 
@@ -134,7 +158,7 @@ async def update_reward(request: Request, db: Database, reward_id: int):
     model: quests.RewardModel = await quests.RewardModel.fetch(db, reward_id)
     update_dict = {}
 
-    for k, v in quests.RewardUpdateModel(**request.json).model_dump().items():
+    for k, v in body.model_dump().items():
         if v is not None:
             update_dict[k] = v
 
@@ -146,9 +170,14 @@ async def update_reward(request: Request, db: Database, reward_id: int):
 
 
 @quest_blueprint.route('/objective/<objective_id:int>', methods=['PATCH', 'PUT'])
-@openapi.body(content={'application/json': quests.ObjectiveUpdateModel.doc_schema()})
-@openapi.response(status=200, content={'application/json': quests.ObjectiveModel.doc_schema()})
-async def update_objective(request: Request, db: Database, objective_id: int):
+@openapi.definition(body=RequestBody(quests.ObjectiveUpdateModel.doc_schema()),
+                    response=[
+                        Response(quests.ObjectiveModel.doc_schema(), 200),
+                        Response(BadRequest400, 400),
+                        Response(NotFound404, 404)
+                    ])
+@validate(json=quests.ObjectiveUpdateModel)
+async def update_objective(request: Request, db: Database, objective_id: int, body: quests.ObjectiveUpdateModel):
     """
     Update Objective
 
@@ -157,7 +186,7 @@ async def update_objective(request: Request, db: Database, objective_id: int):
     model: quests.ObjectiveModel = await quests.ObjectiveModel.fetch(db, objective_id)
     update_dict = {}
 
-    for k, v in quests.ObjectiveUpdateModel(**request.json).model_dump().items():
+    for k, v in body.model_dump().items():
         if v is not None:
             update_dict[k] = v
 
