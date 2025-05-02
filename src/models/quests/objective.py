@@ -1,13 +1,17 @@
+import datetime
+
 from pydantic import Field, StringConstraints
 from typing import Annotated, Literal, Optional
+
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
 
-from src.models.quests.reward import RewardCreateModel, RewardModel
+from src.models.quests.reward import RewardCreateModel, RewardModel, RewardsListModel
 
 from sanic_ext import openapi
 
+from src.utils.errors import BadRequest400, NotFound404
 
 InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 ObjectiveType = Literal["kill", "mine", "encounter"]
@@ -43,6 +47,7 @@ class ObjectiveModel(ObjectiveBaseModel):
                           json_schema_extra={"example": 732})
     objective_id: int = Field(description="The ID of this objective",
                               json_schema_extra={"example": 43})
+    rewards: Optional[BaseList[RewardModel]] = Field(description="The rewards for this objective, if any")
 
     @classmethod
     async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> "ObjectiveModel":
@@ -91,28 +96,22 @@ class ObjectiveModel(ObjectiveBaseModel):
             await RewardModel.create(db=db, model=reward, quest_id=quest_id, objective_id=objective_id['id'])
 
     @classmethod
-    async def fetch(cls, db: Database, quest_id: int = None, objective_id: int = None, *args) -> "ObjectiveModel":
-        data = await db.pool.fetchrow("""
-                                       SELECT objective_id,
-                                              quest_id,
-                                              description,
-                                              objective,
-                                              display,
-                                              "order",
-                                              objective_count,
-                                              objective_type,
-                                              natural_block,
-                                              EXTRACT(EPOCH from objective_timer) as objective_timer,
-                                              required_mainhand,
-                                              required_location,
-                                              location_radius
-                                       FROM quests.objective
-                                       WHERE objective_id = $1
-                                       AND quest_id = $2
-                                       """,
-                                      objective_id, quest_id)
+    async def fetch(cls, db: Database, objective_id: int = None, *args) -> "ObjectiveModel":
+        if not objective_id:
+            raise BadRequest400('No objective ID provided. Please provide an ID to fetch an objective by')
 
-        return cls(**data) if data else None
+        data = await db.pool.fetchrow("""
+                                       SELECT * FROM quests.objective
+                                       WHERE objective_id = $1
+                                       """,
+                                      objective_id)
+
+        rewards = await RewardsListModel.fetch(db, objective_id)
+
+        if data:
+            return cls(**data, rewards=rewards)
+        else:
+            raise NotFound404(extra={'resource': 'objective', 'id': objective_id})
 
     async def update(self, db: Database):
         await db.pool.execute("""
@@ -135,17 +134,17 @@ class ObjectiveModel(ObjectiveBaseModel):
 class ObjectivesListModel(BaseList[ObjectiveModel]):
     @classmethod
     async def fetch(cls, db: Database, quest_id: int = None, *args):
-        objective_ids = await db.pool.fetchrow("""
-                                               SELECT array_agg(objective_id) as ids FROM quests.objective
-                                               WHERE quest_id = $1
-                                               """,
-                                              quest_id)
+        objective_data = await db.pool.fetch("""
+                                             SELECT * FROM quests.objective
+                                             WHERE quest_id = $1
+                                             ORDER BY "order"
+                                             """,
+                                             quest_id)
 
-        objectives = []
-        for objective_id in objective_ids.get('ids', []):
-            objectives.append(await ObjectiveModel.fetch(db, quest_id, objective_id))
-
-        objectives.sort(key=lambda x: x.order)
+        objectives: list[ObjectiveModel] = []
+        for objective in objective_data:
+            rewards = await RewardsListModel.fetch(db, objective['objective_id'])
+            objectives.append(ObjectiveModel(**objective, rewards=rewards))
 
         return cls(root=objectives)
 
