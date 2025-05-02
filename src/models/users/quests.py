@@ -9,7 +9,7 @@ import json
 from sanic_ext import openapi
 
 from src.database import Database
-from src.models.quests import QuestModel, ObjectivesListModel
+from src.models.quests.objective import ObjectivesListModel
 
 
 @openapi.component()

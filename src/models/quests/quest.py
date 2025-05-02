@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from src.models.quests import ObjectivesListModel
+from src.models.quests.objective import ObjectivesListModel
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from pydantic import Field
