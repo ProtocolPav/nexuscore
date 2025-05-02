@@ -46,5 +46,5 @@ class BaseList(pydantic.RootModel[List[T]], Generic[T]):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
     @classmethod
-    async def fetch(cls, db: Database, *args, **kwargs) -> "BaseList[T]":
+    async def fetch(cls, db: Database, *args, **kwargs) -> "BaseList":
         raise NotImplementedError("fetch() must be implemented in subclasses")

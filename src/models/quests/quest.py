@@ -26,7 +26,7 @@ class QuestBaseModel(BaseModel):
 class QuestModel(QuestBaseModel):
     quest_id: int = Field(description="The ID of the quest",
                           json_schema_extra={"example": 732})
-    objectives: BaseList[ObjectiveModel] = Field(description="A list of objectives for this quest")
+    objectives: ObjectivesListModel = Field(description="A list of objectives for this quest")
 
     @classmethod
     async def create(cls, db: Database, model: "QuestCreateModel", *args) -> int:

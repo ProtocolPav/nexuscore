@@ -47,7 +47,7 @@ class ObjectiveModel(ObjectiveBaseModel):
                           json_schema_extra={"example": 732})
     objective_id: int = Field(description="The ID of this objective",
                               json_schema_extra={"example": 43})
-    rewards: BaseList[RewardModel] = Field(description="The rewards for this objective, if any")
+    rewards: RewardsListModel = Field(description="The rewards for this objective, if any")
 
     @classmethod
     async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> "ObjectiveModel":
@@ -131,7 +131,7 @@ class ObjectiveModel(ObjectiveBaseModel):
 @openapi.component()
 class ObjectivesListModel(BaseList[ObjectiveModel]):
     @classmethod
-    async def fetch(cls, db: Database, quest_id: int = None, *args):
+    async def fetch(cls, db: Database, quest_id: int = None, *args) -> "ObjectivesListModel":
         objective_data = await db.pool.fetch("""
                                              SELECT * FROM quests.objective
                                              WHERE quest_id = $1

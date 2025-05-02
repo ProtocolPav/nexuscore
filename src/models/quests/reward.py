@@ -83,9 +83,10 @@ class RewardModel(RewardBaseModel):
                               self.objective_id, self.balance, self.item, self.count, self.display_name, self.reward_id)
 
 
+@openapi.component()
 class RewardsListModel(BaseList[RewardModel]):
     @classmethod
-    async def fetch(cls, db: Database, objective_id: int = None, *args):
+    async def fetch(cls, db: Database, objective_id: int = None, *args) -> "RewardsListModel":
         reward_data = await db.pool.fetch("""
                                           SELECT *
                                           FROM quests.reward
