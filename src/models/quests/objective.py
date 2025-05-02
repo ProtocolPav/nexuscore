@@ -47,7 +47,7 @@ class ObjectiveModel(ObjectiveBaseModel):
                           json_schema_extra={"example": 732})
     objective_id: int = Field(description="The ID of this objective",
                               json_schema_extra={"example": 43})
-    rewards: Optional[BaseList[RewardModel]] = Field(description="The rewards for this objective, if any")
+    rewards: BaseList[RewardModel] = Field(description="The rewards for this objective, if any")
 
     @classmethod
     async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> "ObjectiveModel":
@@ -149,7 +149,7 @@ class ObjectivesListModel(BaseList[ObjectiveModel]):
 
 @openapi.component()
 class ObjectiveCreateModel(ObjectiveBaseModel):
-    rewards: Optional[list[RewardCreateModel]] = Field(description="The rewards for this objective, if any")
+    rewards: list[RewardCreateModel] = Field(description="The rewards for this objective, if any")
 
 
 ObjectiveUpdateModel = optional_model('ObjectiveUpdateModel', ObjectiveBaseModel)
