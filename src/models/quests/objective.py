@@ -4,7 +4,7 @@ from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
 
-from src.models.quests.reward import RewardCreateModel
+from src.models.quests.reward import RewardCreateModel, RewardModel
 
 from sanic_ext import openapi
 
@@ -45,7 +45,53 @@ class ObjectiveModel(ObjectiveBaseModel):
                               json_schema_extra={"example": 43})
 
     @classmethod
-    async def fetch(cls, db: Database, quest_id: int = None, objective_id: int = None, *args):
+    async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> "ObjectiveModel":
+        async with db.pool.acquire() as conn:
+            async with conn.transaction():
+                objective_id = await conn.fetchrow("""
+                                                    with objective_table as (
+                                                        insert into quests.objective(quest_id,
+                                                                                     objective,
+                                                                                     objective_count,
+                                                                                     objective_type,
+                                                                                     objective_timer,
+                                                                                     required_mainhand,
+                                                                                     required_location,
+                                                                                     location_radius,
+                                                                                     "order",
+                                                                                     description,
+                                                                                     natural_block,
+                                                                                     display)
+                                                        values($1, 
+                                                               $2, 
+                                                               $3, 
+                                                               $4, 
+                                                               CASE WHEN $5::double precision IS NULL THEN NULL
+                                                               ELSE make_interval(secs => $5::double precision)
+                                                               END, 
+                                                               $6, 
+                                                               $7, 
+                                                               $8, 
+                                                               $9,
+                                                               $10,
+                                                               $11,
+                                                               $12)
+        
+                                                        returning objective_id
+                                                    )
+                                                    select objective_id as id from objective_table
+                                                   """,
+                                                   quest_id, model.objective, model.objective_count,
+                                                   model.objective_type, model.objective_timer,
+                                                   model.required_mainhand, model.required_location,
+                                                   model.location_radius, model.order, model.description,
+                                                   model.natural_block, model.display)
+
+        for reward in model.rewards:
+            await RewardModel.create(db=db, model=reward, quest_id=quest_id, objective_id=objective_id['id'])
+
+    @classmethod
+    async def fetch(cls, db: Database, quest_id: int = None, objective_id: int = None, *args) -> "ObjectiveModel":
         data = await db.pool.fetchrow("""
                                        SELECT objective_id,
                                               quest_id,

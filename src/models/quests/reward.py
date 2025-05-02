@@ -30,6 +30,30 @@ class RewardModel(RewardBaseModel):
     reward_id: int = Field(description="The ID of this reward",
                            json_schema_extra={"example": 345})
 
+
+    @classmethod
+    async def create(cls, db: Database, model: "RewardCreateModel", quest_id: int = None, objective_id: int = None, *args) -> "RewardModel":
+        async with db.pool.acquire() as conn:
+            async with conn.transaction():
+                reward_id = await conn.fetchrow("""
+                                                WITH reward_table AS (
+                                                    INSERT INTO quests.reward(quest_id, 
+                                                                              objective_id,
+                                                                              balance,
+                                                                              item,
+                                                                              count,
+                                                                              display_name)
+                                                    VALUES($1, $2, $3, $4, $5, $6)
+                                                    RETURNING reward_id
+                                                )
+                                                SELECT reward_id as id FROM reward_table
+                                                """,
+                                                quest_id, objective_id, model.balance, model.item, model.count,
+                                                model.display_name)
+
+                return cls(reward_id=reward_id['id'], quest_id=quest_id, objective_id=objective_id, **model.model_dump())
+
+
     @classmethod
     async def fetch(cls, db: Database, reward_id: int = None, *args):
         data = await db.pool.fetchrow("""

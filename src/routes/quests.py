@@ -24,7 +24,7 @@ async def create_quest(request: Request, db: Database):
     """
     quest_create_model = quests.QuestCreateModel(**request.json)
 
-    quest_id = await quests.QuestModel.new(db, quest_create_model)
+    quest_id = await quests.QuestModel.create(db, quest_create_model)
     quest_model = await quests.QuestModel.fetch(db, quest_id)
 
     return sanic.json(status=201, body=quest_model.model_dump(), default=str)
