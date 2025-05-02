@@ -131,6 +131,7 @@ class ObjectiveModel(ObjectiveBaseModel):
                               self.location_radius, self.objective_id)
 
 
+@openapi.component()
 class ObjectivesListModel(BaseList[ObjectiveModel]):
     @classmethod
     async def fetch(cls, db: Database, quest_id: int = None, *args):

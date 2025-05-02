@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from src.models.quests import ObjectivesListModel
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from pydantic import Field
@@ -24,6 +26,7 @@ class QuestBaseModel(BaseModel):
 class QuestModel(QuestBaseModel):
     quest_id: int = Field(description="The ID of the quest",
                           json_schema_extra={"example": 732})
+    objectives: BaseList[ObjectiveModel] = Field(description="A list of objectives for this quest")
 
     @classmethod
     async def create(cls, db: Database, model: "QuestCreateModel", *args) -> int:
@@ -62,8 +65,10 @@ class QuestModel(QuestBaseModel):
                                        """,
                                       quest_id)
 
+        objectives = await ObjectivesListModel.fetch(db, quest_id)
+
         if data:
-            return cls(**data)
+            return cls(**data, objectives=objectives)
         else:
             raise NotFound404(extra={'resource': 'quest', 'id': quest_id})
 
