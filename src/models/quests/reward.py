@@ -6,6 +6,7 @@ from src.database import Database
 
 from sanic_ext import openapi
 
+from src.utils.errors import BadRequest400, NotFound404
 
 InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
@@ -51,18 +52,23 @@ class RewardModel(RewardBaseModel):
                                                 quest_id, objective_id, model.balance, model.item, model.count,
                                                 model.display_name)
 
-                return cls(reward_id=reward_id['id'], quest_id=quest_id, objective_id=objective_id, **model.model_dump())
-
+        return cls(reward_id=reward_id['id'], quest_id=quest_id, objective_id=objective_id, **model.model_dump())
 
     @classmethod
     async def fetch(cls, db: Database, reward_id: int = None, *args):
+        if not reward_id:
+            raise BadRequest400('No reward ID provided. Please provide a reward ID to fetch a reward by')
+
         data = await db.pool.fetchrow("""
                                        SELECT * FROM quests.reward
                                        WHERE reward_id = $1
                                        """,
                                       reward_id)
 
-        return cls(**data) if data else None
+        if data:
+            return cls(**data)
+        else:
+            raise NotFound404(extra={'resource': 'reward', 'id': reward_id})
 
     async def update(self, db: Database):
         await db.pool.execute("""

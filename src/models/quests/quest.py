@@ -55,12 +55,7 @@ class QuestModel(QuestBaseModel):
             raise BadRequest400('No quest ID provided. Please provide a quest ID to fetch a quest by')
 
         data = await db.pool.fetchrow("""
-                                       SELECT quest_id,
-                                              start_time,
-                                              end_time,
-                                              title,
-                                              description
-                                       FROM quests.quest
+                                       SELECT * FROM quests.quest
                                        WHERE quest_id = $1
                                        """,
                                       quest_id)
