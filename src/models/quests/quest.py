@@ -83,17 +83,16 @@ class QuestModel(QuestBaseModel):
 class QuestListModel(BaseList[QuestModel]):
     @classmethod
     async def fetch(cls, db: Database, *args):
-        quest_ids = await db.pool.fetchrow("""
-                                           SELECT COALESCE(array_agg(quest_id), ARRAY[]::integer[]) as ids
-                                           FROM quests.quest
-                                           WHERE NOW() BETWEEN start_time AND end_time
-                                           """)
+        quest_data = await db.pool.fetch("""
+                                         SELECT * FROM quests.quest
+                                         WHERE NOW() BETWEEN start_time AND end_time
+                                         ORDER BY start_time DESC
+                                         """)
 
         quests: list[QuestModel] = []
-        for quest_id in quest_ids.get('ids', []):
-            quests.append(await QuestModel.fetch(db, quest_id))
+        for quest in quest_data:
+            quests.append(QuestModel(**quest))
 
-        quests.sort(key= lambda x: x.start_time, reverse=True)
         return cls(root=quests)
 
 
