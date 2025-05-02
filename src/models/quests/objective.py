@@ -111,7 +111,10 @@ class ObjectiveModel(ObjectiveBaseModel):
         else:
             raise NotFound404(extra={'resource': 'objective', 'id': objective_id})
 
-    async def update(self, db: Database):
+    async def update(self, db: Database, model: "ObjectiveUpdateModel"):
+        for k, v in model.model_dump().items():
+            setattr(self, k, v) if v else None
+
         await db.pool.execute("""
                               UPDATE quests.objective
                               SET objective = $1,

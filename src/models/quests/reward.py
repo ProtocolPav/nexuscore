@@ -70,7 +70,10 @@ class RewardModel(RewardBaseModel):
         else:
             raise NotFound404(extra={'resource': 'reward', 'id': reward_id})
 
-    async def update(self, db: Database):
+    async def update(self, db: Database, model: "RewardUpdateModel"):
+        for k, v in model.model_dump().items():
+            setattr(self, k, v) if v else None
+
         await db.pool.execute("""
                               UPDATE quests.reward
                               SET objective_id = $1,

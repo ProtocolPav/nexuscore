@@ -19,7 +19,7 @@ class BaseModel(pydantic.BaseModel):
     async def create(cls, db: Database, model: "BaseModel", *args, **kwargs) -> T:
         raise NotImplementedError("create() must be implemented in subclasses")
 
-    async def update(self, db: Database):
+    async def update(self, db: Database, model: "BaseModel"):
         raise NotImplementedError("update() must be implemented in subclasses")
 
 

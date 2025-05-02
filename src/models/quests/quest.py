@@ -50,7 +50,7 @@ class QuestModel(QuestBaseModel):
         return quest_id['id']
 
     @classmethod
-    async def fetch(cls, db: Database, quest_id: int, *args):
+    async def fetch(cls, db: Database, quest_id: int, *args) -> "QuestModel":
         if not quest_id:
             raise BadRequest400('No quest ID provided. Please provide a quest ID to fetch a quest by')
 
@@ -67,7 +67,10 @@ class QuestModel(QuestBaseModel):
         else:
             raise NotFound404(extra={'resource': 'quest', 'id': quest_id})
 
-    async def update(self, db: Database):
+    async def update(self, db: Database, model: "QuestUpdateModel"):
+        for k, v in model.model_dump().items():
+            setattr(self, k, v) if v else None
+
         await db.pool.execute("""
                               UPDATE quests.quest
                               SET start_time = $1,
@@ -82,7 +85,7 @@ class QuestModel(QuestBaseModel):
 
 class QuestListModel(BaseList[QuestModel]):
     @classmethod
-    async def fetch(cls, db: Database, *args):
+    async def fetch(cls, db: Database, *args) -> "QuestListModel":
         quest_data = await db.pool.fetch("""
                                          SELECT * FROM quests.quest
                                          WHERE NOW() BETWEEN start_time AND end_time

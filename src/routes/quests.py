@@ -127,16 +127,8 @@ async def update_quest(request: Request, db: Database, quest_id: int, body: ques
 
     Update a quest
     """
-    model: quests.QuestModel = await quests.QuestModel.fetch(db, quest_id)
-    update_dict = {}
-
-    for k, v in body.model_dump().items():
-        if v is not None:
-            update_dict[k] = v
-
-    model = model.model_copy(update=update_dict)
-
-    await model.update(db)
+    model = await quests.QuestModel.fetch(db, quest_id)
+    await model.update(db, body)
 
     return sanic.json(model.model_dump(), default=str)
 
@@ -155,16 +147,8 @@ async def update_reward(request: Request, db: Database, reward_id: int, body: qu
 
     Update an objective's reward
     """
-    model: quests.RewardModel = await quests.RewardModel.fetch(db, reward_id)
-    update_dict = {}
-
-    for k, v in body.model_dump().items():
-        if v is not None:
-            update_dict[k] = v
-
-    model = model.model_copy(update=update_dict)
-
-    await model.update(db)
+    model = await quests.RewardModel.fetch(db, reward_id)
+    await model.update(db, body)
 
     return sanic.json(model.model_dump(), default=str)
 
@@ -183,15 +167,7 @@ async def update_objective(request: Request, db: Database, objective_id: int, bo
 
     Update a quest's objective
     """
-    model: quests.ObjectiveModel = await quests.ObjectiveModel.fetch(db, objective_id)
-    update_dict = {}
-
-    for k, v in body.model_dump().items():
-        if v is not None:
-            update_dict[k] = v
-
-    model = model.model_copy(update=update_dict)
-
-    await model.update(db)
+    model = await quests.ObjectiveModel.fetch(db, objective_id)
+    await model.update(db, body)
 
     return sanic.json(model.model_dump(), default=str)
