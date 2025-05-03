@@ -100,7 +100,7 @@ async def get_item(request: Request, db: Database, item_id: str):
                   content={'application/json': server.ItemModel.doc_schema()},
                   description='Success')
 @openapi.response(status=404, description='Item does not exist')
-@validate(json=server.ItemCreateModel)
+@validate(json=server.ItemUpdateModel)
 async def update_item(request: Request, db: Database, item_id: str, body: server.ItemCreateModel):
     """
     Update Item
@@ -131,13 +131,13 @@ async def update_item(request: Request, db: Database, item_id: str, body: server
                   content={'application/json': server.WorldModel.doc_schema()},
                   description='Success')
 @openapi.response(status=404, description='World does not exist')
-async def get_world(request: Request, db: Database, world_id: int):
+async def get_world(request: Request, db: Database, guild_id: int):
     """
     Get World
 
     This returns the World
     """
-    world_model = await server.WorldModel.fetch(db, world_id)
+    world_model = await server.WorldModel.fetch(db, guild_id)
 
     if not world_model:
         raise exceptions.NotFound("Could not find this world. Maybe time to create one?")
@@ -152,17 +152,17 @@ async def get_world(request: Request, db: Database, world_id: int):
                   description='Success')
 @openapi.response(status=404, description='Item does not exist')
 @validate(json=server.WorldUpdateModel)
-async def update_world(request: Request, db: Database, world_id: int, body: server.WorldUpdateModel):
+async def update_world(request: Request, db: Database, guild_id: int, body: server.WorldUpdateModel):
     """
     Update World
 
     This updates a world. All fields are optional, meaning you may
     set a field to `null` to not update it.
     """
-    model = await server.WorldModel.fetch(db, world_id)
+    model = await server.WorldModel.fetch(db, guild_id)
 
     if not model:
-        raise exceptions.NotFound("Could not find this item")
+        raise exceptions.NotFound("Could not find this world")
 
     update_dict = {}
 
