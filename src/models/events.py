@@ -54,6 +54,7 @@ class RelayModel(BaseModel):
             return {'title': self.embed_title, 'color': 14893620, 'description': self.embed_content}
         elif self.type == 'other':
             return {'title': self.embed_title, 'color': 14679808, 'description': self.embed_content}
+        return None
 
     async def relay(self):
         config = json.load(open('./config.json', 'r'))
