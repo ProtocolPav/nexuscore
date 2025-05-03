@@ -4,6 +4,8 @@ from pydantic import Field
 from typing_extensions import Optional
 
 from src.database import Database
+from src.models.users import ProfileModel
+from src.models.users.profile import ProfileCreateModel
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from sanic_ext import openapi
@@ -40,29 +42,32 @@ class UserBaseModel(BaseModel):
 
 @openapi.component()
 class UserModel(UserBaseModel):
-    thorny_id: int = Field(description="The ThornyID of a user. This is a unique number.",
+    thorny_id: int = Field(description="The ThornyID of a user. This is a unique number",
                            json_schema_extra={"example": 34})
-    user_id: int = Field(description="The Discord user ID. Multiple users can have Thorny accounts on "
-                                     "different servers.",
+    user_id: int = Field(description="The user's Discord User ID",
                          json_schema_extra={"example": 123456789012345678})
-    guild_id: int = Field(description="The Discord guild ID this user is registered in.",
+    guild_id: int = Field(description="The Discord guild ID this user is registered in",
                           json_schema_extra={"example": 123456789012345678})
     join_date: date = Field(description="The date the ThornyID was created. Usually when a user joins the guild",
                             json_schema_extra={"example": "2024-03-03"})
+    profile: ProfileModel = Field(description="The user's profile")
 
     @classmethod
-    async def create(cls, db: Database, guild_id: int =  None, discord_id: int = None, username: str = None, *args):
-        await db.pool.execute("""
-                                with user_table as (
-                                    insert into users.user(user_id, guild_id, username)
-                                    values($1, $2, $3)
+    async def create(cls, db: Database, model: "UserCreateModel", *args) -> int:
+        thorny_id = await db.pool.fetchrow("""
+                                            with user_table as (
+                                                insert into users.user(user_id, guild_id, username)
+                                                values($1, $2, $3)
+            
+                                                returning thorny_id
+                                            )
+                                            select thorny_id as id from user_table
+                                           """,
+                                          model.discord_id, model.guild_id, model.username)
 
-                                    returning thorny_id
-                                )
-                                insert into users.profile(thorny_id)
-                                select thorny_id from user_table
-                               """,
-                              discord_id, guild_id, username)
+        await ProfileModel.create(db, ProfileCreateModel(thorny_id=thorny_id['id']))
+
+        return thorny_id['id']
 
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int, *args) -> "UserModel":
@@ -75,8 +80,10 @@ class UserModel(UserBaseModel):
                                        """,
                                       thorny_id)
 
+        profile = await ProfileModel.fetch(db=db, thorny_id=thorny_id)
+
         if data:
-            return cls(**data)
+            return cls(**data, profile=profile)
         else:
             raise NotFound404(extra={'resource': 'user', 'id': thorny_id})
 
