@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import Literal, Optional
 
 from src.database import Database
-from src.models import users
+from src.models.users import user
 
 from sanic_ext import openapi
 
@@ -25,7 +25,7 @@ class ProjectModel(BaseModel):
                              examples=['2024-05-05'])
     completed_on: Optional[date] = Field(description="The date the project was completed on",
                                          examples=['2024-07-05'])
-    owner: users.UserModel = Field(description="The owner of the project, in the form of a User object",
+    owner: user.UserModel = Field(description="The owner of the project, in the form of a User object",
                                    examples=[123])
     status: Literal["pending", "ongoing", "abandoned", "completed"] = Field(description="The project status",
                                                                             examples=['ongoing'])

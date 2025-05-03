@@ -4,11 +4,11 @@ from pydantic import BaseModel, Field
 from typing_extensions import Optional, Literal
 
 from src.database import Database
-from src.models import users
+from src.models.users import user
 
 
 class MembersModel(BaseModel):
-    members: list[users.UserModel]
+    members: list[user.UserModel]
 
     @classmethod
     async def fetch(cls, db: Database, project_id: str) -> Optional["MembersModel"]:

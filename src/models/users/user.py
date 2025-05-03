@@ -4,8 +4,7 @@ from pydantic import Field
 from typing_extensions import Optional
 
 from src.database import Database
-from src.models.users import ProfileModel
-from src.models.users.profile import ProfileCreateModel
+from src.models.users.profile import ProfileCreateModel, ProfileModel
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from sanic_ext import openapi
