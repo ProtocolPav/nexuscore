@@ -24,7 +24,7 @@ async def create_user(request: Request, db: Database, body: user.UserCreateModel
     Creates a user based on the discord UserID and GuildID provided.
     If a user with these ID's already exists, it returns a 400.
     """
-    if await user.UserModel.get_thorny_id(db, body.guild_id, body.discord_id):
+    if await user.UserModel.get_thorny_id(db, body.guild_id, body.user_id):
         raise BadRequest400('This user already exists')
     else:
         thorny_id = await user.UserModel.create(db, body)
@@ -117,7 +117,7 @@ async def get_playtime(request: Request, db: Database, thorny_id: int):
 
     This returns the user's playtime. Note that all playtime is in seconds!
     """
-    playtime_summary = await users.PlaytimeSummary.fetch(db, thorny_id)
+    playtime_summary = await playtime.PlaytimeSummary.fetch(db, thorny_id)
 
     if not playtime_summary:
         raise exceptions.NotFound("Could not find this user, are you sure the ID is correct?")
@@ -137,7 +137,7 @@ async def get_interactions(request: Request, db: Database, thorny_id: int):
     This returns the user's interaction summary.
     This may take long to process, so ensure you have the proper timeouts set.
     """
-    summary = await users.InteractionSummary.fetch(db, thorny_id)
+    summary = await interactions.InteractionSummary.fetch(db, thorny_id)
 
     if not summary:
         raise exceptions.NotFound("Could not find this user, are you sure the ID is correct?")
@@ -157,12 +157,12 @@ async def user_by_gamertag(request: Request, db: Database, guild_id: int, gamert
     This acts the same as `Get by ThornyID`.
     This will check either the whitelisted gamertag or the user-entered gamertag.
     """
-    thorny_id = await users.UserModel.get_thorny_id(db, guild_id, gamertag=gamertag.replace('%20', ' '))
+    thorny_id = await user.UserModel.get_thorny_id(db, guild_id, gamertag=gamertag.replace('%20', ' '))
 
     if not thorny_id:
         raise exceptions.NotFound("Could not find this user, are you sure the guild and gamertag is correct?")
 
-    user_view = await users.UserModel.fetch(db, thorny_id)
+    user_view = await user.UserModel.fetch(db, thorny_id)
 
     return sanic.json(user_view.model_dump(), default=str)
 
@@ -178,12 +178,12 @@ async def user_discord_id(request: Request, db: Database, guild_id: int, discord
 
     This acts the same as `Get by ThornyID`.
     """
-    thorny_id = await users.UserModel.get_thorny_id(db, guild_id, user_id=discord_id)
+    thorny_id = await user.UserModel.get_thorny_id(db, guild_id, user_id=discord_id)
 
     if not thorny_id:
         raise exceptions.NotFound("Could not find this user, are you sure the guild and discord ID is correct?")
 
-    user_view = await users.UserModel.fetch(db, thorny_id)
+    user_view = await user.UserModel.fetch(db, thorny_id)
 
     return sanic.json(user_view.model_dump(), default=str)
 
@@ -200,7 +200,7 @@ async def active_quest(request: Request, db: Database, thorny_id: int):
     Returns the user's currently active quest.
     Data about the quest must be fetched separately.
     """
-    quest = await users.UserQuestModel.fetch_active_quest(db, thorny_id)
+    quest = await quests.UserQuestModel.fetch_active_quest(db, thorny_id)
 
     if not quest:
         raise exceptions.NotFound("This user either does not exist or does not have a quest active")
@@ -219,7 +219,7 @@ async def all_quests(request: Request, db: Database, thorny_id: int):
 
     Returns a list of QuestIDs that the user has previously accepted.
     """
-    quest_ids = await users.UserQuestModel.get_all_quest_ids(db, thorny_id)
+    quest_ids = await quests.UserQuestModel.get_all_quest_ids(db, thorny_id)
 
     return sanic.json(quest_ids, default=str)
 
@@ -233,7 +233,7 @@ async def fail_active_quest(request: Request, db: Database, thorny_id: int):
 
     This marks the active quest and all of its objectives as "failed".
     """
-    quest = await users.UserQuestModel.fetch_active_quest(db, thorny_id)
+    quest = await quests.UserQuestModel.fetch_active_quest(db, thorny_id)
 
     if quest:
         await quest.mark_failed(db, thorny_id)
@@ -251,10 +251,10 @@ async def new_active_quest(request: Request, db: Database, thorny_id: int, quest
 
     This will return a 400 if the user already has a quest active.
     """
-    quest = await users.UserQuestModel.fetch_active_quest(db, thorny_id)
+    quest = await quests.UserQuestModel.fetch_active_quest(db, thorny_id)
 
     if not quest:
-        await users.UserQuestModel.new(db, thorny_id, quest_id)
+        await quests.UserQuestModel.new(db, thorny_id, quest_id)
         return sanic.HTTPResponse(status=201)
 
     return sanic.HTTPResponse(status=400)
@@ -273,7 +273,7 @@ async def update_quest(request: Request, db: Database, thorny_id: int, quest_id:
 
     Updates a user's quest. Note this does not update objectives, that is separate.
     """
-    model = await users.UserQuestModel.fetch(db, thorny_id, quest_id)
+    model = await quests.UserQuestModel.fetch(db, thorny_id, quest_id)
     update_dict = {}
 
     for k, v in body.model_dump().items():
@@ -301,7 +301,7 @@ async def update_objective(request: Request, db: Database, thorny_id: int, quest
 
     Updates a user's quest objective.
     """
-    model = await users.UserObjectiveModel.fetch(db, thorny_id, quest_id, objective_id)
+    model = await quests.UserObjectiveModel.fetch(db, thorny_id, quest_id, objective_id)
     update_dict = {}
 
     for k, v in body.model_dump().items():

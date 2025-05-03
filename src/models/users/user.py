@@ -62,7 +62,7 @@ class UserModel(UserBaseModel):
                                             )
                                             select thorny_id as id from user_table
                                            """,
-                                          model.discord_id, model.guild_id, model.username)
+                                          model.user_id, model.guild_id, model.username)
 
         await ProfileModel.create(db, ProfileCreateModel(thorny_id=thorny_id['id']))
 
