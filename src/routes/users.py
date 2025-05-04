@@ -235,7 +235,7 @@ async def fail_active_quest(request: Request, db: Database, thorny_id: int):
     quest = await quests.UserQuestModel.fetch_active_quest(db, thorny_id)
     await quest.mark_failed(db)
 
-    return sanic.HTTPResponse(status=204)
+    return sanic.empty(status=204)
 
 
 @user_blueprint.route('/<thorny_id:int>/quest/', methods=['POST'])
@@ -258,7 +258,7 @@ async def new_active_quest(request: Request, db: Database, thorny_id: int, body:
         raise Forbidden403("User already has a quest active")
 
     await quests.UserQuestModel.create(db, body)
-    return sanic.HTTPResponse(status=201)
+    return sanic.empty(status=201)
 
 
 @user_blueprint.route('/<thorny_id:int>/quest/<quest_id:int>', methods=['PUT'])
