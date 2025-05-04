@@ -43,7 +43,7 @@ class BaseList(pydantic.RootModel[List[T]], Generic[T]):
 
     @classmethod
     def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+        return {'application/json': cls.model_json_schema(ref_template="#/components/schemas/{model}")}
 
     @classmethod
     async def fetch(cls, db: Database, *args, **kwargs) -> "BaseList":
