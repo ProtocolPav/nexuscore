@@ -217,7 +217,7 @@ async def all_quests(request: Request, db: Database, thorny_id: int):
     """
     quests_list = await quests.UserQuestsListModel.fetch(db, thorny_id)
 
-    return sanic.json(quests_list, default=str)
+    return sanic.json(quests_list.model_dump(), default=str)
 
 
 @user_blueprint.route('/<thorny_id:int>/quest/active', methods=['DELETE'])

@@ -183,6 +183,7 @@ class UserObjectiveModel(UserObjectiveBaseModel):
                               self.status, self.thorny_id, self.quest_id, self.objective_id)
 
 
+@openapi.component()
 class UserObjectivesListModel(BaseList[UserObjectiveModel]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, quest_id: int = None, *args) -> "UserObjectivesListModel":
