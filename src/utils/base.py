@@ -1,5 +1,5 @@
 import pydantic
-from typing import Generic, TypeVar, List, Optional, get_type_hints
+from typing import Generic, Iterator, TypeVar, List, Optional, get_type_hints
 
 from src.database import Database
 
@@ -35,10 +35,10 @@ def optional_model(name: str, base: type[BaseModel]) -> type[BaseModel]:
 class BaseList(pydantic.RootModel[List[T]], Generic[T]):
     root: List[T]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[T]:
         return iter(self.root)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> T:
         return self.root[item]
 
     @classmethod
