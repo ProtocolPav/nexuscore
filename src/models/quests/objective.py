@@ -104,9 +104,9 @@ class ObjectiveModel(ObjectiveBaseModel):
                                        """,
                                       objective_id)
 
-        rewards = await RewardsListModel.fetch(db, objective_id)
-
         if data:
+            rewards = await RewardsListModel.fetch(db, objective_id)
+
             return cls(**data, rewards=rewards)
         else:
             raise NotFound404(extra={'resource': 'objective', 'id': objective_id})

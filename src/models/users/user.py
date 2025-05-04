@@ -79,9 +79,9 @@ class UserModel(UserBaseModel):
                                        """,
                                       thorny_id)
 
-        profile = await ProfileModel.fetch(db=db, thorny_id=thorny_id)
-
         if data:
+            profile = await ProfileModel.fetch(db=db, thorny_id=thorny_id)
+
             return cls(**data, profile=profile)
         else:
             raise NotFound404(extra={'resource': 'user', 'id': thorny_id})

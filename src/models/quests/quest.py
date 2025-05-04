@@ -60,9 +60,9 @@ class QuestModel(QuestBaseModel):
                                        """,
                                       quest_id)
 
-        objectives = await ObjectivesListModel.fetch(db, quest_id)
-
         if data:
+            objectives = await ObjectivesListModel.fetch(db, quest_id)
+
             return cls(**data, objectives=objectives)
         else:
             raise NotFound404(extra={'resource': 'quest', 'id': quest_id})
