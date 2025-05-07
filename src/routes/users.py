@@ -107,10 +107,10 @@ async def update_profile(request: Request, db: Database, thorny_id: int, body: p
 
 
 @user_blueprint.route('/<thorny_id:int>/playtime', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': playtime.PlaytimeSummary.doc_schema()},
-                  description='Success')
-@openapi.response(status=404, description='User does not exist')
+@openapi.definition(response=[
+                        Response(playtime.PlaytimeSummary.doc_schema(), 200),
+                        Response(NotFound404, 404)
+                    ])
 async def get_playtime(request: Request, db: Database, thorny_id: int):
     """
     Get User Playtime
@@ -118,9 +118,6 @@ async def get_playtime(request: Request, db: Database, thorny_id: int):
     This returns the user's playtime. Note that all playtime is in seconds!
     """
     playtime_summary = await playtime.PlaytimeSummary.fetch(db, thorny_id)
-
-    if not playtime_summary:
-        raise exceptions.NotFound("Could not find this user, are you sure the ID is correct?")
 
     return sanic.json(playtime_summary.model_dump(), default=str)
 
