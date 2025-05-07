@@ -123,10 +123,10 @@ async def get_playtime(request: Request, db: Database, thorny_id: int):
 
 
 @user_blueprint.route('/<thorny_id:int>/interactions', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': interactions.InteractionSummary.doc_schema()},
-                  description='Success')
-@openapi.response(status=404, description='User does not exist')
+@openapi.definition(response=[
+                        Response(interactions.InteractionSummary.doc_schema(), 200),
+                        Response(NotFound404, 404)
+                    ])
 async def get_interactions(request: Request, db: Database, thorny_id: int):
     """
     Get User Interactions
@@ -136,17 +136,14 @@ async def get_interactions(request: Request, db: Database, thorny_id: int):
     """
     summary = await interactions.InteractionSummary.fetch(db, thorny_id)
 
-    if not summary:
-        raise exceptions.NotFound("Could not find this user, are you sure the ID is correct?")
-
     return sanic.json(summary.model_dump(), default=str)
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': user.UserModel.doc_schema()},
-                  description='Success')
-@openapi.response(status=404, description='User does not exist')
+@openapi.definition(response=[
+                        Response(user.UserModel.doc_schema(), 200),
+                        Response(NotFound404, 404)
+                    ])
 async def user_by_gamertag(request: Request, db: Database, guild_id: int, gamertag: str):
     """
     Get User by Gamertag
@@ -155,20 +152,16 @@ async def user_by_gamertag(request: Request, db: Database, guild_id: int, gamert
     This will check either the whitelisted gamertag or the user-entered gamertag.
     """
     thorny_id = await user.UserModel.get_thorny_id(db, guild_id, gamertag=gamertag.replace('%20', ' '))
-
-    if not thorny_id:
-        raise exceptions.NotFound("Could not find this user, are you sure the guild and gamertag is correct?")
-
     user_view = await user.UserModel.fetch(db, thorny_id)
 
     return sanic.json(user_view.model_dump(), default=str)
 
 
 @user_blueprint.route('/guild/<guild_id:int>/<discord_id:int>', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': user.UserModel.doc_schema()},
-                  description='Success')
-@openapi.response(status=404, description='User does not exist')
+@openapi.definition(response=[
+                        Response(user.UserModel.doc_schema(), 200),
+                        Response(NotFound404, 404)
+                    ])
 async def user_discord_id(request: Request, db: Database, guild_id: int, discord_id: int):
     """
     Get User by Discord ID
@@ -176,10 +169,6 @@ async def user_discord_id(request: Request, db: Database, guild_id: int, discord
     This acts the same as `Get by ThornyID`.
     """
     thorny_id = await user.UserModel.get_thorny_id(db, guild_id, user_id=discord_id)
-
-    if not thorny_id:
-        raise exceptions.NotFound("Could not find this user, are you sure the guild and discord ID is correct?")
-
     user_view = await user.UserModel.fetch(db, thorny_id)
 
     return sanic.json(user_view.model_dump(), default=str)

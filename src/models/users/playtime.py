@@ -27,7 +27,7 @@ class DailyPlaytimeList(BaseList[DailyPlaytime]):
         data = await db.pool.fetch("""
                                     SELECT t.day, SUM(t.playtime) AS playtime
                                     FROM (
-                                        SELECT SUM(playtime) AS playtime, 
+                                        SELECT COALESCE(EXTRACT(EPOCH FROM SUM(playtime)), 0) AS playtime, 
                                                DATE(connect_time) AS day
                                         FROM events.sessions_view sv 
                                         INNER JOIN users.user ON sv.thorny_id = users.user.thorny_id 
@@ -67,7 +67,7 @@ class MonthlyPlaytimeList(BaseList[MonthlyPlaytime]):
         data = await db.pool.fetch("""
                                     SELECT t.month AS month, SUM(t.playtime) AS playtime
                                     FROM (
-                                        SELECT SUM(playtime) AS playtime,
+                                        SELECT COALESCE(EXTRACT(EPOCH FROM SUM(playtime)), 0) AS playtime,
                                                date_trunc('month', connect_time)::date as month
                                         FROM events.sessions_view sv 
                                         INNER JOIN users.user ON sv.thorny_id = users.user.thorny_id 
