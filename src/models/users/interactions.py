@@ -1,3 +1,5 @@
+import asyncio
+
 from pydantic import Field
 from typing_extensions import Optional
 from sanic_ext import openapi
@@ -50,6 +52,27 @@ class InteractionTotals(BaseModel):
     die: int
     use: int
 
+    @classmethod
+    async def fetch(cls, db: Database, thorny_id: int, *args) -> "InteractionTotals":
+        if not thorny_id:
+            raise BadRequest400('No thorny ID provided. Please provide it to fetch interaction statistics')
+
+        data = await db.pool.fetchrow("""
+                                        SELECT
+                                            COALESCE(SUM(CASE WHEN type = 'mine' THEN 1 ELSE 0 END), 0) as mine,
+                                            COALESCE(SUM(CASE WHEN type = 'place' THEN 1 ELSE 0 END), 0) as place,
+                                            COALESCE(SUM(CASE WHEN type = 'kill' THEN 1 ELSE 0 END), 0) as kill,
+                                            COALESCE(SUM(CASE WHEN type = 'die' THEN 1 ELSE 0 END), 0) as die,
+                                            COALESCE(SUM(CASE WHEN type = 'use' THEN 1 ELSE 0 END), 0) as use
+                                        FROM events.interactions
+                                        WHERE thorny_id = $1;
+                                        """, thorny_id)
+        if data:
+            return cls(**data)
+        else:
+            raise NotFound404(extra={'resource': f'user_interaction_totals', 'id': thorny_id})
+
+
 
 class InteractionSummary(BaseModel):
     blocks_mined: InteractionStatisticsList
@@ -64,106 +87,16 @@ class InteractionSummary(BaseModel):
         if not thorny_id:
             raise BadRequest400('No thorny ID provided. Please provide it to fetch interaction statistics')
 
-        data = await db.pool.fetchrow("""
-                                    with blocks_mined as (
-                                        select "type", reference, count(reference) as "count" from events.interactions i 
-                                        where i.thorny_id = $1
-                                        and i.type = 'mine'
-                                        group by type, reference
-                                        order by "count" desc
-                                    ),
-                                    blocks_placed as (
-                                        select "type", reference, count(reference) as "count" from events.interactions i 
-                                        where i.thorny_id = $1
-                                        and i.type = 'place'
-                                        group by type, reference
-                                        order by "count" desc
-                                    ),
-                                    kills as (
-                                        select "type", reference, count(reference) as "count" from events.interactions i 
-                                        where i.thorny_id = $1
-                                        and i.type = 'kill'
-                                        group by type, reference
-                                        order by "count" desc
-                                    ),
-                                    deaths as (
-                                        select "type", reference, count(reference) as "count" from events.interactions i 
-                                        where i.thorny_id = $1
-                                        and i.type = 'die'
-                                        group by type, reference
-                                        order by "count" desc
-                                    ),
-                                    uses as (
-                                        select "type", reference, count(reference) as "count" from events.interactions i 
-                                        where i.thorny_id = $1
-                                        and i.type = 'use'
-                                        group by type, reference
-                                        order by "count" desc
-                                    )
+        totals, mine, place, kills, deaths, uses = await asyncio.gather(
+            InteractionTotals.fetch(db, thorny_id),
+            InteractionStatisticsList.fetch(db, thorny_id, 'mine'),
+            InteractionStatisticsList.fetch(db, thorny_id, 'place'),
+            InteractionStatisticsList.fetch(db, thorny_id, 'kill'),
+            InteractionStatisticsList.fetch(db, thorny_id, 'die'),
+            InteractionStatisticsList.fetch(db, thorny_id, 'use')
+        )
 
-                                    select 
-                                        (
-                                            SELECT thorny_id FROM users.user
-                                            WHERE thorny_id = $1
-                                        ) AS thorny_id,
-                                        coalesce(
-                                            (select json_agg(json_build_object('reference', t.reference,
-                                                                               'type', t."type",
-                                                                               'count', t."count"))
-                                             from blocks_mined as t
-                                            ),
-                                            '[]'::json
-                                        ) as blocks_mined,
-                                        coalesce(
-                                            (select json_agg(json_build_object('reference', t.reference,
-                                                                               'type', t."type",
-                                                                               'count', t."count"))
-                                             from blocks_placed as t
-                                            ),
-                                            '[]'::json
-                                        ) as blocks_placed,
-                                        coalesce(
-                                            (select json_agg(json_build_object('reference', t.reference,
-                                                                               'type', t."type",
-                                                                               'count', t."count"))
-                                             from kills as t
-                                            ),
-                                            '[]'::json
-                                        ) as kills,
-                                        coalesce(
-                                            (select json_agg(json_build_object('reference', t.reference,
-                                                                               'type', t."type",
-                                                                               'count', t."count"))
-                                             from deaths as t
-                                            ),
-                                            '[]'::json
-                                        ) as deaths,
-                                        coalesce(
-                                            (select json_agg(json_build_object('reference', t.reference,
-                                                                               'type', t."type",
-                                                                               'count', t."count"))
-                                             from uses as t
-                                            ),
-                                            '[]'::json
-                                        ) as uses,
-                                        coalesce(
-                                            (select json_build_object('mine', m."sum",
-                                                                      'place', p."sum",
-                                                                      'kill', k."sum",
-                                                                      'die', d."sum",
-                                                                      'use', u."sum")
-                                             from (select coalesce(sum("count"), 0) as "sum" from blocks_mined) as m,
-                                                  (select coalesce(sum("count"), 0) as "sum" from blocks_placed) as p,
-                                                  (select coalesce(sum("count"), 0) as "sum" from kills) as k,
-                                                  (select coalesce(sum("count"), 0) as "sum" from deaths) as d,
-                                                  (select coalesce(sum("count"), 0) as "sum" from uses) as u
-                                            ),
-                                            '[]'::json
-                                        ) as totals
-                                        """,
-                                      thorny_id)
-
-        if data:
-            return cls(**data)
+        if totals:
+            return cls(blocks_mined=mine, blocks_placed=place, kills=kills, deaths=deaths, uses=uses, totals=totals)
         else:
             raise NotFound404(extra={'resource': f'user_interactions', 'id': thorny_id})
