@@ -1,20 +1,45 @@
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing_extensions import Optional
 from sanic_ext import openapi
 
-import json
-
 from src.database import Database
+from src.utils.base import BaseModel, BaseList
+from src.utils.errors import BadRequest400, NotFound404
 
 
 @openapi.component()
 class InteractionStatistic(BaseModel):
-    reference: str = Field(description="The block or entity in question",
-                           examples=['minecraft:stone', 'minecraft:zombie'])
-    type: str = Field(description="The type of interaction, kill, mine, place or use",
-                      examples=['kill'])
+    reference: str = Field(description="The interaction reference",
+                           json_schema_extra={"example": 'minecraft:zombie'})
+    type: str = Field(description="The interaction type",
+                      json_schema_extra={"example": 'kill'})
     count: int = Field(description="The amount of the block mined, entity killed, etc.",
-                       examples=[56054])
+                       json_schema_extra={"example": 24})
+
+
+@openapi.component()
+class InteractionStatisticsList(BaseList[InteractionStatistic]):
+    @classmethod
+    async def fetch(cls, db: Database, thorny_id: int = None, interaction_type: str = None, *args) -> "InteractionStatisticsList":
+        if not thorny_id or not interaction_type:
+            raise BadRequest400('No thorny ID or interaction type provided. Please provide both to fetch interaction statistics')
+
+        data = await db.pool.fetch("""
+                                    select "type", reference, count(reference) as "count" from events.interactions i 
+                                    where i.thorny_id = $1
+                                    and i.type = $2
+                                    group by type, reference
+                                    order by "count" desc
+                                   """, thorny_id, interaction_type)
+
+        if data:
+            stats = []
+            for stat in data:
+                stats.append(InteractionStatistic(**stat))
+
+            return cls(root=stats)
+        else:
+            raise NotFound404(extra={'resource': f'user_interactions_{interaction_type}', 'id': thorny_id})
 
 
 @openapi.component()
@@ -27,15 +52,18 @@ class InteractionTotals(BaseModel):
 
 
 class InteractionSummary(BaseModel):
-    blocks_mined: Optional[list[InteractionStatistic]]
-    blocks_placed: Optional[list[InteractionStatistic]]
-    kills: Optional[list[InteractionStatistic]]
-    deaths: Optional[list[InteractionStatistic]]
-    uses: Optional[list[InteractionStatistic]]
+    blocks_mined: InteractionStatisticsList
+    blocks_placed: InteractionStatisticsList
+    kills: InteractionStatisticsList
+    deaths: InteractionStatisticsList
+    uses: InteractionStatisticsList
     totals: InteractionTotals
 
     @classmethod
-    async def fetch(cls, db: Database, thorny_id: int) -> Optional["InteractionSummary"]:
+    async def fetch(cls, db: Database, thorny_id: int) -> "InteractionSummary":
+        if not thorny_id:
+            raise BadRequest400('No thorny ID provided. Please provide it to fetch interaction statistics')
+
         data = await db.pool.fetchrow("""
                                     with blocks_mined as (
                                         select "type", reference, count(reference) as "count" from events.interactions i 
@@ -135,19 +163,7 @@ class InteractionSummary(BaseModel):
                                         """,
                                       thorny_id)
 
-        if data['thorny_id']:
-            processed_dict = {'thorny_id': thorny_id,
-                              'totals': json.loads(data['totals']),
-                              'blocks_mined': json.loads(data['blocks_mined']),
-                              'blocks_placed': json.loads(data['blocks_placed']),
-                              'kills': json.loads(data['kills']),
-                              'deaths': json.loads(data['deaths']),
-                              'uses': json.loads(data['uses'])}
+        if data:
+            return cls(**data)
         else:
-            return None
-
-        return cls(**processed_dict)
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+            raise NotFound404(extra={'resource': f'user_interactions', 'id': thorny_id})
