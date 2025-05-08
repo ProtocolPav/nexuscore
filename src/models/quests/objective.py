@@ -135,19 +135,25 @@ class ObjectiveModel(ObjectiveBaseModel):
 class ObjectivesListModel(BaseList[ObjectiveModel]):
     @classmethod
     async def fetch(cls, db: Database, quest_id: int = None, *args) -> "ObjectivesListModel":
-        objective_data = await db.pool.fetch("""
-                                             SELECT * FROM quests.objective
-                                             WHERE quest_id = $1
-                                             ORDER BY "order"
-                                             """,
-                                             quest_id)
+        if not quest_id:
+            raise BadRequest400('No quest ID provided')
 
-        objectives: list[ObjectiveModel] = []
-        for objective in objective_data:
-            rewards = await RewardsListModel.fetch(db, objective['objective_id'])
-            objectives.append(ObjectiveModel(**objective, rewards=rewards))
+        data = await db.pool.fetch("""
+                                 SELECT * FROM quests.objective
+                                 WHERE quest_id = $1
+                                 ORDER BY "order"
+                                 """,
+                                 quest_id)
 
-        return cls(root=objectives)
+        if data:
+            objectives: list[ObjectiveModel] = []
+            for objective in data:
+                rewards = await RewardsListModel.fetch(db, objective['objective_id'])
+                objectives.append(ObjectiveModel(**objective, rewards=rewards))
+
+            return cls(root=objectives)
+        else:
+            raise NotFound404(extra={'resource': 'objectives_list', 'id': quest_id})
 
 
 @openapi.component()

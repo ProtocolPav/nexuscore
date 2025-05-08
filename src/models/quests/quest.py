@@ -86,18 +86,24 @@ class QuestModel(QuestBaseModel):
 class QuestListModel(BaseList[QuestModel]):
     @classmethod
     async def fetch(cls, db: Database, *args) -> "QuestListModel":
-        quest_data = await db.pool.fetch("""
-                                         SELECT * FROM quests.quest
-                                         WHERE NOW() BETWEEN start_time AND end_time
-                                         ORDER BY start_time DESC
-                                         """)
+        if not objective_id:
+            raise BadRequest400('No objective ID provided')
 
-        quests: list[QuestModel] = []
-        for quest in quest_data:
-            objectives = await ObjectivesListModel.fetch(db, quest['quest_id'])
-            quests.append(QuestModel(**quest, objectives=objectives))
+        data = await db.pool.fetch("""
+                                 SELECT * FROM quests.quest
+                                 WHERE NOW() BETWEEN start_time AND end_time
+                                 ORDER BY start_time DESC
+                                 """)
 
-        return cls(root=quests)
+        if data:
+            quests: list[QuestModel] = []
+            for quest in data:
+                objectives = await ObjectivesListModel.fetch(db, quest['quest_id'])
+                quests.append(QuestModel(**quest, objectives=objectives))
+
+            return cls(root=quests)
+        else:
+            raise NotFound404(extra={'resource': 'quests_list'})
 
 
 QuestUpdateModel = optional_model('QuestUpdateModel', QuestBaseModel)

@@ -90,18 +90,24 @@ class RewardModel(RewardBaseModel):
 class RewardsListModel(BaseList[RewardModel]):
     @classmethod
     async def fetch(cls, db: Database, objective_id: int = None, *args) -> "RewardsListModel":
-        reward_data = await db.pool.fetch("""
-                                          SELECT *
-                                          FROM quests.reward
-                                          WHERE objective_id = $1
-                                          """,
-                                          objective_id)
+        if not objective_id:
+            raise BadRequest400('No objective ID provided')
 
-        rewards: list[RewardModel] = []
-        for reward in reward_data:
-            rewards.append(RewardModel(**reward))
+        data = await db.pool.fetch("""
+                                  SELECT *
+                                  FROM quests.reward
+                                  WHERE objective_id = $1
+                                  """,
+                                  objective_id)
 
-        return cls(root=rewards)
+        if data:
+            rewards: list[RewardModel] = []
+            for reward in data:
+                rewards.append(RewardModel(**reward))
+
+            return cls(root=rewards)
+        else:
+            raise NotFound404(extra={'resource': 'rewards_list', 'id': objective_id})
 
 
 @openapi.component()
