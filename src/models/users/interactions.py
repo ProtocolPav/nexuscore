@@ -24,7 +24,7 @@ class InteractionStatisticsList(BaseList[InteractionStatistic]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, interaction_type: str = None, *args) -> "InteractionStatisticsList":
         if not thorny_id or not interaction_type:
-            raise BadRequest400('No thorny ID or interaction type provided. Please provide both to fetch interaction statistics')
+            raise BadRequest400(extra={'ids': ['thorny_id', 'interaction_type']})
 
         data = await db.pool.fetch("""
                                     select "type", reference, count(reference) as "count" from events.interactions i 
@@ -55,7 +55,7 @@ class InteractionTotals(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int, *args) -> "InteractionTotals":
         if not thorny_id:
-            raise BadRequest400('No thorny ID provided. Please provide it to fetch interaction statistics')
+            raise BadRequest400(extra={'ids': ['thorny_id']})
 
         data = await db.pool.fetchrow("""
                                         SELECT
@@ -85,7 +85,7 @@ class InteractionSummary(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int) -> "InteractionSummary":
         if not thorny_id:
-            raise BadRequest400('No thorny ID provided. Please provide it to fetch interaction statistics')
+            raise BadRequest400(extra={'ids': ['thorny_id']})
 
         totals, mine, place, kills, deaths, uses = await asyncio.gather(
             InteractionTotals.fetch(db, thorny_id),

@@ -71,7 +71,7 @@ class UserModel(UserBaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int, *args) -> "UserModel":
         if not thorny_id:
-            raise BadRequest400('No thorny ID provided. Please provide a thorny ID to fetch a user by')
+            raise BadRequest400(extra={'ids': ['thorny_id']})
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM users.user

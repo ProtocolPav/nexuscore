@@ -33,7 +33,7 @@ class UserQuestModel(UserQuestBaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, quest_id: int = None, *args) -> "UserQuestModel":
         if not thorny_id and not quest_id:
-            raise BadRequest400('No IDs provided. Please provide a thorny and quest ID to fetch a quest by')
+            raise BadRequest400(extra={'ids': ['thorny_id', 'quest_id']})
 
         data = await db.pool.fetchrow("""
                                       SELECT * from users.quests
@@ -52,7 +52,7 @@ class UserQuestModel(UserQuestBaseModel):
     @classmethod
     async def fetch_active_quest(cls, db: Database, thorny_id: int) -> "UserQuestModel":
         if not thorny_id:
-            raise BadRequest400('No ID provided. Please provide a thorny ID to fetch a quest by')
+            raise BadRequest400(extra={'ids': ['thorny_id']})
 
         data = await db.pool.fetchrow("""
                                       SELECT * from users.quests
@@ -124,7 +124,7 @@ class UserQuestsListModel(BaseList[UserQuestModel]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "UserQuestsListModel":
         if not thorny_id:
-            raise BadRequest400('No IDs provided. Please provide a thorny and quest ID to fetch a objectives by')
+            raise BadRequest400(extra={'ids': ['thorny_id']})
 
         data = await db.pool.fetch("""
                                    SELECT * from users.quests

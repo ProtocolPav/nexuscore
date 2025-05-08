@@ -57,7 +57,7 @@ class RewardModel(RewardBaseModel):
     @classmethod
     async def fetch(cls, db: Database, reward_id: int = None, *args):
         if not reward_id:
-            raise BadRequest400('No reward ID provided. Please provide a reward ID to fetch a reward by')
+            raise BadRequest400(extra={'ids': ['reward_id']})
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM quests.reward
@@ -91,7 +91,7 @@ class RewardsListModel(BaseList[RewardModel]):
     @classmethod
     async def fetch(cls, db: Database, objective_id: int = None, *args) -> "RewardsListModel":
         if not objective_id:
-            raise BadRequest400('No objective ID provided')
+            raise BadRequest400(extra={'ids': ['objective_id']})
 
         data = await db.pool.fetch("""
                                   SELECT *

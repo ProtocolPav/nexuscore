@@ -22,7 +22,7 @@ class DailyPlaytimeList(BaseList[DailyPlaytime]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "DailyPlaytimeList":
         if not thorny_id:
-            raise BadRequest400('No thorny ID provided. Please provide a thorny ID to fetch a user by')
+            raise BadRequest400(extra={'ids': ['thorny_id']})
 
         data = await db.pool.fetch("""
                                     SELECT t.day, SUM(t.playtime) AS playtime
@@ -62,7 +62,7 @@ class MonthlyPlaytimeList(BaseList[MonthlyPlaytime]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "MonthlyPlaytimeList":
         if not thorny_id:
-            raise BadRequest400('No thorny ID provided. Please provide a thorny ID to fetch a user by')
+            raise BadRequest400(extra={'ids': ['thorny_id']})
 
         data = await db.pool.fetch("""
                                     SELECT t.month AS month, SUM(t.playtime) AS playtime
@@ -102,7 +102,7 @@ class PlaytimeSummary(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int, *args) -> "PlaytimeSummary":
         if not thorny_id:
-            raise BadRequest400('No thorny ID provided. Please provide a thorny ID to fetch a user by')
+            raise BadRequest400(extra={'ids': ['thorny_id']})
 
         data = await db.pool.fetchrow("""
                                       WITH total_playtime AS (

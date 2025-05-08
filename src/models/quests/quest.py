@@ -52,7 +52,7 @@ class QuestModel(QuestBaseModel):
     @classmethod
     async def fetch(cls, db: Database, quest_id: int, *args) -> "QuestModel":
         if not quest_id:
-            raise BadRequest400('No quest ID provided. Please provide a quest ID to fetch a quest by')
+            raise BadRequest400(extra={'ids': ['quest_id']})
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM quests.quest
@@ -86,9 +86,6 @@ class QuestModel(QuestBaseModel):
 class QuestListModel(BaseList[QuestModel]):
     @classmethod
     async def fetch(cls, db: Database, *args) -> "QuestListModel":
-        if not objective_id:
-            raise BadRequest400('No objective ID provided')
-
         data = await db.pool.fetch("""
                                  SELECT * FROM quests.quest
                                  WHERE NOW() BETWEEN start_time AND end_time

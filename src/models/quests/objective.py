@@ -96,7 +96,7 @@ class ObjectiveModel(ObjectiveBaseModel):
     @classmethod
     async def fetch(cls, db: Database, objective_id: int = None, *args) -> "ObjectiveModel":
         if not objective_id:
-            raise BadRequest400('No objective ID provided. Please provide an ID to fetch an objective by')
+            raise BadRequest400(extra={'ids': ['objective_id']})
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM quests.objective
@@ -136,7 +136,7 @@ class ObjectivesListModel(BaseList[ObjectiveModel]):
     @classmethod
     async def fetch(cls, db: Database, quest_id: int = None, *args) -> "ObjectivesListModel":
         if not quest_id:
-            raise BadRequest400('No quest ID provided')
+            raise BadRequest400(extra={'ids': ['quest_id']})
 
         data = await db.pool.fetch("""
                                  SELECT * FROM quests.objective

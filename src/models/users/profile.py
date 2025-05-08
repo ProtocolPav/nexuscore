@@ -60,7 +60,7 @@ class ProfileModel(ProfileBaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int, *args) -> "ProfileModel":
         if not thorny_id:
-            raise BadRequest400('No thorny ID provided. Please provide a thorny ID to fetch a user profile by')
+            raise BadRequest400(extra={'ids': ['thorny_id']})
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM users.profile
