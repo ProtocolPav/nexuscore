@@ -12,27 +12,6 @@ from sanic_ext import openapi
 from src.database import Database
 
 
-class ConnectionModel(BaseModel):
-    connection_id: int
-    time: datetime
-    type: Literal["connect", "disconnect"]
-    thorny_id: int
-    ignored: bool
-
-    @classmethod
-    async def new(cls, db: Database, model: "ConnectionCreateModel", ignore: bool = False):
-        await db.pool.execute("""
-                              INSERT INTO events.connections(type, thorny_id, ignored)
-                              VALUES($1, $2, $3)
-                              """,
-                              model.type, model.thorny_id, ignore)
-
-
-class ConnectionCreateModel(BaseModel):
-    type: Literal["connect", "disconnect"]
-    thorny_id: int
-
-
 class RelayModel(BaseModel):
     type: Literal["message", "start", "stop", "crash", "join", "leave", "other"]
     content: str
