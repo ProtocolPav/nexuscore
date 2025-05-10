@@ -50,15 +50,14 @@ class InteractionModel(InteractionBaseModel):
     async def check_coordinates(cls, db: Database, coordinates: list[int]) -> bool:
         exists = await db.pool.fetchrow("""
                                         SELECT
-                                        CASE WHEN EXISTS 
-                                        (
-                                            SELECT * FROM events.interactions i WHERE 
-                                            i.coordinates = [$1, $2, $3]
-                                            and type = 'place'
-                                        )
-                                        THEN true 
-                                        ELSE false
-                                        END
+                                            CASE WHEN EXISTS (
+                                                SELECT 1
+                                                FROM events.interactions i
+                                                WHERE i.coordinates = ARRAY[$1::smallint, $2::smallint, $3::smallint]
+                                            )
+                                            THEN true
+                                            ELSE false
+                                        END;
                                         """,
                                        coordinates[0], coordinates[1], coordinates[2])
 

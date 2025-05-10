@@ -1,6 +1,6 @@
 from sanic import Blueprint, Request
 import sanic
-from sanic_ext.extensions.openapi.definitions import Response, RequestBody
+from sanic_ext.extensions.openapi.definitions import Response, RequestBody, Parameter
 
 from src.database import Database
 
@@ -60,7 +60,13 @@ async def interaction_event(request: Request, db: Database, body: interactions.I
 @openapi.definition(response=[
                         Response({'application/json': {'exists': bool}}, 200),
                         Response(NotFound404, 404)
-                    ])
+                    ],
+                    parameter=[
+                        Parameter('x', int),
+                        Parameter('y', int),
+                        Parameter('z', int)
+                    ]
+)
 async def interaction_check(request: Request, db: Database):
     """
     Check Interaction Coordinates
