@@ -1,24 +1,24 @@
-from datetime import datetime, date
 from typing import Literal
-
 import httpx
-from pydantic import StringConstraints, BaseModel
-from typing_extensions import Annotated, Optional
 
 import json
 
-from sanic_ext import openapi
+from pydantic import Field
 
-from src.database import Database
+from src.utils.base import BaseModel
 
 
 class RelayModel(BaseModel):
-    type: Literal["message", "start", "stop", "crash", "join", "leave", "other"]
-    content: str
-    embed_title: str
-    embed_content: str
-    name: str
-
+    type: Literal["message", "start", "stop", "crash", "join", "leave", "other"] = Field(description="The type of relay",
+                                                                                         json_schema_extra={"example": "message"})
+    content: str = Field(description="The content of the message",
+                         json_schema_extra={"example": "Hello, world!"})
+    embed_title: str = Field(description="The title of the embed",
+                             json_schema_extra={"example": "Title"})
+    embed_content: str = Field(description="The content of the embed",
+                               json_schema_extra={"example": "Hello, world!"})
+    name: str = Field(description="The name to use for the webhook",
+                      json_schema_extra={"example": "ProtocolPav"})
 
     def generate_embed(self):
         if self.type == 'stop':

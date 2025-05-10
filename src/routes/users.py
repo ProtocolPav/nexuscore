@@ -227,7 +227,7 @@ async def fail_active_quest(request: Request, db: Database, thorny_id: int):
 @user_blueprint.route('/<thorny_id:int>/quest/', methods=['POST'])
 @openapi.definition(body=RequestBody(quests.UserQuestCreateModel.doc_schema()),
                     response=[
-                        Response(201),
+                        Response(status=201),
                         Response(Forbidden403, 403),
                         Response(NotFound404, 404)
                     ])
