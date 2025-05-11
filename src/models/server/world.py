@@ -1,10 +1,8 @@
-from typing import Optional
-
 from pydantic import Field
 from sanic_ext import openapi
 
 from src.database import Database
-from src.utils.base import BaseModel
+from src.utils.base import BaseModel, optional_model
 from src.utils.errors import BadRequest400, NotFound404
 
 
@@ -56,6 +54,4 @@ class WorldModel(WorldBaseModel):
                               self.overworld_border, self.nether_border, self.end_border, self.guild_id)
 
 
-@openapi.component()
-class WorldUpdateModel(WorldBaseModel):
-    pass
+WorldUpdateModel = optional_model("WorldUpdateModel", WorldBaseModel)
