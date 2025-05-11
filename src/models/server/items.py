@@ -21,7 +21,7 @@ class ItemBaseModel(BaseModel):
                                 json_schema_extra={"example": 0.32})
 
 @openapi.component()
-class ItemModel(BaseModel):
+class ItemModel(ItemBaseModel):
     current_uses: int = Field(description="The current uses of this item",
                               json_schema_extra={"example": 32})
 

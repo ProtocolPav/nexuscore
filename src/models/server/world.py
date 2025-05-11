@@ -18,7 +18,7 @@ class WorldBaseModel(BaseModel):
 
 
 @openapi.component()
-class WorldModel(BaseModel):
+class WorldModel(WorldBaseModel):
     guild_id: int = Field(description="The guild ID that corresponds to this world",
                           json_schema_extra={"example": 123456789012345678})
 
