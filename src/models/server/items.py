@@ -89,5 +89,5 @@ class ItemCreateModel(ItemBaseModel):
 
 @openapi.component()
 class ItemUpdateModel(BaseModel):
-    current_uses: int = Field(description="The current uses of this item",
-                              json_schema_extra={"example": 32})
+    current_uses: Optional[int] = Field(description="The current uses of this item",
+                                        json_schema_extra={"example": 32})
