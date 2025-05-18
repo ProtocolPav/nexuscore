@@ -1,39 +1,48 @@
+import re
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing_extensions import Literal, Optional
 
 from src.database import Database
 from src.models.users import user
+from src.utils.base import BaseModel, BaseList, optional_model
 
 from sanic_ext import openapi
 
+from src.utils.errors import BadRequest400, NotFound404
+
+
+class ProjectBaseModel(BaseModel):
+    name: str = Field(description="The name of the project",
+                      json_schema_extra={"example": 'My Project'})
+    description: str = Field(description="A short description of the project",
+                             json_schema_extra={"example": 'This project will have houses'})
+    coordinates: list[int] = Field(description="The coordinates of the project",
+                                   json_schema_extra={"example": [132, 65, 33]})
+    owner_id: int = Field(description="The owner of the project, in the form of a User object",
+                          json_schema_extra={"example": 12})
+
 
 @openapi.component()
-class ProjectModel(BaseModel):
-    project_id: str = Field(description="The id of the project. Comprised of: a-z and underscores",
-                            examples=['my_cool_project'])
-    name: str = Field(description="The name of the project",
-                      examples=['My Cool Project'])
-    description: str = Field(description="A short description of the project",
-                             examples=['This is a sick project with big houses...'])
-    coordinates: tuple[int, int, int] = Field(description="The coordinates of the project",
-                                              examples=[[333, 55, -65]])
+class ProjectModel(ProjectBaseModel):
+    project_id: str = Field(description="The string ID of the project",
+                            json_schema_extra={"example": 'my_project'})
     thread_id: Optional[int] = Field(description="The discord thread ID of the project",
-                                     examples=[134908547047468818])
+                                     json_schema_extra={"example": 134908547047468818})
     started_on: date = Field(description="The date the project was started on",
-                             examples=['2024-05-05'])
+                             json_schema_extra={"example": '2024-05-05'})
     completed_on: Optional[date] = Field(description="The date the project was completed on",
-                                         examples=['2024-07-05'])
-    owner: user.UserModel = Field(description="The owner of the project, in the form of a User object",
-                                   examples=[123])
+                                         json_schema_extra={"example": '2024-05-05'})
     status: Literal["pending", "ongoing", "abandoned", "completed"] = Field(description="The project status",
-                                                                            examples=['ongoing'])
+                                                                            json_schema_extra={"example": 'ongoing'})
     status_since: datetime = Field(description="When the status was last updated",
-                            examples=["2024-07-05 15:15:00"])
+                                   json_schema_extra={"example": "2024-07-05 15:15:00"})
 
     @classmethod
-    async def new(cls, db: Database, project_id: str, model: "ProjectCreateModel"):
+    async def create(cls, db: Database, model: "ProjectCreateModel", *args) -> str:
+        project_id = re.sub(r'[^a-z0-9_]', '', model.name.lower().replace(' ', '_'))
+
         await db.pool.execute("""
                                 with project_table as (
                                     insert into projects.project(project_id,
@@ -59,31 +68,24 @@ class ProjectModel(BaseModel):
         return project_id
 
     @classmethod
-    async def fetch(cls, db: Database, project_id: str) -> Optional["ProjectModel"]:
+    async def fetch(cls, db: Database, project_id: str, *args) -> "ProjectModel":
+        if not project_id:
+            raise BadRequest400(extra={'ids': ['project_id']})
+
         data = await db.pool.fetchrow("""
-                                       SELECT p.*, s.status, s.since AS status_since FROM projects.project p
-                                       INNER JOIN projects.status s ON p.project_id = s.project_id
-                                       WHERE p.project_id = $1
-                                       ORDER BY s.since DESC
-                                       """,
+                                      SELECT p.*, s.status, s.since AS status_since FROM projects.project p
+                                      INNER JOIN projects.status s ON p.project_id = s.project_id
+                                      WHERE p.project_id = $1
+                                      ORDER BY s.since DESC
+                                      """,
                                       project_id)
 
         if data:
-            owner = await users.UserModel.fetch(db, data['owner_id'])
-
-            return cls(**data, owner=owner)
+            return cls(**data)
         else:
-            return None
+            raise NotFound404(extra={'resource': 'project', 'id': project_id})
 
-    @classmethod
-    async def fetch_all(cls, db: Database) -> Optional[list["ProjectModel"]]:
-        projects_record = await db.pool.fetchrow("""
-                                                  select array_agg(project_id) as all_projects from projects.project
-                                                  """)
-
-        return [await cls.fetch(db, i) for i in projects_record['all_projects']]
-
-    async def update(self, db: Database):
+    async def update(self, db: Database, model: "ProjectUpdateModel", *args):
         await db.pool.execute("""
                                UPDATE projects.project
                                SET name = $1,
@@ -97,50 +99,37 @@ class ProjectModel(BaseModel):
                               self.name, self.thread_id, self.coordinates,
                               self.description, self.completed_on, self.owner_id, self.project_id)
 
+
+class ProjectsListModel(BaseList[ProjectModel]):
     @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+    async def fetch(cls, db: Database, *args) -> "ProjectsListModel":
+        data = await db.pool.fetch("""
+                                   SELECT p.*, s.status, s.since AS status_since FROM projects.project p
+                                   INNER JOIN projects.status s ON p.project_id = s.project_id
+                                   ORDER BY s.since DESC
+                                   """)
+
+        if data:
+            projects: list[ProjectModel] = []
+            for project in data:
+                projects.append(ProjectModel(**project))
+
+            return cls(root=projects)
+        else:
+            raise NotFound404(extra={'resource': 'projects_list'})
 
 
-class AllProjectsModel(BaseModel):
-    projects: list[ProjectModel]
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+class ProjectCreateModel(ProjectBaseModel):
+    pass
 
 
-class ProjectCreateModel(BaseModel):
-    name: str = Field(description="The name of the project",
-                      examples=['My Cool Project'])
-    description: str = Field(description="A short description of the project",
-                             examples=['This is a sick project with big houses...'])
-    coordinates: tuple[int, int, int] = Field(description="The coordinates of the project",
-                                              examples=[[333, 55, -65]])
-    owner_id: int = Field(description="The ThornyID of the project owner",
-                          examples=[44])
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
-
-
-class ProjectUpdateModel(BaseModel):
-    name: str = Field(description="The name of the project",
-                      examples=['My Cool Project'])
-    description: str = Field(description="A short description of the project",
-                             examples=['This is a sick project with big houses...'])
-    coordinates: tuple[int, int, int] = Field(description="The coordinates of the project",
-                                              examples=[[333, 55, -65]])
-    thread_id: Optional[int] = Field(description="The discord thread ID of the project",
-                                     examples=[134908547047468818])
+class ProjectUpdateMixin(ProjectBaseModel):
+    thread_id: int = Field(description="The discord thread ID of the project",
+                           json_schema_extra={"example": 134908547047468818})
     started_on: date = Field(description="The date the project was started on",
-                             examples=['2024-05-05'])
-    completed_on: Optional[date] = Field(description="The date the project was completed on",
-                                         examples=['2024-07-05'])
-    owner_id: int = Field("The ThornyID of the project owner",
-                          examples=[44])
+                             json_schema_extra={"example": '2024-05-05'})
+    completed_on: date = Field(description="The date the project was completed on",
+                               json_schema_extra={"example": '2024-05-05'})
 
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+
+ProjectUpdateModel = optional_model('ProjectUpdateModel', ProjectUpdateMixin)

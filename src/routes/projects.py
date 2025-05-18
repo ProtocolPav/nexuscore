@@ -1,134 +1,115 @@
-import re
-from typing import Literal
-
 from sanic import Blueprint, Request, HTTPResponse
 import sanic
 from sanic.views import HTTPMethodView
 from sanic_ext import openapi, validate
+from sanic_ext.extensions.openapi.definitions import RequestBody, Response
 
 from src.database import Database
-from src.models import projects
+from src.models.projects import project, status, members, pin
+from src.utils.errors import BadRequest400, NotFound404
 
 project_blueprint = Blueprint("projects", url_prefix='/projects')
 
-class ProjectsBaseRoute(HTTPMethodView):
-    @openapi.response(status=200,
-                      description="Success",
-                      content={'application/json': projects.AllProjectsModel.doc_schema()})
-    async def get(self, request: Request, db: Database):
-        """
-        Get All Projects
+@project_blueprint.route('/', methods=['GET'])
+@openapi.definition(response=[
+    Response(project.ProjectsListModel.doc_schema(), 200),
+    Response(NotFound404, 404)
+])
+async def get_all_projects(request: Request, db: Database):
+    """
+    Get All Projects
 
-        Get a list of Projects
-        """
-        all_projects = await projects.ProjectModel.fetch_all(db)
+    Get a list of Projects
+    """
+    projects_model = await project.ProjectsListModel.fetch(db)
 
-        return sanic.json(projects.AllProjectsModel(**{'projects': all_projects}).model_dump(), default=str)
+    return sanic.json(projects_model.model_dump(), default=str)
 
-    @openapi.definition(body={'application/json': projects.ProjectCreateModel.doc_schema()})
-    @openapi.response(status=200,
-                      description='Success',
-                      content={'application/json': projects.ProjectModel.doc_schema()})
-    @validate(json=projects.ProjectCreateModel)
-    async def post(self, request: Request, db: Database, body: projects.ProjectCreateModel):
-        """
-        Create Project
 
-        Creates a new project, inserts a status and content.
-        """
-        project_id = re.sub(r'[^a-z0-9_]', '', body.name.lower().replace(' ', '_'))
+@project_blueprint.route('/', methods=['POST'])
+@openapi.definition(body=RequestBody(project.ProjectCreateModel.doc_schema()),
+                    response=[
+                        Response(project.ProjectModel.doc_schema(), 201),
+                        Response(BadRequest400, 400)
+                    ])
+@validate(json=project.ProjectCreateModel)
+async def create_project(request: Request, db: Database, body: project.ProjectCreateModel):
+    """
+    Create Project
 
-        model = await projects.ProjectModel.fetch(db, project_id)
+    Creates a new project, inserts a status and content.
+    """
+    project_id = await project.ProjectModel.create(db, body)
+    project_model = await project.ProjectModel.fetch(db, project_id)
 
-        if not model:
-            await projects.ProjectModel.new(db, project_id, body)
-            model = await projects.ProjectModel.fetch(db, project_id)
-            return sanic.json(model.model_dump(), default=str)
-        else:
-            raise sanic.SanicException(status_code=500, message="This project already exists!")
-
-project_blueprint.add_route(ProjectsBaseRoute.as_view(), '/')
+    return sanic.json(status=201, body=project_model.model_dump(), default=str)
 
 
 class PinsRoute(HTTPMethodView):
     @openapi.response(status=200,
                       description="Success",
-                      content={'application/json': projects.PinsListModel.doc_schema()})
+                      content={'application/json': pin.PinsListModel.doc_schema()})
     async def get(self, request: Request, db: Database):
         """
         Get All Pins
 
         Get a list of all Pins
         """
-        all_pins = await projects.PinsListModel.fetch(db)
+        all_pins = await pin.PinsListModel.fetch(db)
 
         return sanic.json(all_pins.model_dump(), default=str)
 
-    @openapi.definition(body={'application/json': projects.PinCreateModel.doc_schema()})
+    @openapi.definition(body={'application/json': pin.PinCreateModel.doc_schema()})
     @openapi.response(status=200,
                       description='Success',
-                      content={'application/json': projects.PinModel.doc_schema()})
-    @validate(json=projects.PinCreateModel)
-    async def post(self, request: Request, db: Database, body: projects.PinCreateModel):
+                      content={'application/json': pin.PinModel.doc_schema()})
+    @validate(json=pin.PinCreateModel)
+    async def post(self, request: Request, db: Database, body: pin.PinCreateModel):
         """
         Create Pin
 
         Creates a new pin
         """
-        pin_id = await projects.PinModel.new(db, body)
+        pin_id = await pin.PinModel.new(db, body)
 
-        model = await projects.PinModel.fetch(db, pin_id)
+        model = await pin.PinModel.fetch(db, pin_id)
         return sanic.json(model.model_dump(), default=str)
 
 project_blueprint.add_route(PinsRoute.as_view(), '/pins')
 
 
 @project_blueprint.route('/<project_id:str>', methods=['GET'])
-@openapi.response(status=200,
-                  description='Success',
-                  content={'application/json': projects.ProjectModel.doc_schema()})
-@openapi.response(status=404, description="Project does not exist")
+@openapi.definition(response=[
+    Response(project.ProjectModel.doc_schema(), 200),
+    Response(NotFound404, 404)
+])
 async def get_project(request: Request, db: Database, project_id: str):
     """
     Get Project
 
     Returns the project specified
     """
-    model = await projects.ProjectModel.fetch(db, project_id)
+    project_model = await project.ProjectModel.fetch(db, project_id)
 
-    if not model:
-        raise sanic.NotFound("This project doesn't exist! Are you sure the ID is correct?")
-
-    return sanic.json(model.model_dump(), default=str)
+    return sanic.json(project_model.model_dump(), default=str)
 
 
 @project_blueprint.route('/<project_id:str>', methods=['PATCH', 'PUT'])
-@openapi.body(content={'application/json': projects.ProjectUpdateModel.doc_schema()})
-@openapi.response(status=200,
-                  description='Success',
-                  content={'application/json': projects.ProjectModel.doc_schema()})
-@openapi.response(status=404, description="Project does not exist")
-@validate(json=projects.ProjectUpdateModel)
-async def update_project(request: Request, db: Database, project_id: str, body: projects.ProjectUpdateModel):
+@openapi.definition(body=RequestBody(project.ProjectUpdateModel.doc_schema()),
+                    response=[
+                        Response(project.ProjectModel.doc_schema(), 200),
+                        Response(BadRequest400, 400),
+                        Response(NotFound404, 404)
+                    ])
+@validate(json=project.ProjectUpdateModel)
+async def update_project(request: Request, db: Database, project_id: str, body: project.ProjectUpdateModel):
     """
     Update Project
 
     Update the project. Anything that you do not want to update can be left as `null`
     """
-    model = await projects.ProjectModel.fetch(db, project_id)
-
-    if not model:
-        raise sanic.NotFound("This project doesn't exist! Are you sure the ID is correct?")
-
-    update_dict = {}
-
-    for k, v in body.model_dump().items():
-        if v is not None:
-            update_dict[k] = v
-
-    model = model.model_copy(update=update_dict)
-
-    await model.update(db)
+    model = await project.ProjectModel.fetch(db, project_id)
+    await model.update(db, body)
 
     return sanic.json(model.model_dump(), default=str)
 
@@ -136,7 +117,7 @@ async def update_project(request: Request, db: Database, project_id: str, body: 
 @project_blueprint.route('/<project_id:str>/status', methods=['GET'])
 @openapi.response(status=200,
                   description='Success',
-                  content={'application/json': projects.StatusModel.doc_schema()})
+                  content={'application/json': status.StatusModel.doc_schema()})
 @openapi.response(status=404, description="Project does not exist")
 async def get_project_status(request: Request, db: Database, project_id: str):
     """
@@ -144,7 +125,7 @@ async def get_project_status(request: Request, db: Database, project_id: str):
 
     Returns the project's status
     """
-    model = await projects.StatusModel.fetch(db, project_id)
+    model = await status.StatusModel.fetch(db, project_id)
 
     if not model:
         raise sanic.NotFound("This project doesn't exist! Are you sure the ID is correct?")
@@ -153,47 +134,25 @@ async def get_project_status(request: Request, db: Database, project_id: str):
 
 
 @project_blueprint.route('/<project_id:str>/status', methods=['POST'])
-@openapi.body(content={'application/json': projects.StatusCreateModel.doc_schema()})
+@openapi.body(content={'application/json': status.StatusCreateModel.doc_schema()})
 @openapi.response(status=201, description='Successfully Added')
-@validate(json=projects.StatusCreateModel)
-async def project_status(request: Request, db: Database, project_id: str, body: projects.StatusCreateModel):
+@validate(json=status.StatusCreateModel)
+async def project_status(request: Request, db: Database, project_id: str, body: status.StatusCreateModel):
     """
     New Project Status
 
     Insert a new project status.
     """
-    model = await projects.StatusModel.fetch(db, project_id)
+    model = await status.StatusModel.fetch(db, project_id)
     await model.insert_status(db, project_id, body.status)
 
     return sanic.HTTPResponse(status=201)
 
 
-@project_blueprint.route('/<project_id:str>/content', methods=['GET'])
-@openapi.response(status=404, description="Project Content is deprecated")
-async def get_project_content(request: Request, db: Database, project_id: str):
-    """
-    Get Project Content
-
-    Project Content is deprecated
-    """
-    raise sanic.NotFound("Project Content is deprecated.")
-
-
-@project_blueprint.route('/<project_id:str>/content', methods=['POST'])
-@openapi.response(status=404, description="Project Content is deprecated")
-async def project_content(request: Request, db: Database, project_id: str):
-    """
-    New Project Content
-
-    Project Content is deprecated
-    """
-    raise sanic.NotFound("Project Content is deprecated.")
-
-
 @project_blueprint.route('/<project_id:str>/members', methods=['GET'])
 @openapi.response(status=200,
                   description='Success',
-                  content={'application/json': projects.MembersModel.doc_schema()})
+                  content={'application/json': members.MembersModel.doc_schema()})
 @openapi.response(status=404, description="Project does not exist")
 async def get_project_members(request: Request, db: Database, project_id: str):
     """
@@ -201,7 +160,7 @@ async def get_project_members(request: Request, db: Database, project_id: str):
 
     Returns the project's Members
     """
-    model = await projects.MembersModel.fetch(db, project_id)
+    model = await members.MembersModel.fetch(db, project_id)
 
     if not model:
         raise sanic.NotFound("This project doesn't exist! Are you sure the ID is correct?")
@@ -218,7 +177,7 @@ async def update_members(request: Request, db: Database, project_id: str):
 
     Insert new members into the project. Must be ThornyIDs
     """
-    model = await projects.MembersModel.fetch(db, project_id)
+    model = await members.MembersModel.fetch(db, project_id)
     await model.insert_members(db, project_id, request.json['members'])
 
     return HTTPResponse(status=201)
