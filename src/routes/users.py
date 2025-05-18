@@ -238,12 +238,12 @@ async def new_active_quest(request: Request, db: Database, thorny_id: int, body:
 
     This will return a 403 if the user already has a quest active.
     """
-    quest = await quests.UserQuestModel.fetch_active_quest(db, thorny_id)
-
-    if quest:
+    try:
+        await quests.UserQuestModel.fetch_active_quest(db, thorny_id)
         raise Forbidden403("User already has a quest active")
+    except NotFound404:
+        await quests.UserQuestModel.create(db, body)
 
-    await quests.UserQuestModel.create(db, body)
     return sanic.empty(status=201)
 
 

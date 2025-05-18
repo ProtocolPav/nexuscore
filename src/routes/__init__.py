@@ -7,4 +7,4 @@ from src.routes.guilds import guild_blueprint
 from src.routes.server import server_blueprint
 
 blueprints = [user_blueprint, project_blueprint, quest_blueprint, events_blueprint, guild_blueprint, server_blueprint]
-blueprint_group = Blueprint.group(url_prefix='/', *blueprints, version=0.1, version_prefix='/api/v')
+blueprint_group = Blueprint.group(url_prefix='/', *blueprints, version=0.2, version_prefix='/api/v')
