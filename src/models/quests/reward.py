@@ -100,14 +100,11 @@ class RewardsListModel(BaseList[RewardModel]):
                                   """,
                                   objective_id)
 
-        if data:
-            rewards: list[RewardModel] = []
-            for reward in data:
-                rewards.append(RewardModel(**reward))
+        rewards: list[RewardModel] = []
+        for reward in data:
+            rewards.append(RewardModel(**reward))
 
-            return cls(root=rewards)
-        else:
-            raise NotFound404(extra={'resource': 'rewards_list', 'id': objective_id})
+        return cls(root=rewards)
 
 
 @openapi.component()
