@@ -109,14 +109,11 @@ class ProjectsListModel(BaseList[ProjectModel]):
                                    ORDER BY s.since DESC
                                    """)
 
-        if data:
-            projects: list[ProjectModel] = []
-            for project in data:
-                projects.append(ProjectModel(**project))
+        projects: list[ProjectModel] = []
+        for project in data:
+            projects.append(ProjectModel(**project))
 
-            return cls(root=projects)
-        else:
-            raise NotFound404(extra={'resource': 'projects_list'})
+        return cls(root=projects)
 
 
 class ProjectCreateModel(ProjectBaseModel):

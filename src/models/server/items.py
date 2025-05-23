@@ -72,14 +72,11 @@ class ItemListModel(BaseList[ItemModel]):
                                     ORDER BY item_id 
                                    """)
 
-        if data:
-            items: list[ItemModel] = []
-            for item in data:
-                items.append(ItemModel(**item))
+        items: list[ItemModel] = []
+        for item in data:
+            items.append(ItemModel(**item))
 
-            return cls(root=items)
-        else:
-            raise NotFound404(extra={'resource': 'items_list'})
+        return cls(root=items)
 
 
 @openapi.component()

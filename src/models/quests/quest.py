@@ -92,15 +92,12 @@ class QuestListModel(BaseList[QuestModel]):
                                  ORDER BY start_time DESC
                                  """)
 
-        if data:
-            quests: list[QuestModel] = []
-            for quest in data:
-                objectives = await ObjectivesListModel.fetch(db, quest['quest_id'])
-                quests.append(QuestModel(**quest, objectives=objectives))
+        quests: list[QuestModel] = []
+        for quest in data:
+            objectives = await ObjectivesListModel.fetch(db, quest['quest_id'])
+            quests.append(QuestModel(**quest, objectives=objectives))
 
-            return cls(root=quests)
-        else:
-            raise NotFound404(extra={'resource': 'quests_list'})
+        return cls(root=quests)
 
 
 QuestUpdateModel = optional_model('QuestUpdateModel', QuestBaseModel)
