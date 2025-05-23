@@ -152,7 +152,7 @@ async def project_status(request: Request, db: Database, project_id: str, body: 
 @project_blueprint.route('/<project_id:str>/members', methods=['GET'])
 @openapi.response(status=200,
                   description='Success',
-                  content={'application/json': members.MembersModel.doc_schema()})
+                  content={'application/json': members.MembersListModel.doc_schema()})
 @openapi.response(status=404, description="Project does not exist")
 async def get_project_members(request: Request, db: Database, project_id: str):
     """
@@ -160,7 +160,7 @@ async def get_project_members(request: Request, db: Database, project_id: str):
 
     Returns the project's Members
     """
-    model = await members.MembersModel.fetch(db, project_id)
+    model = await members.MembersListModel.fetch(db, project_id)
 
     if not model:
         raise sanic.NotFound("This project doesn't exist! Are you sure the ID is correct?")
@@ -177,7 +177,7 @@ async def update_members(request: Request, db: Database, project_id: str):
 
     Insert new members into the project. Must be ThornyIDs
     """
-    model = await members.MembersModel.fetch(db, project_id)
+    model = await members.MembersListModel.fetch(db, project_id)
     await model.insert_members(db, project_id, request.json['members'])
 
     return HTTPResponse(status=201)
