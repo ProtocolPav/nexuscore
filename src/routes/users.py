@@ -280,7 +280,7 @@ async def update_objective(request: Request, db: Database, thorny_id: int, quest
 
     Updates a user's quest objective.
     """
-    model = await quests.UserObjectiveModel.fetch(db, thorny_id, quest_id, objective_id)
+    model = await quests.UserObjectiveModel.fetch(db, thorny_id, objective_id)
     await model.update(db, body)
 
     return sanic.json(model.model_dump(), default=str)
