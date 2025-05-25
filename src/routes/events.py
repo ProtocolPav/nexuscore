@@ -26,14 +26,17 @@ async def connect_event(request: Request, db: Database, body: connections.Connec
 
     Inserts a connection event. Either `connect` or `disconnect`.
     """
-    user_playtime = await playtime.PlaytimeSummary.fetch(db, body.thorny_id)
+    try:
+        user_playtime = await playtime.PlaytimeSummary.fetch(db, body.thorny_id)
 
-    if (body.type == 'connect' and not user_playtime.session) or (body.type == 'disconnect' and user_playtime.session):
+        if (body.type == 'connect' and not user_playtime.session) or (body.type == 'disconnect' and user_playtime.session):
+            await connections.ConnectionModel.create(db, body)
+        else:
+            body.ignored = True
+            await connections.ConnectionModel.create(db, body)
+            raise BadRequest400('Connection was created but ignored because the user does not have a session')
+    except NotFound404:
         await connections.ConnectionModel.create(db, body)
-    else:
-        body.ignored = True
-        await connections.ConnectionModel.create(db, body)
-        raise BadRequest400('Connection was created but ignored because the user does not have a session')
 
     return sanic.empty(status=201)
 
@@ -51,7 +54,7 @@ async def interaction_event(request: Request, db: Database, body: interactions.I
 
     Inserts an interaction event.
     """
-    await interactions.InteractionModel.new(db, body)
+    await interactions.InteractionModel.create(db, body)
 
     return sanic.empty(status=201)
 
