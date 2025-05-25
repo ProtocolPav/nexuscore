@@ -38,6 +38,7 @@ class ProjectModel(ProjectBaseModel):
                                                                             json_schema_extra={"example": 'ongoing'})
     status_since: datetime = Field(description="When the status was last updated",
                                    json_schema_extra={"example": "2024-07-05 15:15:00"})
+    owner: user.UserModel = Field(description="The owner of the project, in the form of a User object")
 
     @classmethod
     async def create(cls, db: Database, model: "ProjectCreateModel", *args) -> str:
@@ -81,7 +82,8 @@ class ProjectModel(ProjectBaseModel):
                                       project_id)
 
         if data:
-            return cls(**data)
+            owner = await user.UserModel.fetch(db, data['owner_id'])
+            return cls(**data, owner=owner)
         else:
             raise NotFound404(extra={'resource': 'project', 'id': project_id})
 
@@ -104,14 +106,17 @@ class ProjectsListModel(BaseList[ProjectModel]):
     @classmethod
     async def fetch(cls, db: Database, *args) -> "ProjectsListModel":
         data = await db.pool.fetch("""
-                                   SELECT p.*, s.status, s.since AS status_since FROM projects.project p
-                                   INNER JOIN projects.status s ON p.project_id = s.project_id
-                                   ORDER BY s.since DESC
+                                    SELECT DISTINCT ON (p.project_id) 
+                                           p.*, s.status, s.since AS status_since
+                                    FROM projects.project p
+                                    JOIN projects.status s ON p.project_id = s.project_id
+                                    ORDER BY p.project_id, s.since DESC
                                    """)
 
         projects: list[ProjectModel] = []
         for project in data:
-            projects.append(ProjectModel(**project))
+            owner = await user.UserModel.fetch(db, project['owner_id'])
+            projects.append(ProjectModel(**project, owner=owner))
 
         return cls(root=projects)
 
