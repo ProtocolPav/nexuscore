@@ -1,38 +1,79 @@
-from datetime import datetime, date
-
-from pydantic import BaseModel, Field, StringConstraints, RootModel
-from typing import Annotated, Optional, Literal, Union
-from typing_extensions import Optional
+from pydantic import Field, StringConstraints
+from typing import Annotated, Optional
+from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
 
 from sanic_ext import openapi
 
+from src.utils.errors import BadRequest400, NotFound404
 
 InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
 
+class RewardBaseModel(BaseModel):
+    balance: Optional[int] = Field(description="The balance this reward will add",
+                                   json_schema_extra={"example": None})
+    item: Optional[InteractionRef] = Field(description="The item this reward will give",
+                                          json_schema_extra={"example": 'minecraft:gold_ingot'})
+    count: Optional[int] = Field(description="The amount of this item this reward will give",
+                                 json_schema_extra={"example": 43})
+    display_name: Optional[str] = Field(description="The optional text to display instead of the reward item name",
+                                       json_schema_extra={"example": 'Something Shiny'})
+
+
 @openapi.component()
-class RewardModel(BaseModel):
-    reward_id: int
-    quest_id: int
-    objective_id: int
-    balance: Optional[int]
-    item: Optional[InteractionRef]
-    count: Optional[int]
-    display_name: Optional[str]
+class RewardModel(RewardBaseModel):
+    quest_id: int = Field(description="The ID of the quest this reward belongs to",
+                          json_schema_extra={"example": 732})
+    objective_id: int = Field(description="The ID of the objective this reward belongs to",
+                              json_schema_extra={"example": 43})
+    reward_id: int = Field(description="The ID of this reward",
+                           json_schema_extra={"example": 345})
+
 
     @classmethod
-    async def fetch(cls, db: Database, reward_id: int):
+    async def create(cls, db: Database, model: "RewardCreateModel", quest_id: int = None, objective_id: int = None, *args) -> "RewardModel":
+        async with db.pool.acquire() as conn:
+            async with conn.transaction():
+                reward_id = await conn.fetchrow("""
+                                                WITH reward_table AS (
+                                                    INSERT INTO quests.reward(quest_id, 
+                                                                              objective_id,
+                                                                              balance,
+                                                                              item,
+                                                                              count,
+                                                                              display_name)
+                                                    VALUES($1, $2, $3, $4, $5, $6)
+                                                    RETURNING reward_id
+                                                )
+                                                SELECT reward_id as id FROM reward_table
+                                                """,
+                                                quest_id, objective_id, model.balance, model.item, model.count,
+                                                model.display_name)
+
+        return cls(reward_id=reward_id['id'], quest_id=quest_id, objective_id=objective_id, **model.model_dump())
+
+    @classmethod
+    async def fetch(cls, db: Database, reward_id: int = None, *args):
+        if not reward_id:
+            raise BadRequest400(extra={'ids': ['reward_id']})
+
         data = await db.pool.fetchrow("""
                                        SELECT * FROM quests.reward
                                        WHERE reward_id = $1
                                        """,
                                       reward_id)
 
-        return cls(**data) if data else None
+        if data:
+            return cls(**data)
+        else:
+            raise NotFound404(extra={'resource': 'reward', 'id': reward_id})
 
-    async def update(self, db: Database):
+    async def update(self, db: Database, model: "RewardUpdateModel"):
+        for k, v in model.model_dump().items():
+            setattr(self, k, v) if v else None
+
         await db.pool.execute("""
                               UPDATE quests.reward
                               SET objective_id = $1,
@@ -44,57 +85,31 @@ class RewardModel(BaseModel):
                               """,
                               self.objective_id, self.balance, self.item, self.count, self.display_name, self.reward_id)
 
+
+@openapi.component()
+class RewardsListModel(BaseList[RewardModel]):
     @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+    async def fetch(cls, db: Database, objective_id: int = None, *args) -> "RewardsListModel":
+        if not objective_id:
+            raise BadRequest400(extra={'ids': ['objective_id']})
 
+        data = await db.pool.fetch("""
+                                  SELECT *
+                                  FROM quests.reward
+                                  WHERE objective_id = $1
+                                  """,
+                                  objective_id)
 
-class RewardsListModel(RootModel):
-    root: list[RewardModel]
-
-    def __iter__(self):
-        return iter(self.root)
-
-    def __getitem__(self, item):
-        return self.root[item]
-
-    @classmethod
-    async def fetch(cls, db: Database, quest_id: int, objective_id: int):
-        reward_ids = await db.pool.fetchrow("""
-                                            SELECT coalesce(array_agg(reward_id), '{}'::integer[]) as ids FROM quests.reward
-                                            WHERE quest_id = $1
-                                            AND objective_id = $2
-                                            """,
-                                            quest_id, objective_id)
-
-        rewards = []
-        for reward_id in reward_ids.get('ids', []):
-            rewards.append(await RewardModel.fetch(db, reward_id))
+        rewards: list[RewardModel] = []
+        for reward in data:
+            rewards.append(RewardModel(**reward))
 
         return cls(root=rewards)
 
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
-
 
 @openapi.component()
-class RewardCreateModel(BaseModel):
-    balance: Optional[int]
-    display_name: Optional[str]
-    item: Optional[InteractionRef]
-    count: Optional[int]
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+class RewardCreateModel(RewardBaseModel):
+    pass
 
 
-class RewardUpdateModel(BaseModel):
-    balance: Optional[int]
-    item: Optional[InteractionRef]
-    count: Optional[int]
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+RewardUpdateModel = optional_model('RewardUpdateModel', RewardBaseModel)

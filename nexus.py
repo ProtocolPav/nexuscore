@@ -1,12 +1,16 @@
 import json
 
 from sanic import Sanic, Request, HTTPResponse
+from sanic_ext.extensions.openapi import openapi
+
 from src.database import Database
 
-from src.blueprints import blueprint_group
+from src.routes import blueprint_group
 
 app = Sanic("nexuscore")
+app.config.OAS_URL_PREFIX = "/api/docs"
 
+@openapi.exclude()
 @app.route('/healthcheck')
 async def health_check(request: Request):
     """

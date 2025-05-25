@@ -1,27 +1,33 @@
-import json
-from typing import Optional
-
-from pydantic import BaseModel, Field, RootModel
+from pydantic import Field
 from sanic_ext import openapi
 
 from src.database import Database
+from src.utils.base import BaseModel, optional_model
+from src.utils.errors import BadRequest400, NotFound404
+
+
+class WorldBaseModel(BaseModel):
+    overworld_border: float = Field(description="The Overworld border size",
+                                    json_schema_extra={"example": 4000})
+    nether_border: float = Field(description="The Nether border size",
+                                 json_schema_extra={"example": 1500})
+    end_border: float = Field(description="The End border size",
+                              json_schema_extra={"example": 134.54})
 
 
 @openapi.component()
-class WorldModel(BaseModel):
+class WorldModel(WorldBaseModel):
     guild_id: int = Field(description="The guild ID that corresponds to this world",
-                          examples=[123456789012345678])
-    overworld_border: float = Field(description="The Overworld border size",
-                                    examples=[2000])
-    nether_border: float = Field(description="The Nether border size",
-                                    examples=[1500])
-    end_border: float = Field(description="The End border size",
-                                    examples=[1034.33])
+                          json_schema_extra={"example": 123456789012345678})
 
     @classmethod
-    async def fetch(cls, db: Database, guild_id: int) -> Optional["WorldModel"]:
+    async def fetch(cls, db: Database, guild_id: int, *args) -> "WorldModel":
+        if not guild_id:
+            raise BadRequest400(extra={'ids': ['guild_id']})
+
         data = await db.pool.fetchrow("""
-                                       SELECT overworld_border,
+                                       SELECT guild_id,
+                                              overworld_border,
                                               nether_border,
                                               end_border
                                        FROM server.world
@@ -29,9 +35,15 @@ class WorldModel(BaseModel):
                                        """,
                                       guild_id)
 
-        return cls(**data) if data else None
+        if data:
+            return cls(**data)
+        else:
+            raise NotFound404(extra={'resource': 'world', 'id': guild_id})
 
-    async def update(self, db: Database):
+    async def update(self, db: Database, model: "WorldUpdateModel"):
+        for k, v in model.model_dump().items():
+            setattr(self, k, v) if v else None
+
         await db.pool.execute("""
                               UPDATE server.world
                               SET overworld_border = $1,
@@ -41,20 +53,5 @@ class WorldModel(BaseModel):
                               """,
                               self.overworld_border, self.nether_border, self.end_border, self.guild_id)
 
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
-
-@openapi.component()
-class WorldUpdateModel(BaseModel):
-    overworld_border: float = Field(description="The Overworld border size",
-                                    examples=[2000])
-    nether_border: float = Field(description="The Nether border size",
-                                    examples=[1500])
-    end_border: float = Field(description="The End border size",
-                                    examples=[1034.33])
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+WorldUpdateModel = optional_model("WorldUpdateModel", WorldBaseModel)

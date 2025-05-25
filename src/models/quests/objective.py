@@ -1,70 +1,120 @@
-from datetime import datetime, date
+import datetime
 
-from pydantic import BaseModel, Field, StringConstraints, RootModel
-from typing import Annotated, Optional, Literal, Union, List, Iterator
-from typing_extensions import Optional
+from pydantic import Field, StringConstraints
+from typing import Annotated, Literal, Optional
+
+from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
 
-from src.models.quests.reward import RewardCreateModel
+from src.models.quests.reward import RewardCreateModel, RewardModel, RewardsListModel
 
 from sanic_ext import openapi
 
+from src.utils.errors import BadRequest400, NotFound404
 
 InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 ObjectiveType = Literal["kill", "mine", "encounter"]
 
 
-@openapi.component()
-class ObjectiveModel(BaseModel):
-    objective_id: int = Field(description="The ID of the objective")
-    quest_id: int = Field(description="The ID of the quest")
-    description: str = Field(description="The description of the objective")
-    objective: InteractionRef = Field(description="The target of the objective",
-                                      examples=["minecraft:dirt", 'minecraft:skeleton'])
-    display: Optional[str] = Field(description="Override with a custom objective task display",
-                                   examples=['Visit Location XYZ'])
-    order: int = Field(description="The order of the objective",
-                       examples=[1])
-    objective_count: int = Field(description="How much until the objective is completed",
-                                 examples=[32])
+class ObjectiveBaseModel(BaseModel):
     objective_type: ObjectiveType = Field(description="The type of objective: kill, mine or encounter",
-                                          examples=['kill', 'mine', 'encounter'])
-    natural_block: bool = Field(description="Denotes whether the block mined must be natural or not")
+                                          json_schema_extra={"example": 'kill'})
+    objective_count: int = Field(description="How much until the objective is completed",
+                                 json_schema_extra={"example": 32})
+    objective: InteractionRef = Field(description="The target of the objective",
+                                      json_schema_extra={"example": 'minecraft:skeleton'})
+    description: str = Field(description="The description of the objective",
+                             json_schema_extra={"example": 'Did you know skeletons hate diamonds...'})
+    display: Optional[str] = Field(description="Override with a custom objective task display",
+                                   json_schema_extra={"example": None})
+    order: int = Field(description="The order of the objective",
+                       json_schema_extra={"example": 0})
+    natural_block: bool = Field(description="Denotes whether the block mined must be natural or not",
+                                json_schema_extra={"example": False})
     objective_timer: Optional[float] = Field(description='An optional timer for this objective in seconds',
-                                             examples=[3600])
+                                             json_schema_extra={"example": 30})
     required_mainhand: Optional[InteractionRef] = Field(description="An optional mainhand requirement for this objective",
-                                                        examples=['minecraft:diamond_sword'])
-    required_location: Optional[tuple[int, int]] = Field(description="An optional location requirement for this objective",
-                                                         examples=[[56, 76]])
+                                                        json_schema_extra={"example": 'minecraft:diamond_sword'})
+    required_location: Optional[list[int]] = Field(description="An optional location requirement for this objective",
+                                                   json_schema_extra={"example": [56, 76]})
     location_radius: Optional[int] = Field(description="The radius for the location requirement",
-                                           examples=[100])
+                                           json_schema_extra={"example": 100})
+
+@openapi.component()
+class ObjectiveModel(ObjectiveBaseModel):
+    quest_id: int = Field(description="The ID of the quest this objective belongs to",
+                          json_schema_extra={"example": 732})
+    objective_id: int = Field(description="The ID of this objective",
+                              json_schema_extra={"example": 43})
+    rewards: RewardsListModel = Field(description="The rewards for this objective, if any")
 
     @classmethod
-    async def fetch(cls, db: Database, quest_id: int, objective_id: int):
+    async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> "ObjectiveModel":
+        async with db.pool.acquire() as conn:
+            async with conn.transaction():
+                objective_id = await conn.fetchrow("""
+                                                    with objective_table as (
+                                                        insert into quests.objective(quest_id,
+                                                                                     objective,
+                                                                                     objective_count,
+                                                                                     objective_type,
+                                                                                     objective_timer,
+                                                                                     required_mainhand,
+                                                                                     required_location,
+                                                                                     location_radius,
+                                                                                     "order",
+                                                                                     description,
+                                                                                     natural_block,
+                                                                                     display)
+                                                        values($1, 
+                                                               $2, 
+                                                               $3, 
+                                                               $4, 
+                                                               $5, 
+                                                               $6, 
+                                                               $7, 
+                                                               $8, 
+                                                               $9,
+                                                               $10,
+                                                               $11,
+                                                               $12)
+        
+                                                        returning objective_id
+                                                    )
+                                                    select objective_id as id from objective_table
+                                                   """,
+                                                   quest_id, model.objective, model.objective_count,
+                                                   model.objective_type, model.objective_timer,
+                                                   model.required_mainhand, model.required_location,
+                                                   model.location_radius, model.order, model.description,
+                                                   model.natural_block, model.display)
+
+        for reward in model.rewards:
+            await RewardModel.create(db=db, model=reward, quest_id=quest_id, objective_id=objective_id['id'])
+
+    @classmethod
+    async def fetch(cls, db: Database, objective_id: int = None, *args) -> "ObjectiveModel":
+        if not objective_id:
+            raise BadRequest400(extra={'ids': ['objective_id']})
+
         data = await db.pool.fetchrow("""
-                                       SELECT objective_id,
-                                              quest_id,
-                                              description,
-                                              objective,
-                                              display,
-                                              "order",
-                                              objective_count,
-                                              objective_type,
-                                              natural_block,
-                                              EXTRACT(EPOCH from objective_timer) as objective_timer,
-                                              required_mainhand,
-                                              required_location,
-                                              location_radius
-                                       FROM quests.objective
+                                       SELECT * FROM quests.objective
                                        WHERE objective_id = $1
-                                       AND quest_id = $2
                                        """,
-                                      objective_id, quest_id)
+                                      objective_id)
 
-        return cls(**data) if data else None
+        if data:
+            rewards = await RewardsListModel.fetch(db, objective_id)
 
-    async def update(self, db: Database):
+            return cls(**data, rewards=rewards)
+        else:
+            raise NotFound404(extra={'resource': 'objective', 'id': objective_id})
+
+    async def update(self, db: Database, model: "ObjectiveUpdateModel"):
+        for k, v in model.model_dump().items():
+            setattr(self, k, v) if v else None
+
         await db.pool.execute("""
                               UPDATE quests.objective
                               SET objective = $1,
@@ -80,73 +130,35 @@ class ObjectiveModel(BaseModel):
                               self.objective_timer, self.required_mainhand, self.required_location,
                               self.location_radius, self.objective_id)
 
+
+@openapi.component()
+class ObjectivesListModel(BaseList[ObjectiveModel]):
     @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+    async def fetch(cls, db: Database, quest_id: int = None, *args) -> "ObjectivesListModel":
+        if not quest_id:
+            raise BadRequest400(extra={'ids': ['quest_id']})
 
+        data = await db.pool.fetch("""
+                                 SELECT * FROM quests.objective
+                                 WHERE quest_id = $1
+                                 ORDER BY "order"
+                                 """,
+                                 quest_id)
 
-class ObjectivesListModel(RootModel):
-    root: List[ObjectiveModel]
+        if data:
+            objectives: list[ObjectiveModel] = []
+            for objective in data:
+                rewards = await RewardsListModel.fetch(db, objective['objective_id'])
+                objectives.append(ObjectiveModel(**objective, rewards=rewards))
 
-    def __iter__(self) -> Iterator[ObjectiveModel]:
-        return iter(self.root)
-
-    def __getitem__(self, item) -> ObjectiveModel:
-        return self.root[item]
-
-    @classmethod
-    async def fetch(cls, db: Database, quest_id: int):
-        objective_ids = await db.pool.fetchrow("""
-                                               SELECT array_agg(objective_id) as ids FROM quests.objective
-                                               WHERE quest_id = $1
-                                               """,
-                                              quest_id)
-
-        objectives = []
-        for objective_id in objective_ids.get('ids', []):
-            objectives.append(await ObjectiveModel.fetch(db, quest_id, objective_id))
-
-        objectives.sort(key=lambda x: x.order)
-
-        return cls(root=objectives)
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+            return cls(root=objectives)
+        else:
+            raise NotFound404(extra={'resource': 'objectives_list', 'id': quest_id})
 
 
 @openapi.component()
-class ObjectiveCreateModel(BaseModel):
-    objective: InteractionRef
-    display: Optional[str] = Field(description="Override with a custom objective task display",
-                                   examples=['Visit Location XYZ'])
-    order: int
-    description: str
-    objective_count: int
-    objective_type: ObjectiveType
-    natural_block: bool
-    objective_timer: Optional[int]
-    required_mainhand: Optional[InteractionRef]
-    required_location: Optional[tuple[int, int]]
-    location_radius: Optional[int]
-    rewards: Optional[list[RewardCreateModel]]
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+class ObjectiveCreateModel(ObjectiveBaseModel):
+    rewards: list[RewardCreateModel] = Field(description="The rewards for this objective, if any")
 
 
-class ObjectiveUpdateModel(BaseModel):
-    objective: Optional[InteractionRef]
-    description: Optional[str]
-    objective_count: Optional[int]
-    objective_type: Optional[ObjectiveType]
-    natural_block: Optional[bool]
-    objective_timer: Optional[float]
-    required_mainhand: Optional[InteractionRef]
-    required_location: Optional[tuple[int, int]]
-    location_radius: Optional[int]
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+ObjectiveUpdateModel = optional_model('ObjectiveUpdateModel', ObjectiveBaseModel)

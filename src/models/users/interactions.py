@@ -1,20 +1,47 @@
-from pydantic import BaseModel, Field
+import asyncio
+
+from pydantic import Field
 from typing_extensions import Optional
 from sanic_ext import openapi
 
-import json
-
 from src.database import Database
+from src.utils.base import BaseModel, BaseList
+from src.utils.errors import BadRequest400, NotFound404
 
 
 @openapi.component()
 class InteractionStatistic(BaseModel):
-    reference: str = Field(description="The block or entity in question",
-                           examples=['minecraft:stone', 'minecraft:zombie'])
-    type: str = Field(description="The type of interaction, kill, mine, place or use",
-                      examples=['kill'])
+    reference: str = Field(description="The interaction reference",
+                           json_schema_extra={"example": 'minecraft:zombie'})
+    type: str = Field(description="The interaction type",
+                      json_schema_extra={"example": 'kill'})
     count: int = Field(description="The amount of the block mined, entity killed, etc.",
-                       examples=[56054])
+                       json_schema_extra={"example": 24})
+
+
+@openapi.component()
+class InteractionStatisticsList(BaseList[InteractionStatistic]):
+    @classmethod
+    async def fetch(cls, db: Database, thorny_id: int = None, interaction_type: str = None, *args) -> "InteractionStatisticsList":
+        if not thorny_id or not interaction_type:
+            raise BadRequest400(extra={'ids': ['thorny_id', 'interaction_type']})
+
+        data = await db.pool.fetch("""
+                                    select "type", reference, count(reference) as "count" from events.interactions i 
+                                    where i.thorny_id = $1
+                                    and i.type = $2
+                                    group by type, reference
+                                    order by "count" desc
+                                   """, thorny_id, interaction_type)
+
+        if data:
+            stats = []
+            for stat in data:
+                stats.append(InteractionStatistic(**stat))
+
+            return cls(root=stats)
+        else:
+            raise NotFound404(extra={'resource': f'user_interactions_{interaction_type}', 'id': thorny_id})
 
 
 @openapi.component()
@@ -25,129 +52,51 @@ class InteractionTotals(BaseModel):
     die: int
     use: int
 
+    @classmethod
+    async def fetch(cls, db: Database, thorny_id: int, *args) -> "InteractionTotals":
+        if not thorny_id:
+            raise BadRequest400(extra={'ids': ['thorny_id']})
+
+        data = await db.pool.fetchrow("""
+                                        SELECT
+                                            COALESCE(SUM(CASE WHEN type = 'mine' THEN 1 ELSE 0 END), 0) as mine,
+                                            COALESCE(SUM(CASE WHEN type = 'place' THEN 1 ELSE 0 END), 0) as place,
+                                            COALESCE(SUM(CASE WHEN type = 'kill' THEN 1 ELSE 0 END), 0) as kill,
+                                            COALESCE(SUM(CASE WHEN type = 'die' THEN 1 ELSE 0 END), 0) as die,
+                                            COALESCE(SUM(CASE WHEN type = 'use' THEN 1 ELSE 0 END), 0) as use
+                                        FROM events.interactions
+                                        WHERE thorny_id = $1;
+                                        """, thorny_id)
+        if data:
+            return cls(**data)
+        else:
+            raise NotFound404(extra={'resource': f'user_interaction_totals', 'id': thorny_id})
+
+
 
 class InteractionSummary(BaseModel):
-    blocks_mined: Optional[list[InteractionStatistic]]
-    blocks_placed: Optional[list[InteractionStatistic]]
-    kills: Optional[list[InteractionStatistic]]
-    deaths: Optional[list[InteractionStatistic]]
-    uses: Optional[list[InteractionStatistic]]
+    blocks_mined: InteractionStatisticsList
+    blocks_placed: InteractionStatisticsList
+    kills: InteractionStatisticsList
+    deaths: InteractionStatisticsList
+    uses: InteractionStatisticsList
     totals: InteractionTotals
 
     @classmethod
-    async def fetch(cls, db: Database, thorny_id: int) -> Optional["InteractionSummary"]:
-        data = await db.pool.fetchrow("""
-                                    with blocks_mined as (
-                                        select "type", reference, count(reference) as "count" from events.interactions i 
-                                        where i.thorny_id = $1
-                                        and i.type = 'mine'
-                                        group by type, reference
-                                        order by "count" desc
-                                    ),
-                                    blocks_placed as (
-                                        select "type", reference, count(reference) as "count" from events.interactions i 
-                                        where i.thorny_id = $1
-                                        and i.type = 'place'
-                                        group by type, reference
-                                        order by "count" desc
-                                    ),
-                                    kills as (
-                                        select "type", reference, count(reference) as "count" from events.interactions i 
-                                        where i.thorny_id = $1
-                                        and i.type = 'kill'
-                                        group by type, reference
-                                        order by "count" desc
-                                    ),
-                                    deaths as (
-                                        select "type", reference, count(reference) as "count" from events.interactions i 
-                                        where i.thorny_id = $1
-                                        and i.type = 'die'
-                                        group by type, reference
-                                        order by "count" desc
-                                    ),
-                                    uses as (
-                                        select "type", reference, count(reference) as "count" from events.interactions i 
-                                        where i.thorny_id = $1
-                                        and i.type = 'use'
-                                        group by type, reference
-                                        order by "count" desc
-                                    )
+    async def fetch(cls, db: Database, thorny_id: int) -> "InteractionSummary":
+        if not thorny_id:
+            raise BadRequest400(extra={'ids': ['thorny_id']})
 
-                                    select 
-                                        (
-                                            SELECT thorny_id FROM users.user
-                                            WHERE thorny_id = $1
-                                        ) AS thorny_id,
-                                        coalesce(
-                                            (select json_agg(json_build_object('reference', t.reference,
-                                                                               'type', t."type",
-                                                                               'count', t."count"))
-                                             from blocks_mined as t
-                                            ),
-                                            '[]'::json
-                                        ) as blocks_mined,
-                                        coalesce(
-                                            (select json_agg(json_build_object('reference', t.reference,
-                                                                               'type', t."type",
-                                                                               'count', t."count"))
-                                             from blocks_placed as t
-                                            ),
-                                            '[]'::json
-                                        ) as blocks_placed,
-                                        coalesce(
-                                            (select json_agg(json_build_object('reference', t.reference,
-                                                                               'type', t."type",
-                                                                               'count', t."count"))
-                                             from kills as t
-                                            ),
-                                            '[]'::json
-                                        ) as kills,
-                                        coalesce(
-                                            (select json_agg(json_build_object('reference', t.reference,
-                                                                               'type', t."type",
-                                                                               'count', t."count"))
-                                             from deaths as t
-                                            ),
-                                            '[]'::json
-                                        ) as deaths,
-                                        coalesce(
-                                            (select json_agg(json_build_object('reference', t.reference,
-                                                                               'type', t."type",
-                                                                               'count', t."count"))
-                                             from uses as t
-                                            ),
-                                            '[]'::json
-                                        ) as uses,
-                                        coalesce(
-                                            (select json_build_object('mine', m."sum",
-                                                                      'place', p."sum",
-                                                                      'kill', k."sum",
-                                                                      'die', d."sum",
-                                                                      'use', u."sum")
-                                             from (select coalesce(sum("count"), 0) as "sum" from blocks_mined) as m,
-                                                  (select coalesce(sum("count"), 0) as "sum" from blocks_placed) as p,
-                                                  (select coalesce(sum("count"), 0) as "sum" from kills) as k,
-                                                  (select coalesce(sum("count"), 0) as "sum" from deaths) as d,
-                                                  (select coalesce(sum("count"), 0) as "sum" from uses) as u
-                                            ),
-                                            '[]'::json
-                                        ) as totals
-                                        """,
-                                      thorny_id)
+        totals, mine, place, kills, deaths, uses = await asyncio.gather(
+            InteractionTotals.fetch(db, thorny_id),
+            InteractionStatisticsList.fetch(db, thorny_id, 'mine'),
+            InteractionStatisticsList.fetch(db, thorny_id, 'place'),
+            InteractionStatisticsList.fetch(db, thorny_id, 'kill'),
+            InteractionStatisticsList.fetch(db, thorny_id, 'die'),
+            InteractionStatisticsList.fetch(db, thorny_id, 'use')
+        )
 
-        if data['thorny_id']:
-            processed_dict = {'thorny_id': thorny_id,
-                              'totals': json.loads(data['totals']),
-                              'blocks_mined': json.loads(data['blocks_mined']),
-                              'blocks_placed': json.loads(data['blocks_placed']),
-                              'kills': json.loads(data['kills']),
-                              'deaths': json.loads(data['deaths']),
-                              'uses': json.loads(data['uses'])}
+        if totals:
+            return cls(blocks_mined=mine, blocks_placed=place, kills=kills, deaths=deaths, uses=uses, totals=totals)
         else:
-            return None
-
-        return cls(**processed_dict)
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+            raise NotFound404(extra={'resource': f'user_interactions', 'id': thorny_id})
