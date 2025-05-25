@@ -61,7 +61,8 @@ async def interaction_event(request: Request, db: Database, body: interactions.I
 
 @events_blueprint.route('/interaction', methods=['GET'])
 @openapi.definition(response=[
-                        Response({'application/json': {'exists': bool}}, 200),
+                        Response({'application/json': interactions.InteractionListModel.doc_schema()}, 200),
+                        Response(BadRequest400, 400),
                         Response(NotFound404, 404)
                     ],
                     parameter=[
@@ -74,12 +75,13 @@ async def interaction_check(request: Request, db: Database):
     """
     Check Interaction Coordinates
 
-    Checks if a given set of coordinates exist.
+    Finds all interactions at a given coordinate.
     args: x, y, z
     """
     coordinates = [int(request.args['x'][0]), int(request.args['y'][0]), int(request.args['z'][0])]
+    interaction_list = await interactions.InteractionListModel.fetch(db, coordinates)
 
-    return sanic.json(body={'exists': await interactions.InteractionModel.check_coordinates(db, coordinates)}, status=200)
+    return sanic.json(interaction_list.model_dump(), default=str)
 
 
 @events_blueprint.route('/relay', methods=['POST'])

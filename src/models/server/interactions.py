@@ -6,7 +6,7 @@ from typing_extensions import Annotated, Optional
 
 from src.database import Database
 from src.utils.base import BaseModel, BaseList
-
+from src.utils.errors import BadRequest400, NotFound404
 
 InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[0-9a-z_*]+$')]
 InteractionType = Literal["kill", "mine", "place", "use", "die", "scriptevent"]
@@ -46,22 +46,27 @@ class InteractionModel(InteractionBaseModel):
                               """,
                               model.thorny_id, model.type, model.coordinates, model.reference, model.mainhand, model.dimension)
 
-    @classmethod
-    async def check_coordinates(cls, db: Database, coordinates: list[int]) -> bool:
-        exists = await db.pool.fetchrow("""
-                                        SELECT
-                                            CASE WHEN EXISTS (
-                                                SELECT 1
-                                                FROM events.interactions i
-                                                WHERE i.coordinates = ARRAY[$1::smallint, $2::smallint, $3::smallint]
-                                            )
-                                            THEN true
-                                            ELSE false
-                                        END;
-                                        """,
-                                       coordinates[0], coordinates[1], coordinates[2])
 
-        return exists['case']
+class InteractionListModel(BaseList[InteractionModel]):
+    @classmethod
+    async def fetch(cls, db: Database, coordinates: list[int] = None, *args) -> "InteractionListModel":
+        if not coordinates:
+            raise BadRequest400(extra={'ids': ['coordinates']})
+
+        data = await db.pool.fetch("""
+                                   SELECT * FROM events.interactions i
+                                   WHERE i.coordinates = ARRAY[$1::smallint, $2::smallint, $3::smallint]
+                                   """,
+                                   coordinates[0], coordinates[1], coordinates[2])
+
+        if data:
+            interactions: list[InteractionModel] = []
+            for interaction in data:
+                interactions.append(InteractionModel(**interaction))
+
+            return cls(root=interactions)
+        else:
+            raise NotFound404(extra={'resource': 'interaction_list', 'id': f'coords:{coordinates[0]},{coordinates[1]},{coordinates[2]}'})
 
 
 class InteractionCreateModel(InteractionBaseModel):
