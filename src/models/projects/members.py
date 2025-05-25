@@ -1,28 +1,27 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing_extensions import Optional, Literal
 
 from src.database import Database
-from src.models import users
+from src.models.users import user
+from src.utils.base import BaseList
 
 
-class MembersModel(BaseModel):
-    members: list[users.UserModel]
-
+class MembersListModel(BaseList[user.UserModel]):
     @classmethod
-    async def fetch(cls, db: Database, project_id: str) -> Optional["MembersModel"]:
-        data = await db.pool.fetchrow("""
-                                       SELECT ARRAY_AGG(user_id) as members FROM projects.members
-                                       WHERE project_id = $1
-                                       """,
-                                      project_id)
+    async def fetch(cls, db: Database, project_id: str = None, *args) -> "MembersListModel":
+        data = await db.pool.fetch("""
+                                   SELECT user_id FROM projects.members
+                                   WHERE project_id = $1
+                                   """,
+                                   project_id)
 
-        all_members = []
-        for member in data.get('members', []):
-            all_members.append(await users.UserModel.fetch(db, member))
+        members: list[user.UserModel] = []
+        for member in data:
+            members.append(await user.UserModel.fetch(db, member['user_id']))
 
-        return cls(**{'members': all_members}) if data else None
+        return cls(root=members)
 
     @staticmethod
     async def insert_members(db: Database, project_id: str, members: list[int]):
@@ -45,7 +44,3 @@ class MembersModel(BaseModel):
                                        WHERE project_id = $1 AND user_id = $2
                                        """,
                                        project_id, member)
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")

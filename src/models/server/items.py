@@ -1,28 +1,32 @@
-import json
 from typing import Annotated, Optional
 
-from pydantic import BaseModel, Field, RootModel, StringConstraints
+from pydantic import Field, StringConstraints
 from sanic_ext import openapi
 
 from src.database import Database
+from src.utils.base import BaseModel, BaseList
+from src.utils.errors import BadRequest400, NotFound404
 
 ItemID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
-@openapi.component()
-class ItemModel(BaseModel):
+
+class ItemBaseModel(BaseModel):
     item_id: ItemID = Field(description="The minecraft ID of the item",
-                            examples=["minecraft:diamond_sword"])
+                            json_schema_extra={"example": 'minecraft:diamond_sword'})
     value: float = Field(description="The initial block value of one of this item",
-                         examples=[0.3])
-    max_uses: int = Field(description="The maximum uses this item will have before it's value goes to 0",
-                          examples=[1043])
-    depreciation: float = Field(description="The depreciation % of this item",
-                                examples=[0.1])
+                         json_schema_extra={"example": 24.5})
+    max_uses: int = Field(description="The maximum uses this item will have before it's value starts going into the negatives",
+                          json_schema_extra={"example": 128})
+    depreciation: float = Field(description="The depreciation of this item",
+                                json_schema_extra={"example": 0.32})
+
+@openapi.component()
+class ItemModel(ItemBaseModel):
     current_uses: int = Field(description="The current uses of this item",
-                          examples=[40])
+                              json_schema_extra={"example": 32})
 
     @classmethod
-    async def new(cls, db: Database, model: "ItemCreateModel"):
+    async def create(cls, db: Database, model: "ItemCreateModel", *args):
         await db.pool.execute("""
                               insert into server.items(item_id, value, max_uses, depreciation, current_uses)
                               values($1, $2, $3, $4, 0)
@@ -30,16 +34,25 @@ class ItemModel(BaseModel):
                               model.item_id, model.value, model.max_uses, model.depreciation)
 
     @classmethod
-    async def fetch(cls, db: Database, item_id: ItemID) -> Optional["ItemModel"]:
+    async def fetch(cls, db: Database, item_id: ItemID, *args) -> "ItemModel":
+        if not item_id:
+            raise BadRequest400(extra={'ids': ['item_id']})
+
         data = await db.pool.fetchrow("""
                                        SELECT * FROM server.items
                                        WHERE item_id = $1
                                        """,
                                       item_id)
 
-        return cls(**data) if data else None
+        if data:
+            return cls(**data)
+        else:
+            raise NotFound404(extra={'resource': 'item', 'id': item_id})
 
-    async def update(self, db: Database):
+    async def update(self, db: Database, model: "ItemUpdateModel"):
+        for k, v in model.model_dump().items():
+            setattr(self, k, v) if v else None
+
         await db.pool.execute("""
                                UPDATE server.items
                                SET value = $1,
@@ -50,60 +63,28 @@ class ItemModel(BaseModel):
                                """,
                               self.value, self.max_uses, self.depreciation, self.current_uses, self.item_id)
 
+
+class ItemListModel(BaseList[ItemModel]):
     @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+    async def fetch(cls, db: Database, *args) -> "ItemListModel":
+        data = await db.pool.fetch("""
+                                    SELECT * FROM server.items
+                                    ORDER BY item_id 
+                                   """)
 
+        items: list[ItemModel] = []
+        for item in data:
+            items.append(ItemModel(**item))
 
-class ItemListModel(RootModel):
-    root: list[ItemModel]
-
-    def __iter__(self):
-        return iter(self.root)
-
-    def __getitem__(self, item):
-        return self.root[item]
-
-    @staticmethod
-    async def fetch(db: Database) -> "ItemListModel":
-        item_ids = await db.pool.fetchrow("""
-                                          SELECT COALESCE(array_agg(item_id), ARRAY[]::character varying[]) as ids
-                                          FROM server.items
-                                          """)
-
-        items = []
-        for item_id in item_ids.get('ids', []):
-            items.append(await ItemModel.fetch(db, item_id))
-
-        items.sort(key= lambda x: x.item_id, reverse=True)
-        return ItemListModel(root=items)
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+        return cls(root=items)
 
 
 @openapi.component()
-class ItemCreateModel(BaseModel):
-    item_id: ItemID = Field(description="The minecraft ID of the item",
-                            examples=["minecraft:diamond_sword"])
-    value: float = Field(description="The initial block value of one of this item",
-                         examples=[0.3])
-    max_uses: int = Field(description="The maximum uses this item will have before it's value goes to 0",
-                          examples=[1043])
-    depreciation: float = Field(description="The depreciation % of this item",
-                                examples=[0.1])
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+class ItemCreateModel(ItemBaseModel):
+    pass
 
 
 @openapi.component()
 class ItemUpdateModel(BaseModel):
-    current_uses: int = Field(description="The current uses of this item",
-                          examples=[40])
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+    current_uses: Optional[int] = Field(description="The current uses of this item",
+                                        json_schema_extra={"example": 32})
