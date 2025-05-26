@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from typing_extensions import Literal
+
 from src.models.quests.objective import ObjectivesListModel
 from src.utils.base import BaseModel, BaseList, optional_model
 
@@ -20,6 +22,12 @@ class QuestBaseModel(BaseModel):
                        json_schema_extra={"example": 'Skeleton Killer'})
     description: str = Field(description="The description of the quest",
                              json_schema_extra={"example": 'Skeletons are evil...'})
+    created_by: int = Field(description="The user that created this quest",
+                            json_schema_extra={"example": "13"})
+    tags: list[str] = Field(description="A list of tags describing this quest",
+                            json_schema_extra={"example": ['pvp', 'timed', 'challenge']})
+    quest_type: Literal['story', 'side', 'minor'] = Field(description="The quest type",
+                                                          json_schema_extra={"example": "story"})
 
 
 @openapi.component()
