@@ -46,7 +46,7 @@ class QuestModel(QuestBaseModel):
                                                         start_time, 
                                                         end_time, 
                                                         title, 
-                                                        description
+                                                        description,
                                                         created_by,
                                                         tags,
                                                         quest_type
