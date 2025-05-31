@@ -36,7 +36,6 @@ async def create_quest(request: Request, db: Database, body: quest.QuestCreateMo
 @quest_blueprint.route('/', methods=['GET'])
 @openapi.definition(response=[
                         Response(quest.QuestListModel.doc_schema(), 200),
-                        Response(NotFound404, 404)
                     ])
 async def get_all_quests(request: Request, db: Database):
     """
@@ -67,8 +66,7 @@ async def get_quest(request: Request, db: Database, quest_id: int):
 
 @quest_blueprint.route('/<quest_id:int>/objectives', methods=['GET'])
 @openapi.definition(response=[
-                        Response(objective.ObjectivesListModel.doc_schema(), 200),
-                        Response(NotFound404, 404)
+                        Response(objective.ObjectivesListModel.doc_schema(), 200)
                     ])
 async def get_objectives(request: Request, db: Database, quest_id: int):
     """
@@ -99,8 +97,7 @@ async def get_objective(request: Request, db: Database, quest_id: int, objective
 
 @quest_blueprint.route('/<quest_id:int>/objectives/<objective_id:int>/rewards', methods=['GET'])
 @openapi.definition(response=[
-                        Response(reward.RewardsListModel.doc_schema(), 200),
-                        Response(NotFound404, 404)
+                        Response(reward.RewardsListModel.doc_schema(), 200)
                     ])
 async def get_rewards(request: Request, db: Database, quest_id: int, objective_id: int):
     """
