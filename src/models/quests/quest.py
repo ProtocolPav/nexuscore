@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from typing_extensions import Literal
+
 from src.models.quests.objective import ObjectivesListModel
 from src.utils.base import BaseModel, BaseList, optional_model
 
@@ -20,6 +22,12 @@ class QuestBaseModel(BaseModel):
                        json_schema_extra={"example": 'Skeleton Killer'})
     description: str = Field(description="The description of the quest",
                              json_schema_extra={"example": 'Skeletons are evil...'})
+    created_by: int = Field(description="The user that created this quest",
+                            json_schema_extra={"example": "13"})
+    tags: list[str] = Field(description="A list of tags describing this quest",
+                            json_schema_extra={"example": ['pvp', 'timed', 'challenge']})
+    quest_type: Literal['story', 'side', 'minor'] = Field(description="The quest type",
+                                                          json_schema_extra={"example": "side"})
 
 
 @openapi.component()
@@ -34,15 +42,24 @@ class QuestModel(QuestBaseModel):
             async with conn.transaction():
                 quest_id = await conn.fetchrow("""
                                                 with quest_table as (
-                                                    insert into quests.quest(start_time, end_time, title, description)
-                                                    values($1, $2, $3, $4)
+                                                    insert into quests.quest(
+                                                        start_time, 
+                                                        end_time, 
+                                                        title, 
+                                                        description
+                                                        created_by,
+                                                        tags,
+                                                        quest_type
+                                                    )
+                                                    values($1, $2, $3, $4, $5, $6, $7)
 
                                                     returning quest_id
                                                 )
                                                 select quest_id as id from quest_table
                                                """,
                                                model.start_time, model.end_time,
-                                               model.title, model.description)
+                                               model.title, model.description, model.created_by, model.tags,
+                                               model.quest_type)
 
         for objective in model.objectives:
             await ObjectiveModel.create(db=db, model=objective, quest_id=quest_id['id'])
@@ -77,10 +94,14 @@ class QuestModel(QuestBaseModel):
                                   end_time = $2,
                                   title = $3,
                                   description = $4
-                              WHERE quest_id = $5
+                                  created_by = $5
+                                  tags = $6
+                                  quest_type = $7
+                              WHERE quest_id = $8
                               """,
                               self.start_time, self.end_time,
-                              self.title, self.description, self.quest_id)
+                              self.title, self.description, self.created_by,
+                              self.tags, self.quest_type, self.quest_id)
 
 
 class QuestListModel(BaseList[QuestModel]):
