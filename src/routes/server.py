@@ -60,8 +60,7 @@ async def create_item(request: Request, db: Database, body: items.ItemCreateMode
 
 @server_blueprint.route('/items', methods=['GET'])
 @openapi.definition(response=[
-                        Response(items.ItemListModel.doc_schema(), 200),
-                        Response(NotFound404, 404)
+                        Response(items.ItemListModel.doc_schema(), 200)
                     ])
 async def get_all_items(request: Request, db: Database):
     """
