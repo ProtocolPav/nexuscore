@@ -132,16 +132,13 @@ class UserQuestsListModel(BaseList[UserQuestModel]):
                                    """,
                                    thorny_id)
 
-        if data:
-            quests = []
-            for quest in data:
-                objectives = await UserObjectivesListModel.fetch(db, thorny_id, quest['quest_id'])
+        quests = []
+        for quest in data:
+            objectives = await UserObjectivesListModel.fetch(db, thorny_id, quest['quest_id'])
 
-                quests.append(UserQuestModel(**quest, objectives=objectives))
+            quests.append(UserQuestModel(**quest, objectives=objectives))
 
-            return cls(root=quests)
-        else:
-            raise NotFound404(extra={'resource': 'user_quest_list', 'id': thorny_id})
+        return cls(root=quests)
 
 
 class UserQuestCreateModel(BaseModel):
