@@ -90,14 +90,11 @@ class UserObjectivesListModel(BaseList[UserObjectiveModel]):
                                    """,
                                    thorny_id, quest_id)
 
-        if data:
-            objectives = []
-            for objective in data:
-                objectives.append(UserObjectiveModel(**objective))
+        objectives = []
+        for objective in data:
+            objectives.append(UserObjectiveModel(**objective))
 
-            return cls(root=objectives)
-        else:
-            raise NotFound404(extra={'resource': 'user_objective_list', 'id': f'{thorny_id}:{quest_id}'})
+        return cls(root=objectives)
 
 
 class UserObjectiveCreateModel(BaseModel):
