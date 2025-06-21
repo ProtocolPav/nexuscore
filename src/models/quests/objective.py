@@ -145,15 +145,12 @@ class ObjectivesListModel(BaseList[ObjectiveModel]):
                                  """,
                                  quest_id)
 
-        if data:
-            objectives: list[ObjectiveModel] = []
-            for objective in data:
-                rewards = await RewardsListModel.fetch(db, objective['objective_id'])
-                objectives.append(ObjectiveModel(**objective, rewards=rewards))
+        objectives: list[ObjectiveModel] = []
+        for objective in data:
+            rewards = await RewardsListModel.fetch(db, objective['objective_id'])
+            objectives.append(ObjectiveModel(**objective, rewards=rewards))
 
-            return cls(root=objectives)
-        else:
-            raise NotFound404(extra={'resource': 'objectives_list', 'id': quest_id})
+        return cls(root=objectives)
 
 
 @openapi.component()
