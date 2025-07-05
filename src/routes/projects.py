@@ -12,8 +12,7 @@ project_blueprint = Blueprint("projects", url_prefix='/projects')
 
 @project_blueprint.route('/', methods=['GET'])
 @openapi.definition(response=[
-    Response(project.ProjectsListModel.doc_schema(), 200),
-    Response(NotFound404, 404)
+    Response(project.ProjectsListModel.doc_schema(), 200)
 ])
 async def get_all_projects(request: Request, db: Database):
     """
