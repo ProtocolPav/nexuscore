@@ -52,7 +52,7 @@ async def create_item(request: Request, db: Database, body: items.ItemCreateMode
         await items.ItemModel.fetch(db, body.item_id)
         raise BadRequest400('This item already exists')
     except NotFound404:
-        await items.ItemModel.create(db, body.item_id)
+        await items.ItemModel.create(db, body)
 
         item_model = await items.ItemModel.fetch(db, body.item_id)
 
