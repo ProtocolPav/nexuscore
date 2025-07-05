@@ -48,9 +48,10 @@ async def create_item(request: Request, db: Database, body: items.ItemCreateMode
     Creates a new item to be available for sacrificing
     If an item with these ID's already exists, it returns a 500.
     """
-    if await items.ItemModel.fetch(db, body.item_id):
+    try:
+        await items.ItemModel.fetch(db, body.item_id)
         raise BadRequest400('This item already exists')
-    else:
+    except NotFound404:
         await items.ItemModel.create(db, body.item_id)
 
         item_model = await items.ItemModel.fetch(db, body.item_id)
