@@ -48,10 +48,11 @@ async def create_item(request: Request, db: Database, body: items.ItemCreateMode
     Creates a new item to be available for sacrificing
     If an item with these ID's already exists, it returns a 500.
     """
-    if await items.ItemModel.fetch(db, body.item_id):
+    try:
+        await items.ItemModel.fetch(db, body.item_id)
         raise BadRequest400('This item already exists')
-    else:
-        await items.ItemModel.create(db, body.item_id)
+    except NotFound404:
+        await items.ItemModel.create(db, body)
 
         item_model = await items.ItemModel.fetch(db, body.item_id)
 
@@ -60,8 +61,7 @@ async def create_item(request: Request, db: Database, body: items.ItemCreateMode
 
 @server_blueprint.route('/items', methods=['GET'])
 @openapi.definition(response=[
-                        Response(items.ItemListModel.doc_schema(), 200),
-                        Response(NotFound404, 404)
+                        Response(items.ItemListModel.doc_schema(), 200)
                     ])
 async def get_all_items(request: Request, db: Database):
     """

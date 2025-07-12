@@ -40,6 +40,10 @@ class ObjectiveBaseModel(BaseModel):
                                                    json_schema_extra={"example": [56, 76]})
     location_radius: Optional[int] = Field(description="The radius for the location requirement",
                                            json_schema_extra={"example": 100})
+    required_deaths: Optional[int] = Field(description="An optional deaths requirement. More than this amount would fail the objective.",
+                                           json_schema_extra={"example": 3})
+    continue_on_fail: bool = Field(description="If a player fails this objective, continue rather than failing the entire quest",
+                                json_schema_extra={"example": False})
 
 @openapi.component()
 class ObjectiveModel(ObjectiveBaseModel):
@@ -66,19 +70,13 @@ class ObjectiveModel(ObjectiveBaseModel):
                                                                                      "order",
                                                                                      description,
                                                                                      natural_block,
-                                                                                     display)
-                                                        values($1, 
-                                                               $2, 
-                                                               $3, 
-                                                               $4, 
-                                                               $5, 
-                                                               $6, 
-                                                               $7, 
-                                                               $8, 
-                                                               $9,
-                                                               $10,
-                                                               $11,
-                                                               $12)
+                                                                                     display,
+                                                                                     required_deaths,
+                                                                                     continue_on_fail)
+                                                        values(
+                                                            $1, $2, $3, $4, $5, $6, $7,
+                                                            $8, $9, $10, $11, $12, $13, $14
+                                                        )
         
                                                         returning objective_id
                                                     )
@@ -88,7 +86,8 @@ class ObjectiveModel(ObjectiveBaseModel):
                                                    model.objective_type, model.objective_timer,
                                                    model.required_mainhand, model.required_location,
                                                    model.location_radius, model.order, model.description,
-                                                   model.natural_block, model.display)
+                                                   model.natural_block, model.display, model.required_deaths,
+                                                   model.continue_on_fail)
 
         for reward in model.rewards:
             await RewardModel.create(db=db, model=reward, quest_id=quest_id, objective_id=objective_id['id'])
@@ -123,12 +122,20 @@ class ObjectiveModel(ObjectiveBaseModel):
                                   objective_timer = $4,
                                   required_mainhand = $5,
                                   required_location = $6,
-                                  location_radius = $7
-                              WHERE objective_id = $8
+                                  location_radius = $7,
+                                  "order" = $8,
+                                  description = $9,
+                                  natural_block = $10,
+                                  display = $11,
+                                  required_deaths = $12,
+                                  continue_on_fail = $13
+                                  
+                              WHERE objective_id = $14
                               """,
                               self.objective, self.objective_count, self.objective_type,
                               self.objective_timer, self.required_mainhand, self.required_location,
-                              self.location_radius, self.objective_id)
+                              self.location_radius, self.order, self.description, self.natural_block,
+                              self.display, self.required_deaths, self.continue_on_fail, self.objective_id)
 
 
 @openapi.component()
@@ -145,15 +152,12 @@ class ObjectivesListModel(BaseList[ObjectiveModel]):
                                  """,
                                  quest_id)
 
-        if data:
-            objectives: list[ObjectiveModel] = []
-            for objective in data:
-                rewards = await RewardsListModel.fetch(db, objective['objective_id'])
-                objectives.append(ObjectiveModel(**objective, rewards=rewards))
+        objectives: list[ObjectiveModel] = []
+        for objective in data:
+            rewards = await RewardsListModel.fetch(db, objective['objective_id'])
+            objectives.append(ObjectiveModel(**objective, rewards=rewards))
 
-            return cls(root=objectives)
-        else:
-            raise NotFound404(extra={'resource': 'objectives_list', 'id': quest_id})
+        return cls(root=objectives)
 
 
 @openapi.component()
