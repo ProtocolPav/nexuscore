@@ -88,6 +88,9 @@ class ProjectModel(ProjectBaseModel):
             raise NotFound404(extra={'resource': 'project', 'id': project_id})
 
     async def update(self, db: Database, model: "ProjectUpdateModel", *args):
+        for k, v in model.model_dump().items():
+            setattr(self, k, v) if v else None
+
         await db.pool.execute("""
                                UPDATE projects.project
                                SET name = $1,
