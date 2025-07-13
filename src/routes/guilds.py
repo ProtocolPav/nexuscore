@@ -3,20 +3,21 @@ from datetime import date
 from sanic import Blueprint, Request, exceptions
 import sanic
 from sanic_ext import openapi, validate
+from sanic_ext.extensions.openapi.definitions import RequestBody, Response
 
 from src.database import Database
 from src.models import guilds
-
+from src.utils.errors import BadRequest400, NotFound404
 
 guild_blueprint = Blueprint("guilds", url_prefix='/guilds')
 
 
 @guild_blueprint.route('/', methods=['POST'])
-@openapi.response(status=201,
-                  content={'application/json': guilds.GuildModel.doc_schema()},
-                  description='Success')
-@openapi.response(status=500, description='Guild Already Exists')
-@openapi.definition(body={'application/json': guilds.GuildCreateModel.doc_schema()})
+@openapi.definition(body=RequestBody(guilds.GuildCreateModel.doc_schema()),
+                    response=[
+                        Response(guilds.GuildModel.doc_schema(), 201),
+                        Response(BadRequest400, 400)
+                    ])
 @validate(json=guilds.GuildCreateModel)
 async def create_guild(request: Request, db: Database, body: guilds.GuildCreateModel):
     """
@@ -24,23 +25,20 @@ async def create_guild(request: Request, db: Database, body: guilds.GuildCreateM
 
     Creates a new guild. This should never be called, only by thorny.
     """
-    model = await guilds.GuildModel.fetch(db, body.guild_id)
-
-    if model:
-        raise exceptions.SanicException(status_code=500, message="This guild already exists!")
-
-    await guilds.GuildModel.new(db, body.guild_id, body.name)
-
-    guild_model = await guilds.GuildModel.fetch(db, body.guild_id)
+    if await guilds.GuildModel.fetch(db, body.guild_id):
+        raise BadRequest400('This guild already exists')
+    else:
+        guild_id = await guilds.GuildModel.create(db, body)
+        guild_model = await guilds.GuildModel.fetch(db, guild_id)
 
     return sanic.json(status=201, body=guild_model.model_dump(), default=str)
 
 
 @guild_blueprint.route('/<guild_id:int>', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': guilds.GuildModel.doc_schema()},
-                  description='Success')
-@openapi.response(status=404, description='Guild does not exist')
+@openapi.definition(response=[
+    Response(guilds.GuildModel.doc_schema(), 201),
+    Response(NotFound404, 404)
+])
 async def get_guild(request: Request, db: Database, guild_id: int):
     """
     Get Guild
@@ -49,19 +47,16 @@ async def get_guild(request: Request, db: Database, guild_id: int):
     """
     model = await guilds.GuildModel.fetch(db, guild_id)
 
-    if not model:
-        raise exceptions.SanicException(status_code=500, message="Could not find guild. Are you sure the ID is correct?")
-
     return sanic.json(model.model_dump(), default=str)
 
 
 @guild_blueprint.route('/<guild_id:int>', methods=['PATCH', 'PUT'])
-@openapi.response(status=200,
-                  content={'application/json': guilds.GuildModel.doc_schema()},
-                  description='Success')
-@openapi.definition(body={'application/json': guilds.GuildUpdateModel.doc_schema()})
+@openapi.definition(body=RequestBody(guilds.GuildUpdateModel.doc_schema()),
+                    response=[
+                        Response(guilds.GuildModel.doc_schema(), 200),
+                        Response(BadRequest400, 400)
+                    ])
 @validate(json=guilds.GuildUpdateModel)
-@openapi.response(status=404, description='Guild does not exist')
 async def update_guild(request: Request, db: Database, guild_id: int, body: guilds.GuildUpdateModel):
     """
     Update Guild
@@ -69,57 +64,39 @@ async def update_guild(request: Request, db: Database, guild_id: int, body: guil
     Anything that you include as `null` will be omitted and not updated
     """
     model = await guilds.GuildModel.fetch(db, guild_id)
-
-    if not model:
-        raise exceptions.NotFound("Could not find this guild, are you sure the ID is correct?")
-
-    update_dict = {}
-
-    for k, v in body.model_dump().items():
-        if v is not None:
-            update_dict[k] = v
-
-    model = model.model_copy(update=update_dict)
-
-    await model.update(db)
+    await model.update(db, body)
 
     return sanic.json(model.model_dump(), default=str)
 
 
 @guild_blueprint.route('/<guild_id:int>/features', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': guilds.FeaturesModel.doc_schema()},
-                  description='Success')
-@openapi.response(status=404, description='Guild does not exist')
+@openapi.definition(response=[
+    Response(guilds.FeaturesListModel.doc_schema(), 201),
+    Response(NotFound404, 404)
+])
 async def get_features(request: Request, db: Database, guild_id: int):
     """
     Get Guild Features
 
     This returns a list of the guild's features
     """
-    model = await guilds.FeaturesModel.fetch(db, guild_id)
-
-    if not model:
-        raise exceptions.SanicException(status_code=500, message="Could not find guild. Are you sure the ID is correct?")
+    model = await guilds.FeaturesListModel.fetch(db, guild_id)
 
     return sanic.json(model.model_dump(), default=str)
 
 
 @guild_blueprint.route('/<guild_id:int>/channels', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': guilds.ChannelsModel.doc_schema()},
-                  description='Success')
-@openapi.response(status=404, description='Guild does not exist')
+@openapi.definition(response=[
+    Response(guilds.ChannelsListModel.doc_schema(), 201),
+    Response(NotFound404, 404)
+])
 async def get_channels(request: Request, db: Database, guild_id: int):
     """
     Get Guild Channels
 
     This returns a list of the guild's channels
     """
-    model = await guilds.ChannelsModel.fetch(db, guild_id)
-
-    if not model:
-        raise exceptions.SanicException(status_code=500, message="Could not find guild. Are you sure the ID is correct?")
+    model = await guilds.ChannelsListModel.fetch(db, guild_id)
 
     return sanic.json(model.model_dump(), default=str)
 
