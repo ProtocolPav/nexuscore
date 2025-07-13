@@ -184,10 +184,10 @@ async def get_quests_leaderboard(request: Request, db: Database, guild_id: int):
 
 
 @guild_blueprint.route('/<guild_id:int>/online', methods=['GET'])
-@openapi.response(status=200,
-                  content={'application/json': guilds.OnlineUsersModel.doc_schema()},
-                  description='Success')
-@openapi.response(status=404, description='Error')
+@openapi.definition(response=[
+    Response(guilds.OnlineUsersListModel.doc_schema(), 201),
+    Response(NotFound404, 404)
+])
 async def get_online_users(request: Request, db: Database, guild_id: int):
     """
     Get Guild Online Users
@@ -195,6 +195,6 @@ async def get_online_users(request: Request, db: Database, guild_id: int):
     Get a list of ThornyIDs that are currently
     online on the server, along with their session time.
     """
-    online = await guilds.OnlineUsersModel.fetch(db, guild_id)
+    online = await guilds.OnlineUsersListModel.fetch(db, guild_id)
 
     return sanic.json(online.model_dump(), default=str)

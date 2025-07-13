@@ -37,6 +37,10 @@ class UserBaseModel(BaseModel):
                                     json_schema_extra={"example": "ProtocolPav"})
     whitelist: Optional[str] = Field(description="The gamertag that this user is whitelisted under",
                                      json_schema_extra={"example": "ProtocolPav"})
+    location: Optional[tuple[int, int, int]] = Field(description="The last in-game location of the user",
+                                           json_schema_extra={"example": (544, 18, -432)})
+    dimension: Optional[str] = Field(description="The last in-game dimension the user was in",
+                           json_schema_extra={"example": 'minecraft:overworld'})
 
 
 @openapi.component()
@@ -136,12 +140,15 @@ class UserModel(UserBaseModel):
                                    required_xp = $9,
                                    last_message = $10,
                                    gamertag = $11,
-                                   whitelist = $12
-                               WHERE thorny_id = $13
+                                   whitelist = $12,
+                                   location = $13,
+                                   dimension = $14
+                               WHERE thorny_id = $15
                                """,
                               self.username, self.birthday, self.balance, self.active,
                               self.role, self.patron, self.level, self.xp, self.required_xp,
-                              self.last_message, self.gamertag, self.whitelist, self.thorny_id)
+                              self.last_message, self.gamertag, self.whitelist, self.location,
+                              self.dimension, self.thorny_id)
 
 
 UserUpdateModel = optional_model("UserUpdateModel", UserBaseModel)
