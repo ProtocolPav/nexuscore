@@ -41,6 +41,8 @@ class UserBaseModel(BaseModel):
                                            json_schema_extra={"example": (544, 18, -432)})
     dimension: Optional[str] = Field(description="The last in-game dimension the user was in",
                            json_schema_extra={"example": 'minecraft:overworld'})
+    hidden: bool = Field(description="Whether the user should be hidden on the Live Map",
+                         json_schema_extra={"example": True})
 
 
 @openapi.component()
@@ -142,13 +144,14 @@ class UserModel(UserBaseModel):
                                    gamertag = $11,
                                    whitelist = $12,
                                    location = $13,
-                                   dimension = $14
-                               WHERE thorny_id = $15
+                                   dimension = $14,
+                                   hidden = $15,
+                               WHERE thorny_id = $16
                                """,
                               self.username, self.birthday, self.balance, self.active,
                               self.role, self.patron, self.level, self.xp, self.required_xp,
                               self.last_message, self.gamertag, self.whitelist, self.location,
-                              self.dimension, self.thorny_id)
+                              self.dimension, self.hidden, self.thorny_id)
 
 
 UserUpdateModel = optional_model("UserUpdateModel", UserBaseModel)
