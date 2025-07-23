@@ -20,8 +20,12 @@ class ProjectBaseModel(BaseModel):
                              json_schema_extra={"example": 'This project will have houses'})
     coordinates: list[int] = Field(description="The coordinates of the project",
                                    json_schema_extra={"example": [132, 65, 33]})
-    owner_id: int = Field(description="The owner of the project, in the form of a User object",
+    dimension: str = Field(description="The dimension of the project",
+                           json_schema_extra={"example": 'minecraft:overworld'})
+    owner_id: int = Field(description="The project owner ID",
                           json_schema_extra={"example": 12})
+    pin_id: Optional[int] = Field(description="The related pin's ID",
+                                  json_schema_extra={"example": 54})
 
 
 @openapi.component()
