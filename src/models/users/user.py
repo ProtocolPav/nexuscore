@@ -145,7 +145,7 @@ class UserModel(UserBaseModel):
                                    whitelist = $12,
                                    location = $13,
                                    dimension = $14,
-                                   hidden = $15,
+                                   hidden = $15
                                WHERE thorny_id = $16
                                """,
                               self.username, self.birthday, self.balance, self.active,
