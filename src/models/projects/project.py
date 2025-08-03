@@ -54,8 +54,9 @@ class ProjectModel(ProjectBaseModel):
                                                                  name, 
                                                                  description, 
                                                                  coordinates,
-                                                                 owner_id)
-                                    values($1, $2, $3, $4, $5)
+                                                                 owner_id,
+                                                                 dimension)
+                                    values($1, $2, $3, $4, $5, $6)
                                     RETURNING project_id
                                 ),
                                 members_table as (
@@ -68,7 +69,7 @@ class ProjectModel(ProjectBaseModel):
                                 )
                                 SELECT project_id FROM project_table
                                """,
-                              project_id, model.name, model.description, model.coordinates, model.owner_id)
+                              project_id, model.name, model.description, model.coordinates, model.owner_id, model.dimension)
 
         return project_id
 
