@@ -44,39 +44,6 @@ async def create_project(request: Request, db: Database, body: project.ProjectCr
     return sanic.json(status=201, body=project_model.model_dump(), default=str)
 
 
-class PinsRoute(HTTPMethodView):
-    @openapi.response(status=200,
-                      description="Success",
-                      content={'application/json': pin.PinsListModel.doc_schema()})
-    async def get(self, request: Request, db: Database):
-        """
-        Get All Pins
-
-        Get a list of all Pins
-        """
-        all_pins = await pin.PinsListModel.fetch(db)
-
-        return sanic.json(all_pins.model_dump(), default=str)
-
-    @openapi.definition(body={'application/json': pin.PinCreateModel.doc_schema()})
-    @openapi.response(status=200,
-                      description='Success',
-                      content={'application/json': pin.PinModel.doc_schema()})
-    @validate(json=pin.PinCreateModel)
-    async def post(self, request: Request, db: Database, body: pin.PinCreateModel):
-        """
-        Create Pin
-
-        Creates a new pin
-        """
-        pin_id = await pin.PinModel.new(db, body)
-
-        model = await pin.PinModel.fetch(db, pin_id)
-        return sanic.json(model.model_dump(), default=str)
-
-project_blueprint.add_route(PinsRoute.as_view(), '/pins')
-
-
 @project_blueprint.route('/<project_id:str>', methods=['GET'])
 @openapi.definition(response=[
     Response(project.ProjectModel.doc_schema(), 200),
