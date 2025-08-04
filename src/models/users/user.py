@@ -127,7 +127,7 @@ class UserModel(UserBaseModel):
 
     async def update(self, db: Database, model: "UserUpdateModel"):
         for k, v in model.model_dump().items():
-            setattr(self, k, v) if v or k == 'whitelist' else None
+            setattr(self, k, v) if v is not None or k == 'whitelist' else None
 
         await db.pool.execute("""
                                UPDATE users.user
