@@ -192,7 +192,7 @@ class GuildPlaytimeAnalysis(BaseModel):
 class OnlineEntry(BaseModel):
     thorny_id: int = Field(description="The ThornyID of the user",
                            examples=[543])
-    discord_id: int = Field(description="The Discord ID of the user",
+    user_id: int = Field(description="The Discord ID of the user",
                             examples=[18463748938364])
     session: datetime = Field(description="The date and time when the session started",
                               examples=['2024-05-05 13:44:33.123456'])
