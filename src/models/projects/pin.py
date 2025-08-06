@@ -47,7 +47,7 @@ class PinModel(PinBaseModel):
         return pin['id']
 
     @classmethod
-    async def fetch(cls, db: Database, pin_id: str, *args) -> "PinModel":
+    async def fetch(cls, db: Database, pin_id: int, *args) -> "PinModel":
         if not pin_id:
             raise BadRequest400(extra={'ids': ['pin_id']})
 
