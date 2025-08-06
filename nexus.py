@@ -35,5 +35,5 @@ if __name__ == "__main__":
     config = json.load(open('config.json', 'r'))
 
     print(config['title'])
-    app.run(host="0.0.0.0", fast=True, debug=True)
+    app.run(host="0.0.0.0", fast=True)
     # app.run(host="0.0.0.0", dev=True)
