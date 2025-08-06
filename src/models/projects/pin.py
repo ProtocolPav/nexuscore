@@ -83,8 +83,7 @@ class PinsListModel(BaseList[PinModel]):
     @classmethod
     async def fetch(cls, db: Database, *args) -> "PinsListModel":
         data = await db.pool.fetch("""
-                                   SELECT COALESCE(array_agg(id), ARRAY[]::integer[]) as ids
-                                   FROM projects.pins
+                                   SELECT * FROM projects.pins
                                    """)
 
         pins: list[PinModel] = []
