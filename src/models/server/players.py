@@ -10,11 +10,12 @@ class PlayerModel(BaseModel):
     gamertag: str
     location: tuple[int, int, int]
     hidden: bool
+    dimension: str
     reload: int = 10
 
     @classmethod
     async def new(cls, db: Database, model: "PlayerCreateModel") -> "PlayerModel":
-        return PlayerModel(gamertag=model.gamertag, location=model.location, hidden=model.hidden)
+        return PlayerModel(gamertag=model.gamertag, location=model.location, hidden=model.hidden, dimension=model.dimension)
 
     @classmethod
     def doc_schema(cls):
@@ -63,6 +64,7 @@ class PlayerCreateModel(BaseModel):
     gamertag: str
     location: tuple[int, int, int]
     hidden: bool
+    dimension: str
 
     @classmethod
     def doc_schema(cls):

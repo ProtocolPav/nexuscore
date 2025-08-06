@@ -20,8 +20,12 @@ class ProjectBaseModel(BaseModel):
                              json_schema_extra={"example": 'This project will have houses'})
     coordinates: list[int] = Field(description="The coordinates of the project",
                                    json_schema_extra={"example": [132, 65, 33]})
-    owner_id: int = Field(description="The owner of the project, in the form of a User object",
+    dimension: str = Field(description="The dimension of the project",
+                           json_schema_extra={"example": 'minecraft:overworld'})
+    owner_id: int = Field(description="The project owner ID",
                           json_schema_extra={"example": 12})
+    pin_id: Optional[int] = Field(description="The related pin's ID",
+                                  json_schema_extra={"example": 54})
 
 
 @openapi.component()
@@ -50,8 +54,9 @@ class ProjectModel(ProjectBaseModel):
                                                                  name, 
                                                                  description, 
                                                                  coordinates,
-                                                                 owner_id)
-                                    values($1, $2, $3, $4, $5)
+                                                                 owner_id,
+                                                                 dimension)
+                                    values($1, $2, $3, $4, $5, $6)
                                     RETURNING project_id
                                 ),
                                 members_table as (
@@ -64,7 +69,7 @@ class ProjectModel(ProjectBaseModel):
                                 )
                                 SELECT project_id FROM project_table
                                """,
-                              project_id, model.name, model.description, model.coordinates, model.owner_id)
+                              project_id, model.name, model.description, model.coordinates, model.owner_id, model.dimension)
 
         return project_id
 
@@ -88,6 +93,9 @@ class ProjectModel(ProjectBaseModel):
             raise NotFound404(extra={'resource': 'project', 'id': project_id})
 
     async def update(self, db: Database, model: "ProjectUpdateModel", *args):
+        for k, v in model.model_dump().items():
+            setattr(self, k, v) if v is not None else None
+
         await db.pool.execute("""
                                UPDATE projects.project
                                SET name = $1,
@@ -95,11 +103,14 @@ class ProjectModel(ProjectBaseModel):
                                    coordinates = $3,
                                    description = $4,
                                    completed_on = $5,
-                                   owner_id = $6
-                               WHERE project_id = $7
+                                   owner_id = $6,
+                                   pin_id = $7,
+                                   dimension = $8
+                               WHERE project_id = $9
                                """,
                               self.name, self.thread_id, self.coordinates,
-                              self.description, self.completed_on, self.owner_id, self.project_id)
+                              self.description, self.completed_on, self.owner_id, self.pin_id, self.dimension,
+                              self.project_id)
 
 
 class ProjectsListModel(BaseList[ProjectModel]):

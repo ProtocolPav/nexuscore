@@ -1,11 +1,13 @@
 import json
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from sanic_ext import openapi
 
 from src.database import Database
+
+from src.utils.base import BaseModel, BaseList, optional_model
 
 
 @openapi.component()
@@ -63,7 +65,7 @@ class GuildPlaytimeAnalysis(BaseModel):
     predictive_insights: None = None
 
     @classmethod
-    async def fetch(cls, db: Database, guild_id: int) -> "GuildPlaytimeAnalysis":
+    async def fetch(cls, db: Database, guild_id: int, *args) -> "GuildPlaytimeAnalysis":
         data = await db.pool.fetchrow("""
                     with totals as (
                         select 
@@ -185,40 +187,46 @@ class GuildPlaytimeAnalysis(BaseModel):
 
         return cls(**processed_dict)
 
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
-
 
 @openapi.component()
 class OnlineEntry(BaseModel):
-    thorny_id: int
-    discord_id: int
+    thorny_id: int = Field(description="The ThornyID of the user",
+                           examples=[543])
+    user_id: int = Field(description="The Discord ID of the user",
+                            examples=[18463748938364])
     session: datetime = Field(description="The date and time when the session started",
                               examples=['2024-05-05 13:44:33.123456'])
+    username: str = Field(description="The username of the user",
+                          examples=['protocolpav'])
+    whitelist: str = Field(description="The gamertag of the user",
+                          examples=['ProtocolPav'])
+    location: tuple[int, int, int] = Field(description="The last in-game location of the user",
+                                           json_schema_extra={"example": (544, 18, -432)})
+    dimension: str = Field(description="The last in-game dimension the user was in",
+                           json_schema_extra={"example": 'minecraft:overworld'})
 
 
-class OnlineUsersModel(BaseModel):
-    users: list[OnlineEntry]
-
+class OnlineUsersListModel(BaseList[OnlineEntry]):
     @classmethod
-    async def fetch(cls, db: Database, guild_id: int) -> "OnlineUsersModel":
-        data = await db.pool.fetchrow("""
-                                      SELECT COALESCE(
-                                                      JSON_AGG(JSON_BUILD_OBJECT('thorny_id', sv.thorny_id,
-                                                                                 'discord_id', u.user_id,
-                                                                                 'session', sv.connect_time)),
-                                                      '[]'::json
-                                                      ) AS users
-                                      FROM events.sessions_view sv
-                                      INNER JOIN users.user u ON sv.thorny_id = u.thorny_id
-                                      WHERE u.guild_id = $1
-                                      AND sv.disconnect_time IS NULL
-                                      """,
-                                      guild_id)
+    async def fetch(cls, db: Database, guild_id: int = None, *args) -> "OnlineUsersListModel":
+        data = await db.pool.fetch("""
+                                   SELECT 
+                                        sv.thorny_id, 
+                                        u.user_id, 
+                                        u.username, 
+                                        u.whitelist, 
+                                        sv.connect_time as session,
+                                        u.location,
+                                        u.dimension
+                                   FROM events.sessions_view sv
+                                   INNER JOIN users.user u ON sv.thorny_id = u.thorny_id
+                                   WHERE u.guild_id = $1
+                                   AND sv.disconnect_time IS NULL
+                                   """,
+                                   guild_id)
 
-        return cls(**{'users': json.loads(data['users'])})
+        online_users: list[OnlineEntry] = []
+        for user in data:
+            online_users.append(OnlineEntry(**user))
 
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+        return cls(root=online_users)

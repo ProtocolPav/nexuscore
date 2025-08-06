@@ -106,7 +106,7 @@ class UserQuestModel(UserQuestBaseModel):
 
     async def update(self, db: Database, model: "UserQuestUpdateModel"):
         for k, v in model.model_dump().items():
-            setattr(self, k, v) if v else None
+            setattr(self, k, v) if v is not None else None
 
         await db.pool.execute("""
                                UPDATE users.quests
