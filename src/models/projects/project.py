@@ -103,11 +103,14 @@ class ProjectModel(ProjectBaseModel):
                                    coordinates = $3,
                                    description = $4,
                                    completed_on = $5,
-                                   owner_id = $6
-                               WHERE project_id = $7
+                                   owner_id = $6,
+                                   pin_id = $7,
+                                   dimension = $8
+                               WHERE project_id = $9
                                """,
                               self.name, self.thread_id, self.coordinates,
-                              self.description, self.completed_on, self.owner_id, self.project_id)
+                              self.description, self.completed_on, self.owner_id, self.pin_id, self.dimension,
+                              self.project_id)
 
 
 class ProjectsListModel(BaseList[ProjectModel]):
