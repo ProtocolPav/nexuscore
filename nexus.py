@@ -9,6 +9,7 @@ from src.routes import blueprint_group
 
 app = Sanic("nexuscore")
 app.config.OAS_URL_PREFIX = "/api/docs"
+app.config.SWAGGER_UI_CONFIGURATION = {"docExpansion": "list"}
 
 @openapi.exclude()
 @app.route('/healthcheck')
@@ -34,5 +35,5 @@ if __name__ == "__main__":
     config = json.load(open('config.json', 'r'))
 
     print(config['title'])
-    app.run(host="0.0.0.0", fast=True, debug=True)
+    app.run(host="0.0.0.0", fast=True)
     # app.run(host="0.0.0.0", dev=True)

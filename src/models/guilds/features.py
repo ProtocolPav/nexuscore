@@ -1,53 +1,29 @@
-from pydantic import BaseModel, Field
-
-from typing import Optional
-
+from pydantic import Field
 from sanic_ext import openapi
-
 from src.database import Database
+
+from src.utils.base import BaseModel, BaseList, optional_model
+from src.utils.errors import BadRequest400, NotFound404
 
 
 @openapi.component()
 class Feature(BaseModel):
-    feature: str = Field(description="The feature",
+    feature: str = Field(description="The feature itself",
                          examples=['BASIC', 'PLAYTIME', 'PROFILE'])
     configured: bool = Field(description="Whether the feature is configured or not. "
                                          "This will always be false, as this is un-used.")
 
-
-class FeaturesModel(BaseModel):
-    features: list[Feature]
-
+class FeaturesListModel(BaseList[Feature]):
     @classmethod
-    async def fetch(cls, db: Database, guild_id: int) -> Optional["FeaturesModel"]:
+    async def fetch(cls, db: Database, guild_id: int = None, *args) -> "FeaturesListModel":
         data = await db.pool.fetch("""
                                    SELECT feature, configured FROM guilds.features
                                    WHERE guild_id = $1
                                    """,
                                    guild_id)
 
-        features_list = []
-        for i in data:
-            features_list.append(Feature(**i))
+        features: list[Feature] = []
+        for feature in data:
+            features.append(Feature(**feature))
 
-        return cls(**{'features': features_list}) if data else None
-
-    @classmethod
-    async def add(cls, db: Database, guild_id: int, feature: str):
-        await db.pool.execute("""
-                              INSERT INTO guilds.features(guild_id, feature)
-                              VALUES($1, $2)
-                              """,
-                              guild_id, feature)
-
-    @classmethod
-    async def remove(cls, db: Database, guild_id: int, feature: str):
-        await db.pool.execute("""
-                              DELETE FROM guilds.features
-                              WHERE guild_id = $1 AND feature = $2
-                              """,
-                              guild_id, feature)
-
-    @classmethod
-    def doc_schema(cls):
-        return cls.model_json_schema(ref_template="#/components/schemas/{model}")
+        return cls(root=features)
