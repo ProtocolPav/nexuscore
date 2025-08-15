@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sanic import Blueprint, Request
 import sanic
 from sanic_ext.extensions.openapi.definitions import Response, RequestBody, Parameter
@@ -82,6 +84,55 @@ async def interaction_check(request: Request, db: Database):
     interaction_list = await interactions.InteractionListModel.fetch(db, coordinates)
 
     return sanic.json(interaction_list.model_dump(), default=str)
+
+
+@events_blueprint.route('/interactions', methods=['GET'])
+@openapi.definition(response=[
+    Response(interactions.InteractionListModel.doc_schema(), 200)
+],
+    parameter=[
+        Parameter('coordinates', list[int], description="The coordinates or start coordinates"),
+        Parameter('coordinates_end', list[int], description="The end coordinates. You must also have `coordinates` set"),
+        Parameter('thorny_ids', list[int], description="The thorny IDs to filter by"),
+        Parameter('interaction_types', list[str], description="The interaction types to filter by"),
+        Parameter('references', list[str], description="The references to filter by. You can use % as wildcards"),
+        Parameter('dimensions', list[str], description="The dimensions to filter by"),
+        Parameter('time_start', datetime, description="The start time to filter by"),
+        Parameter('time_end', datetime, description="The end time to filter by"),
+        Parameter('page', int, description="The page to return. Default: 1"),
+        Parameter('page_size', int, description="The size of each page in items. Default: 100")
+    ])
+async def get_all_interactions(request: Request, db: Database):
+    """
+    Get All Interactions
+
+    This returns a list of all Interactions based on filters
+    """
+    coordinates = request.args.getlist('coordinates')
+    coordinates_end = request.args.getlist('coordinates_end')
+    thorny_ids = request.args.getlist('thorny_ids')
+    interaction_types = request.args.getlist('interaction_types')
+    references = request.args.getlist('references')
+    dimensions = request.args.getlist('dimensions')
+    time_start = request.args.get('time_start')
+    time_end = request.args.get('time_end')
+
+    page = request.args.get('page')
+    page_size = request.args.get('page_size')
+
+    interactions_model = await interactions.InteractionListModel.fetch(db,
+                                                                       coordinates,
+                                                                       coordinates_end,
+                                                                       thorny_ids,
+                                                                       interaction_types,
+                                                                       references,
+                                                                       dimensions,
+                                                                       time_start,
+                                                                       time_end,
+                                                                       int(page) if page else 1,
+                                                                       int(page_size) if page_size else 100)
+
+    return sanic.json(interactions_model.model_dump(), default=str)
 
 
 @events_blueprint.route('/relay', methods=['POST'])
