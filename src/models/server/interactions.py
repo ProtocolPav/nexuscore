@@ -49,9 +49,48 @@ class InteractionModel(InteractionBaseModel):
 
 class InteractionListModel(BaseList[InteractionModel]):
     @classmethod
-    async def fetch(cls, db: Database, coordinates: list[int] = None, *args) -> "InteractionListModel":
-        if not coordinates:
-            raise BadRequest400(extra={'ids': ['coordinates']})
+    async def fetch(cls,
+                    db: Database,
+                    coordinates: list[int] = None,
+                    coordinates_end: list[int] = None,
+                    thorny_ids: list[int] = None,
+                    interaction_types: list[InteractionType] = None,
+                    references: list[str | InteractionRef] = None,
+                    dimensions: list[str] = None,
+                    time_start: datetime = None,
+                    time_end: datetime = None,
+                    *args) -> "InteractionListModel":
+        """
+        Fetches a list of interactions from the database based on specified filters.
+
+        Parameters
+        ----------
+        db : Database
+            Database connection instance used to make the query.
+        coordinates : list of int, optional
+            A list of integers defining the starting coordinates to filter the query.
+        coordinates_end : list of int, optional
+            A list of integers defining the ending coordinates for the range filter.
+        thorny_ids : list of int, optional
+            A list of IDs representing thorny users to be retrieved.
+        interaction_types : list of InteractionType, optional
+            A list of interaction types to match in the query results.
+        references : list of str or InteractionRef, optional
+            A list of references or identifiers related to the interaction events.
+        dimensions : list of str, optional
+            A list of dimension names to filter the interactions.
+        time_start : datetime, optional
+            The starting time of the interaction events to filter by.
+        time_end : datetime, optional
+            The ending time of the interaction events to filter by.
+        *args
+            Additional arguments that may be passed but not utilized directly.
+
+        Returns
+        -------
+        InteractionListModel
+            A model containing the list of fetched interactions.
+        """
 
         data = await db.pool.fetch("""
                                    SELECT * FROM events.interactions i
@@ -59,14 +98,11 @@ class InteractionListModel(BaseList[InteractionModel]):
                                    """,
                                    coordinates[0], coordinates[1], coordinates[2])
 
-        if data:
-            interactions: list[InteractionModel] = []
-            for interaction in data:
-                interactions.append(InteractionModel(**interaction))
+        interactions: list[InteractionModel] = []
+        for interaction in data:
+            interactions.append(InteractionModel(**interaction))
 
-            return cls(root=interactions)
-        else:
-            raise NotFound404(extra={'resource': 'interaction_list', 'id': f'coords:{coordinates[0]},{coordinates[1]},{coordinates[2]}'})
+        return cls(root=interactions)
 
 
 class InteractionCreateModel(InteractionBaseModel):
