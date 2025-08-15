@@ -1,4 +1,4 @@
-from sanic import Blueprint, Request, exceptions
+from sanic import Blueprint, Request
 import sanic
 from sanic_ext import openapi, validate
 from sanic_ext.extensions.openapi.definitions import RequestBody, Response
