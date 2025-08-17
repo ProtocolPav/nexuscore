@@ -52,16 +52,16 @@ class InteractionListModel(BaseList[InteractionModel]):
     @classmethod
     async def fetch(cls,
                     db: Database,
-                    coordinates: list[int] = None,
-                    coordinates_end: list[int] = None,
-                    thorny_ids: list[int] = None,
+                    coordinates: list[str] = None,
+                    coordinates_end: list[str] = None,
+                    thorny_ids: list[str] = None,
                     interaction_types: list[InteractionType] = None,
                     references: list[str | InteractionRef] = None,
                     dimensions: list[str] = None,
-                    time_start: datetime = None,
-                    time_end: datetime = None,
-                    page: int = None,
-                    page_size: int = None,
+                    time_start: str = None,
+                    time_end: str = None,
+                    page: str = None,
+                    page_size: str = None,
                     *args) -> "InteractionListModel":
         """
         Fetches a list of interactions from the database based on specified filters.
@@ -170,17 +170,17 @@ class InteractionListModel(BaseList[InteractionModel]):
             # Both start and end provided - use BETWEEN
             param_idx = len(params)
             conditions.append(f"i.time BETWEEN ${param_idx + 1}::timestamp AND ${param_idx + 2}::timestamp")
-            params.extend([time_start, time_end])
+            params.extend([datetime.strptime(time_start, '%Y-%m-%d %H:%M:%S.%f'), datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f')])
         elif time_start is not None:
             # Only start provided - everything after
             param_idx = len(params)
             conditions.append(f"i.time >= ${param_idx + 1}::timestamp")
-            params.append(time_start)
+            params.append(datetime.strptime(time_start, '%Y-%m-%d %H:%M:%S.%f'))
         elif time_end is not None:
             # Only end provided - everything before
             param_idx = len(params)
             conditions.append(f"i.time <= ${param_idx + 1}::timestamp")
-            params.append(time_end)
+            params.append(datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f'))
 
         # Add WHERE clause if we have conditions
         if conditions:
