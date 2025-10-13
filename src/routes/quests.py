@@ -1,7 +1,9 @@
+from datetime import datetime
+
 from sanic import Blueprint, Request
 import sanic
 from sanic_ext import openapi, validate
-from sanic_ext.extensions.openapi.definitions import RequestBody, Response
+from sanic_ext.extensions.openapi.definitions import Parameter, RequestBody, Response
 
 from src.utils.errors import BadRequest400, NotFound404
 
@@ -35,15 +37,35 @@ async def create_quest(request: Request, db: Database, body: quest.QuestCreateMo
 
 @quest_blueprint.route('/', methods=['GET'])
 @openapi.definition(response=[
-                        Response(quest.QuestListModel.doc_schema(), 200),
-                    ])
+    Response(quest.QuestListModel.doc_schema(), 200),
+],
+    parameter=[
+        Parameter('creator_thorny_ids', list[int], description="Filter by creator"),
+        Parameter('quest_types', list[str], description="Filter by quest type"),
+        Parameter('time_start', datetime, description="The start time to filter by"),
+        Parameter('time_end', datetime, description="The end time to filter by"),
+        Parameter('page', int, description="The page to return. Default: 1"),
+        Parameter('page_size', int, description="The size of each page in items. Default: 100")
+    ])
 async def get_all_quests(request: Request, db: Database):
     """
     Get All Quests
 
     Returns all quests ordered by start date, recent first
     """
-    quests_model = await quest.QuestListModel.fetch(db)
+    creator_thorny_ids = request.args.getlist('creator_thorny_ids')
+    quest_types = request.args.getlist('quest_types')
+    time_start = request.args.get('time_start')
+    time_end = request.args.get('time_end')
+
+    page = request.args.get('page')
+    page_size = request.args.get('page_size')
+
+    quests_model = await quest.QuestListModel.fetch(db,
+                                                    time_start,
+                                                    time_end,
+                                                    creator_thorny_ids,
+                                                    quest_types)
 
     return sanic.json(quests_model.model_dump(), default=str)
 
