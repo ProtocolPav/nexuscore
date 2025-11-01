@@ -133,6 +133,28 @@ class QuestListModel(BaseList[QuestModel]):
 
             params.append(quest_types)
 
+        # Handle time filtering
+        if time_start is not None and time_end is not None:
+            # Both start and end provided - filter between range
+            param_idx = len(params)
+            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamp AND q.end_time <= ${param_idx + 2}::timestamp")
+            params.extend([
+                datetime.strptime(time_start, '%Y-%m-%d %H:%M:%S.%f'),
+                datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f')
+            ])
+
+        elif time_start is not None:
+            # Only start time provided - filter after this time
+            param_idx = len(params)
+            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamp")
+            params.append(datetime.strptime(time_start, '%Y-%m-%d %H:%M:%S.%f'))
+
+        elif time_end is not None:
+            # Only end time provided - filter before this time
+            param_idx = len(params)
+            conditions.append(f"q.end_time <= ${param_idx + 1}::timestamp")
+            params.append(datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f'))
+
         # Add WHERE clause if we have conditions
         if conditions:
             query_parts.append("WHERE")
