@@ -112,6 +112,9 @@ class QuestListModel(BaseList[QuestModel]):
                     time_end: str = None,
                     creator_thorny_ids: list[str] = None,
                     quest_types: list[str] = None,
+                    active: bool = None,
+                    future: bool = None,
+                    past: bool = None,
                     *args) -> "QuestListModel":
         # Build the query dynamically
         query_parts = ["SELECT * FROM quests.quest q"]
@@ -155,6 +158,16 @@ class QuestListModel(BaseList[QuestModel]):
             conditions.append(f"q.end_time <= ${param_idx + 1}::timestamp")
             params.append(datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f'))
 
+        # Handle "active", "future" and "past" quests
+        if active:
+            conditions.append(f"NOW() BETWEEN q.start_time AND q.end_time")
+
+        if future:
+            conditions.append(f"q.start_time > NOW()")
+
+        if past:
+            conditions.append(f"q.end_time < NOW()")
+
         # Add WHERE clause if we have conditions
         if conditions:
             query_parts.append("WHERE")
@@ -167,21 +180,6 @@ class QuestListModel(BaseList[QuestModel]):
 
         # Execute the query
         data = await db.pool.fetch(query, *params)
-
-        quests: list[QuestModel] = []
-        for quest in data:
-            objectives = await ObjectivesListModel.fetch(db, quest['quest_id'])
-            quests.append(QuestModel(**quest, objectives=objectives))
-
-        return cls(root=quests)
-
-    @classmethod
-    async def fetch_active(cls, db: Database, *args) -> "QuestListModel":
-        data = await db.pool.fetch("""
-                                   SELECT * FROM quests.quest
-                                   WHERE NOW() BETWEEN start_time AND end_time
-                                   ORDER BY start_time DESC
-                                   """)
 
         quests: list[QuestModel] = []
         for quest in data:

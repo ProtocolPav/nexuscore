@@ -44,6 +44,9 @@ async def create_quest(request: Request, db: Database, body: quest.QuestCreateMo
         Parameter('quest_types', list[str], description="Filter by quest type"),
         Parameter('time_start', datetime, description="The start time to filter by"),
         Parameter('time_end', datetime, description="The end time to filter by"),
+        Parameter('active', bool, description="Filter by active quests"),
+        Parameter('future', bool, description="Filter by future quests"),
+        Parameter('past', bool, description="Filter by past quests"),
         Parameter('page', int, description="The page to return. Default: 1"),
         Parameter('page_size', int, description="The size of each page in items. Default: 100")
     ])
@@ -57,6 +60,9 @@ async def get_all_quests(request: Request, db: Database):
     quest_types = request.args.getlist('quest_types')
     time_start = request.args.get('time_start')
     time_end = request.args.get('time_end')
+    active = request.args.get('active')
+    future = request.args.get('future')
+    past = request.args.get('past')
 
     page = request.args.get('page')
     page_size = request.args.get('page_size')
@@ -65,23 +71,10 @@ async def get_all_quests(request: Request, db: Database):
                                                     time_start,
                                                     time_end,
                                                     creator_thorny_ids,
-                                                    quest_types)
-
-    return sanic.json(quests_model.model_dump(), default=str)
-
-
-@quest_blueprint.route('/active', methods=['GET'])
-@openapi.definition(response=[
-    Response(quest.QuestListModel.doc_schema(), 200),
-])
-async def get_active_quests(request: Request, db: Database):
-    """
-    Get All Active Quests
-
-    Returns all active quests ordered by start date, recent first.
-    An active quest is a quest which started before now and ends after now.
-    """
-    quests_model = await quest.QuestListModel.fetch_active(db)
+                                                    quest_types,
+                                                    active,
+                                                    future,
+                                                    past)
 
     return sanic.json(quests_model.model_dump(), default=str)
 
