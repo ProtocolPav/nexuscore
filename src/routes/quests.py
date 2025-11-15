@@ -70,6 +70,22 @@ async def get_all_quests(request: Request, db: Database):
     return sanic.json(quests_model.model_dump(), default=str)
 
 
+@quest_blueprint.route('/active', methods=['GET'])
+@openapi.definition(response=[
+    Response(quest.QuestListModel.doc_schema(), 200),
+])
+async def get_active_quests(request: Request, db: Database):
+    """
+    Get All Active Quests
+
+    Returns all active quests ordered by start date, recent first.
+    An active quest is a quest which started before now and ends after now.
+    """
+    quests_model = await quest.QuestListModel.fetch_active(db)
+
+    return sanic.json(quests_model.model_dump(), default=str)
+
+
 @quest_blueprint.route('/<quest_id:int>', methods=['GET'])
 @openapi.definition(response=[
                         Response(quest.QuestModel.doc_schema(), 200),

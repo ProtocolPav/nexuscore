@@ -175,6 +175,21 @@ class QuestListModel(BaseList[QuestModel]):
 
         return cls(root=quests)
 
+    @classmethod
+    async def fetch_active(cls, db: Database, *args) -> "QuestListModel":
+        data = await db.pool.fetch("""
+                                   SELECT * FROM quests.quest
+                                   WHERE NOW() BETWEEN start_time AND end_time
+                                   ORDER BY start_time DESC
+                                   """)
+
+        quests: list[QuestModel] = []
+        for quest in data:
+            objectives = await ObjectivesListModel.fetch(db, quest['quest_id'])
+            quests.append(QuestModel(**quest, objectives=objectives))
+
+        return cls(root=quests)
+
 
 QuestUpdateModel = optional_model('QuestUpdateModel', QuestBaseModel)
 
