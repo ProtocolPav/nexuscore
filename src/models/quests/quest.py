@@ -93,9 +93,9 @@ class QuestModel(QuestBaseModel):
                               SET start_time = $1,
                                   end_time = $2,
                                   title = $3,
-                                  description = $4
-                                  created_by = $5
-                                  tags = $6
+                                  description = $4,
+                                  created_by = $5,
+                                  tags = $6,
                                   quest_type = $7
                               WHERE quest_id = $8
                               """,
