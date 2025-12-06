@@ -60,8 +60,8 @@ class InteractionListModel(BaseList[InteractionModel]):
                     dimensions: list[str] = None,
                     time_start: str = None,
                     time_end: str = None,
-                    page: str = None,
-                    page_size: str = None,
+                    page: int = None,
+                    page_size: int = None,
                     *args) -> "InteractionListModel":
         """
         Fetches a list of interactions from the database based on specified filters.
@@ -200,8 +200,6 @@ class InteractionListModel(BaseList[InteractionModel]):
             params.extend([page_size, offset])
 
         query = " ".join(query_parts)
-
-        print(query)
 
         # Execute the query
         data = await db.pool.fetch(query, *params)
