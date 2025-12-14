@@ -1,5 +1,7 @@
 from pydantic import Field, StringConstraints
 from typing import Annotated, Optional
+
+from src.models.quests.reward_metadata import Metadata
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
@@ -8,18 +10,19 @@ from sanic_ext import openapi
 
 from src.utils.errors import BadRequest400, NotFound404
 
-InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
+MinecraftID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
 
 class RewardBaseModel(BaseModel):
     balance: Optional[int] = Field(description="The balance this reward will add",
                                    json_schema_extra={"example": None})
-    item: Optional[InteractionRef] = Field(description="The item this reward will give",
+    item: Optional[MinecraftID] = Field(description="The item this reward will give",
                                           json_schema_extra={"example": 'minecraft:gold_ingot'})
     count: Optional[int] = Field(description="The amount of this item this reward will give",
                                  json_schema_extra={"example": 43})
     display_name: Optional[str] = Field(description="The optional text to display instead of the reward item name",
                                        json_schema_extra={"example": 'Something Shiny'})
+    item_metadata: list[Metadata] = Field(description="The metadata for the item reward, to add extra customization")
 
 
 @openapi.component()
