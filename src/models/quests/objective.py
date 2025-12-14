@@ -1,8 +1,8 @@
-import datetime
+from pydantic import Field, model_validator
+from typing import Literal, Optional
 
-from pydantic import Field, StringConstraints
-from typing import Annotated, Literal, Optional
-
+from src.models.quests.objective_customization import Customizations
+from src.models.quests.objective_target import Targets
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
@@ -13,37 +13,41 @@ from sanic_ext import openapi
 
 from src.utils.errors import BadRequest400, NotFound404
 
-InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
-ObjectiveType = Literal["kill", "mine", "encounter"]
+Logic = Literal["and", "or", "sequential"]
+ObjectiveTypes = Literal["kill", "mine", "encounter"]
 
 
 class ObjectiveBaseModel(BaseModel):
-    objective_type: ObjectiveType = Field(description="The type of objective: kill, mine or encounter",
-                                          json_schema_extra={"example": 'kill'})
-    objective_count: int = Field(description="How much until the objective is completed",
-                                 json_schema_extra={"example": 32})
-    objective: InteractionRef = Field(description="The target of the objective",
-                                      json_schema_extra={"example": 'minecraft:skeleton'})
     description: str = Field(description="The description of the objective",
-                             json_schema_extra={"example": 'Did you know skeletons hate diamonds...'})
+                             json_schema_extra={"example": 'This is an objective description!'})
     display: Optional[str] = Field(description="Override with a custom objective task display",
-                                   json_schema_extra={"example": None})
-    order: int = Field(description="The order of the objective",
-                       json_schema_extra={"example": 0})
-    natural_block: bool = Field(description="Denotes whether the block mined must be natural or not",
-                                json_schema_extra={"example": False})
-    objective_timer: Optional[float] = Field(description='An optional timer for this objective in seconds',
-                                             json_schema_extra={"example": 30})
-    required_mainhand: Optional[InteractionRef] = Field(description="An optional mainhand requirement for this objective",
-                                                        json_schema_extra={"example": 'minecraft:diamond_sword'})
-    required_location: Optional[list[int]] = Field(description="An optional location requirement for this objective",
-                                                   json_schema_extra={"example": [56, 76]})
-    location_radius: Optional[int] = Field(description="The radius for the location requirement",
-                                           json_schema_extra={"example": 100})
-    required_deaths: Optional[int] = Field(description="An optional deaths requirement. More than this amount would fail the objective.",
-                                           json_schema_extra={"example": 3})
-    continue_on_fail: bool = Field(description="If a player fails this objective, continue rather than failing the entire quest",
-                                json_schema_extra={"example": False})
+                                   json_schema_extra={"example": "Find and speak to Alan Carr"})
+    order_index: int = Field(description="The order of the objective. Starts at 0.",
+                             json_schema_extra={"example": 0})
+    objective_type: ObjectiveTypes = Field(description="The type of objective: kill, mine or encounter",
+                                           json_schema_extra={"example": 'kill'})
+    logic: Logic = Field(description="The logic to be applied to the objective targets",
+                         json_schema_extra={"example": "or"})
+    target_count: Optional[int] = Field(description="Total count for `OR` logic. If `null`, each target must meet its own count",
+                                        json_schema_extra={"example": 54})
+    targets: list[Targets] = Field(description="The targets of the objective. Target types must be equal to `objective_type`")
+    customizations: list[Customizations] = Field(description="The customizations of the objective")
+
+    @model_validator(mode='after')
+    def check_targets(self) -> "ObjectiveBaseModel":
+        if len(self.targets) == 0:
+            raise BadRequest400("Objectives must have at least one target")
+
+        for target in self.targets:
+            if target.target_type != self.objective_type:
+                raise BadRequest400(f"All targets must be of the same type. "
+                                    f"Offending target: {target.target_type} != {self.objective_type}")
+
+            if target.count < 1:
+                raise BadRequest400(f"A target's count must be at least 1.")
+
+        return self
+
 
 @openapi.component()
 class ObjectiveModel(ObjectiveBaseModel):
