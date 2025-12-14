@@ -60,10 +60,14 @@ class MaximumDeathsCustomization(CustomizationBaseModel):
                        json_schema_extra={"example": True})
 
 
-Customizations = Union[
-    MainhandCustomization,
-    LocationCustomization,
-    NaturalBlockCustomization,
-    TimerCustomization,
-    MaximumDeathsCustomization
+
+Customizations = Annotated[
+    Union[
+        MainhandCustomization,
+        LocationCustomization,
+        NaturalBlockCustomization,
+        TimerCustomization,
+        MaximumDeathsCustomization
+    ],
+    Field(discriminator="customization_type")
 ]

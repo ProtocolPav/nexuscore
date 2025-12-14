@@ -45,4 +45,7 @@ class EncounterTargetModel(TargetBaseModel):
     count: int = Field(description="The number of ID's before this objective is completed",
                        json_schema_extra={"example": 50})
 
-Targets = Union[MineTargetModel, KillTargetModel, EncounterTargetModel]
+Targets = Annotated[
+    Union[MineTargetModel, KillTargetModel, EncounterTargetModel],
+    Field(discriminator="target_type")
+]
