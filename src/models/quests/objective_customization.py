@@ -46,7 +46,7 @@ class TimerCustomization(CustomizationBaseModel):
                                                  json_schema_extra={"example": "timer"})
     seconds: int = Field(description="The timer's seconds",
                          json_schema_extra={"example": 540})
-    fail: bool = Field(description="Fail the objective when the timer ends",
+    fail: bool = Field(description="Fail the quest when the timer ends",
                        json_schema_extra={"example": True})
 
 
@@ -56,7 +56,7 @@ class MaximumDeathsCustomization(CustomizationBaseModel):
                                                           json_schema_extra={"example": "maximum_deaths"})
     deaths: int = Field(description="The most deaths a player can have before moving to the next objective",
                         json_schema_extra={"example": 3})
-    fail: bool = Field(description="Fail the objective when the death count is exceeded",
+    fail: bool = Field(description="Fail the quest when the death count is exceeded",
                        json_schema_extra={"example": True})
 
 
