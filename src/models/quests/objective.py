@@ -1,3 +1,5 @@
+import json
+
 from pydantic import Field, model_validator
 from typing import Literal, Optional
 
@@ -33,6 +35,17 @@ class ObjectiveBaseModel(BaseModel):
     targets: list[Targets] = Field(description="The targets of the objective. Target types must be equal to `objective_type`")
     customizations: list[Customizations] = Field(description="The customizations of the objective")
 
+    @model_validator(mode='before')
+    @classmethod
+    def pre_process_json(cls, data):
+        if isinstance(data.get('targets'), str):
+            data['targets'] = json.loads(data['targets'])
+
+        if isinstance(data.get('customizations'), str):
+            data['customizations'] = json.loads(data['customizations'])
+
+        return data
+
     @model_validator(mode='after')
     def check_targets(self) -> "ObjectiveBaseModel":
         if len(self.targets) == 0:
@@ -58,43 +71,39 @@ class ObjectiveModel(ObjectiveBaseModel):
     rewards: RewardsListModel = Field(description="The rewards for this objective, if any")
 
     @classmethod
-    async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> "ObjectiveModel":
+    async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> int:
         async with db.pool.acquire() as conn:
             async with conn.transaction():
+                targets = list(map(lambda x: x.model_dump() ,model.targets))
+                customizations = list(map(lambda x: x.model_dump(), model.customizations))
+
                 objective_id = await conn.fetchrow("""
                                                     with objective_table as (
-                                                        insert into quests.objective(quest_id,
-                                                                                     objective,
-                                                                                     objective_count,
-                                                                                     objective_type,
-                                                                                     objective_timer,
-                                                                                     required_mainhand,
-                                                                                     required_location,
-                                                                                     location_radius,
-                                                                                     "order",
-                                                                                     description,
-                                                                                     natural_block,
-                                                                                     display,
-                                                                                     required_deaths,
-                                                                                     continue_on_fail)
-                                                        values(
-                                                            $1, $2, $3, $4, $5, $6, $7,
-                                                            $8, $9, $10, $11, $12, $13, $14
-                                                        )
+                                                        insert into quests.objective_v2 (
+                                                                                         quest_id, 
+                                                                                         objective_type, 
+                                                                                         order_index, 
+                                                                                         description, 
+                                                                                         display, 
+                                                                                         logic, 
+                                                                                         target_count, 
+                                                                                         targets, 
+                                                                                         customizations
+                                                            )
+                                                        values($1, $2, $3, $4, $5, $6, $7, $8, $9)
         
                                                         returning objective_id
                                                     )
                                                     select objective_id as id from objective_table
                                                    """,
-                                                   quest_id, model.objective, model.objective_count,
-                                                   model.objective_type, model.objective_timer,
-                                                   model.required_mainhand, model.required_location,
-                                                   model.location_radius, model.order, model.description,
-                                                   model.natural_block, model.display, model.required_deaths,
-                                                   model.continue_on_fail)
+                                                   quest_id, model.objective_type, model.order_index, model.description,
+                                                   model.display, model.logic, model.target_count,
+                                                   json.dumps(targets), json.dumps(customizations))
 
         for reward in model.rewards:
             await RewardModel.create(db=db, model=reward, quest_id=quest_id, objective_id=objective_id['id'])
+
+        return objective_id['id']
 
     @classmethod
     async def fetch(cls, db: Database, objective_id: int = None, *args) -> "ObjectiveModel":
@@ -102,7 +111,7 @@ class ObjectiveModel(ObjectiveBaseModel):
             raise BadRequest400(extra={'ids': ['objective_id']})
 
         data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests.objective
+                                       SELECT * FROM quests.objective_v2
                                        WHERE objective_id = $1
                                        """,
                                       objective_id)
@@ -119,27 +128,20 @@ class ObjectiveModel(ObjectiveBaseModel):
             setattr(self, k, v) if v is not None else None
 
         await db.pool.execute("""
-                              UPDATE quests.objective
-                              SET objective = $1,
-                                  objective_count = $2,
-                                  objective_type = $3,
-                                  objective_timer = $4,
-                                  required_mainhand = $5,
-                                  required_location = $6,
-                                  location_radius = $7,
-                                  "order" = $8,
-                                  description = $9,
-                                  natural_block = $10,
-                                  display = $11,
-                                  required_deaths = $12,
-                                  continue_on_fail = $13
+                              UPDATE quests.objective_v2
+                              SET objective_type = $1,
+                                  order_index = $2,
+                                  description = $3,
+                                  display = $4,
+                                  logic = $5,
+                                  target_count = $6,
+                                  targets = $7,
+                                  customizations = $8
                                   
-                              WHERE objective_id = $14
+                              WHERE objective_id = $9
                               """,
-                              self.objective, self.objective_count, self.objective_type,
-                              self.objective_timer, self.required_mainhand, self.required_location,
-                              self.location_radius, self.order, self.description, self.natural_block,
-                              self.display, self.required_deaths, self.continue_on_fail, self.objective_id)
+                              self.objective_type, self.order_index, self.description, self.display, self.logic,
+                              self.target_count, self.targets, self.customizations, self.objective_id)
 
 
 @openapi.component()
@@ -150,9 +152,9 @@ class ObjectivesListModel(BaseList[ObjectiveModel]):
             raise BadRequest400(extra={'ids': ['quest_id']})
 
         data = await db.pool.fetch("""
-                                 SELECT * FROM quests.objective
+                                 SELECT * FROM quests.objective_v2
                                  WHERE quest_id = $1
-                                 ORDER BY "order"
+                                 ORDER BY order_index
                                  """,
                                  quest_id)
 
