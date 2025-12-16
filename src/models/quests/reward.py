@@ -41,12 +41,14 @@ class RewardModel(RewardBaseModel):
             async with conn.transaction():
                 reward_id = await conn.fetchrow("""
                                                 WITH reward_table AS (
-                                                    INSERT INTO quests.reward(quest_id, 
-                                                                              objective_id,
-                                                                              balance,
-                                                                              item,
-                                                                              count,
-                                                                              display_name)
+                                                    INSERT INTO quests_v3.reward(
+                                                        quest_id, 
+                                                        objective_id,
+                                                        balance,
+                                                        item,
+                                                        count,
+                                                        display_name
+                                                        )
                                                     VALUES($1, $2, $3, $4, $5, $6)
                                                     RETURNING reward_id
                                                 )
@@ -63,7 +65,7 @@ class RewardModel(RewardBaseModel):
             raise BadRequest400(extra={'ids': ['reward_id']})
 
         data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests.reward
+                                       SELECT * FROM quests_v3.reward
                                        WHERE reward_id = $1
                                        """,
                                       reward_id)
@@ -78,7 +80,7 @@ class RewardModel(RewardBaseModel):
             setattr(self, k, v) if v is not None else None
 
         await db.pool.execute("""
-                              UPDATE quests.reward
+                              UPDATE quests_v3.reward
                               SET objective_id = $1,
                                   balance = $2,
                                   item = $3,
@@ -98,7 +100,7 @@ class RewardsListModel(BaseList[RewardModel]):
 
         data = await db.pool.fetch("""
                                   SELECT *
-                                  FROM quests.reward
+                                  FROM quests_v3.reward
                                   WHERE objective_id = $1
                                   """,
                                   objective_id)

@@ -79,16 +79,16 @@ class ObjectiveModel(ObjectiveBaseModel):
 
                 objective_id = await conn.fetchrow("""
                                                     with objective_table as (
-                                                        insert into quests.objective_v2 (
-                                                                                         quest_id, 
-                                                                                         objective_type, 
-                                                                                         order_index, 
-                                                                                         description, 
-                                                                                         display, 
-                                                                                         logic, 
-                                                                                         target_count, 
-                                                                                         targets, 
-                                                                                         customizations
+                                                        insert into quests_v3.objective (
+                                                            quest_id, 
+                                                            objective_type, 
+                                                            order_index, 
+                                                            description, 
+                                                            display, 
+                                                            logic, 
+                                                            target_count, 
+                                                            targets, 
+                                                            customizations
                                                             )
                                                         values($1, $2, $3, $4, $5, $6, $7, $8, $9)
         
@@ -111,7 +111,7 @@ class ObjectiveModel(ObjectiveBaseModel):
             raise BadRequest400(extra={'ids': ['objective_id']})
 
         data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests.objective_v2
+                                       SELECT * FROM quests_v3.objective
                                        WHERE objective_id = $1
                                        """,
                                       objective_id)
@@ -128,7 +128,7 @@ class ObjectiveModel(ObjectiveBaseModel):
             setattr(self, k, v) if v is not None else None
 
         await db.pool.execute("""
-                              UPDATE quests.objective_v2
+                              UPDATE quests_v3.objective
                               SET objective_type = $1,
                                   order_index = $2,
                                   description = $3,
@@ -152,7 +152,7 @@ class ObjectivesListModel(BaseList[ObjectiveModel]):
             raise BadRequest400(extra={'ids': ['quest_id']})
 
         data = await db.pool.fetch("""
-                                 SELECT * FROM quests.objective_v2
+                                 SELECT * FROM quests_v3.objective
                                  WHERE quest_id = $1
                                  ORDER BY order_index
                                  """,
