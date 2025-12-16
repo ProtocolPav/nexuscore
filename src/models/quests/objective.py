@@ -35,8 +35,8 @@ class ObjectiveBaseModel(BaseModel):
     targets: list[Targets] = Field(description="The targets of the objective. Target types must be equal to `objective_type`")
     customizations: list[Customizations] = Field(description="The customizations of the objective")
 
-    @classmethod
     @model_validator(mode='before')
+    @classmethod
     def pre_process_json(cls, data):
         if isinstance(data.get('targets'), str):
             data['targets'] = json.loads(data['targets'])

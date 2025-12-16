@@ -26,8 +26,8 @@ class RewardBaseModel(BaseModel):
                                        json_schema_extra={"example": 'Something Shiny'})
     item_metadata: list[Metadata] = Field(description="The metadata for the item reward, to add extra customization")
 
-    @classmethod
     @model_validator(mode='before')
+    @classmethod
     def pre_process_json(cls, data):
         if isinstance(data.get('item_metadata'), str):
             data['item_metadata'] = json.loads(data['item_metadata'])
