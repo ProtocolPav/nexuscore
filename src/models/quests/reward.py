@@ -49,6 +49,8 @@ class RewardModel(RewardBaseModel):
     async def create(cls, db: Database, model: "RewardCreateModel", quest_id: int = None, objective_id: int = None, *args) -> "RewardModel":
         async with db.pool.acquire() as conn:
             async with conn.transaction():
+                metadata = list(map(lambda x: x.model_dump(), model.item_metadata))
+
                 reward_id = await conn.fetchrow("""
                                                 WITH reward_table AS (
                                                     INSERT INTO quests_v3.reward(
@@ -57,15 +59,16 @@ class RewardModel(RewardBaseModel):
                                                         balance,
                                                         item,
                                                         count,
-                                                        display_name
+                                                        display_name,
+                                                        item_metadata
                                                         )
-                                                    VALUES($1, $2, $3, $4, $5, $6)
+                                                    VALUES($1, $2, $3, $4, $5, $6, $7)
                                                     RETURNING reward_id
                                                 )
                                                 SELECT reward_id as id FROM reward_table
                                                 """,
                                                 quest_id, objective_id, model.balance, model.item, model.count,
-                                                model.display_name)
+                                                model.display_name, json.dumps(metadata))
 
         return cls(reward_id=reward_id['id'], quest_id=quest_id, objective_id=objective_id, **model.model_dump())
 
