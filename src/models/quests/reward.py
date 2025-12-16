@@ -1,4 +1,6 @@
-from pydantic import Field, StringConstraints
+import json
+
+from pydantic import Field, StringConstraints, model_validator
 from typing import Annotated, Optional
 
 from src.models.quests.reward_metadata import Metadata
@@ -23,6 +25,14 @@ class RewardBaseModel(BaseModel):
     display_name: Optional[str] = Field(description="The optional text to display instead of the reward item name",
                                        json_schema_extra={"example": 'Something Shiny'})
     item_metadata: list[Metadata] = Field(description="The metadata for the item reward, to add extra customization")
+
+    @classmethod
+    @model_validator(mode='before')
+    def pre_process_json(cls, data):
+        if isinstance(data.get('item_metadata'), str):
+            data['item_metadata'] = json.loads(data['item_metadata'])
+
+        return data
 
 
 @openapi.component()
