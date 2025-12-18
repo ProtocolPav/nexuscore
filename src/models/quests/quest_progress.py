@@ -18,6 +18,8 @@ class QuestProgressBaseModel(BaseModel):
                                   json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
     started_on: Optional[datetime] = Field(description="The time the user actually started to complete the quest",
                                            json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
+    ended_on: Optional[datetime] = Field(description="The time the user ended the quest, either by failing or completing it",
+                                         json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
     status: Literal['in_progress', 'completed', 'failed'] = Field(description="The status of the quest",
                                                                   json_schema_extra={"example": 'in_progress'})
 
@@ -70,16 +72,6 @@ class QuestProgressModel(QuestProgressBaseModel):
             return cls(**data, objectives=objectives)
         else:
             raise NotFound404(extra={'resource': 'quest_progress', 'id': thorny_id})
-
-    @classmethod
-    async def get_all_quest_ids(cls, db: Database, thorny_id: int) -> Optional[list[int]]:
-        data = await db.pool.fetchrow("""
-                                          SELECT ARRAY_AGG(quest_id) AS quests from users.quests
-                                          WHERE thorny_id = $1
-                                      """,
-                                      thorny_id)
-
-        return data['quests'] if data else None
 
     @classmethod
     async def create(cls, db: Database, model: "QuestProgressCreateModel", *args):
