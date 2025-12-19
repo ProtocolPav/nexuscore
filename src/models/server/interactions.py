@@ -24,7 +24,7 @@ class InteractionBaseModel(BaseModel):
     mainhand: Optional[InteractionRef] = Field(description="The item in the player's mainhand",
                                                json_schema_extra={"example": 'minecraft:diamond_sword'})
     time: datetime = Field(description="The time of this interaction",
-                           json_schema_extra={"example": '2025-01-01 04:00:00.123456'})
+                           json_schema_extra={"example": '2025-01-01 04:00:00+00:00'})
     dimension: InteractionRef = Field(description="The dimension",
                                       json_schema_extra={"example": 'minecraft:overworld'})
 

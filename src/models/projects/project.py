@@ -41,7 +41,7 @@ class ProjectModel(ProjectBaseModel):
     status: Literal["pending", "ongoing", "abandoned", "completed"] = Field(description="The project status",
                                                                             json_schema_extra={"example": 'ongoing'})
     status_since: datetime = Field(description="When the status was last updated",
-                                   json_schema_extra={"example": "2024-07-05 15:15:00"})
+                                   json_schema_extra={"example": "2024-07-05 15:15:00+00:00"})
     owner: user.UserModel = Field(description="The owner of the project, in the form of a User object")
 
     @classmethod

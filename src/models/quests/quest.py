@@ -15,9 +15,9 @@ from src.utils.errors import BadRequest400, NotFound404
 
 class QuestBaseModel(BaseModel):
     start_time: datetime = Field(description="When this quest will begin to be available to be accepted",
-                                 json_schema_extra={"example": "2024-03-03 04:00:00"})
+                                 json_schema_extra={"example": "2024-03-03 04:00:00+00:00"})
     end_time: datetime = Field(description="The time that this quest will no longer be available to be accepted",
-                               json_schema_extra={"example": "2024-05-03 04:00:00"})
+                               json_schema_extra={"example": "2024-05-03 04:00:00+00:00"})
     title: str = Field(description="The quest title",
                        json_schema_extra={"example": 'Skeleton Killer'})
     description: str = Field(description="The description of the quest",

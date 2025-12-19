@@ -21,7 +21,7 @@ class ConnectionModel(ConnectionBaseModel):
     connection_id: int = Field(description="The connection ID",
                                json_schema_extra={"example": 3432})
     time: datetime = Field(description="A datetime object representing the time of the connection",
-                           json_schema_extra={"example": '2025-01-01 04:23:32.123456'})
+                           json_schema_extra={"example": '2025-01-01 04:23:32+00:00'})
 
     @classmethod
     async def create(cls, db: Database, model: "ConnectionCreateModel", *args):
