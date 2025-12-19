@@ -32,7 +32,7 @@ class UserBaseModel(BaseModel):
     required_xp: int = Field(description="The xp required to reach the next level",
                              json_schema_extra={"example": 3044})
     last_message: datetime = Field(description="The last time the user gained XP",
-                                   json_schema_extra={"example": "2024-03-03 04:00:00"})
+                                   json_schema_extra={"example": "2024-03-03 04:00:00+00:00"})
     gamertag: Optional[str] = Field(description="The user's gamertag",
                                     json_schema_extra={"example": "ProtocolPav"})
     whitelist: Optional[str] = Field(description="The gamertag that this user is whitelisted under",

@@ -15,9 +15,9 @@ from src.utils.errors import BadRequest400, NotFound404
 
 class QuestBaseModel(BaseModel):
     start_time: datetime = Field(description="When this quest will begin to be available to be accepted",
-                                 json_schema_extra={"example": "2024-03-03 04:00:00"})
+                                 json_schema_extra={"example": "2024-03-03 04:00:00+00:00"})
     end_time: datetime = Field(description="The time that this quest will no longer be available to be accepted",
-                               json_schema_extra={"example": "2024-05-03 04:00:00"})
+                               json_schema_extra={"example": "2024-05-03 04:00:00+00:00"})
     title: str = Field(description="The quest title",
                        json_schema_extra={"example": 'Skeleton Killer'})
     description: str = Field(description="The description of the quest",
@@ -93,9 +93,9 @@ class QuestModel(QuestBaseModel):
                               SET start_time = $1,
                                   end_time = $2,
                                   title = $3,
-                                  description = $4
-                                  created_by = $5
-                                  tags = $6
+                                  description = $4,
+                                  created_by = $5,
+                                  tags = $6,
                                   quest_type = $7
                               WHERE quest_id = $8
                               """,
@@ -106,12 +106,80 @@ class QuestModel(QuestBaseModel):
 
 class QuestListModel(BaseList[QuestModel]):
     @classmethod
-    async def fetch(cls, db: Database, *args) -> "QuestListModel":
-        data = await db.pool.fetch("""
-                                 SELECT * FROM quests.quest
-                                 WHERE NOW() BETWEEN start_time AND end_time
-                                 ORDER BY start_time DESC
-                                 """)
+    async def fetch(cls,
+                    db: Database,
+                    time_start: str = None,
+                    time_end: str = None,
+                    creator_thorny_ids: list[str] = None,
+                    quest_types: list[str] = None,
+                    active: bool = None,
+                    future: bool = None,
+                    past: bool = None,
+                    *args) -> "QuestListModel":
+        # Build the query dynamically
+        query_parts = ["SELECT * FROM quests.quest q"]
+        conditions = []
+        params = []
+
+        # Handle thorny_ids (OR condition using ANY)
+        if creator_thorny_ids is not None and len(creator_thorny_ids) > 0:
+            param_idx = len(params)
+            conditions.append(f"q.created_by = ANY(${param_idx + 1}::int[])")
+
+            thorny_ids_int = [int(x) for x in creator_thorny_ids]
+            params.append(thorny_ids_int)
+
+        # Handle interaction_types (OR condition using ANY)
+        if quest_types is not None and len(quest_types) > 0:
+            param_idx = len(params)
+            conditions.append(f"q.quest_type = ANY(${param_idx + 1})")
+
+            params.append(quest_types)
+
+        # Handle time filtering
+        if time_start is not None and time_end is not None:
+            # Both start and end provided - filter between range
+            param_idx = len(params)
+            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamptz AND q.end_time <= ${param_idx + 2}::timestamptz")
+            params.extend([
+                datetime.fromisoformat(time_start),
+                datetime.fromisoformat(time_end)
+            ])
+
+        elif time_start is not None:
+            # Only start time provided - filter after this time
+            param_idx = len(params)
+            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamptz")
+            params.append(datetime.fromisoformat(time_start))
+
+        elif time_end is not None:
+            # Only end time provided - filter before this time
+            param_idx = len(params)
+            conditions.append(f"q.end_time <= ${param_idx + 1}::timestamptz")
+            params.append(datetime.fromisoformat(time_end))
+
+        # Handle "active", "future" and "past" quests
+        if active:
+            conditions.append(f"NOW() BETWEEN q.start_time AND q.end_time")
+
+        if future:
+            conditions.append(f"q.start_time > NOW()")
+
+        if past:
+            conditions.append(f"q.end_time < NOW()")
+
+        # Add WHERE clause if we have conditions
+        if conditions:
+            query_parts.append("WHERE")
+            query_parts.append(" AND ".join(conditions))
+
+        # Add ORDER BY clause
+        query_parts.append("ORDER BY q.quest_id DESC")
+
+        query = " ".join(query_parts)
+
+        # Execute the query
+        data = await db.pool.fetch(query, *params)
 
         quests: list[QuestModel] = []
         for quest in data:

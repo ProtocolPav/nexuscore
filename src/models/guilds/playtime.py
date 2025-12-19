@@ -195,7 +195,7 @@ class OnlineEntry(BaseModel):
     user_id: int = Field(description="The Discord ID of the user",
                             examples=[18463748938364])
     session: datetime = Field(description="The date and time when the session started",
-                              examples=['2024-05-05 13:44:33.123456'])
+                              examples=['2024-05-05 13:44:33+00:00'])
     username: str = Field(description="The username of the user",
                           examples=['protocolpav'])
     whitelist: str = Field(description="The gamertag of the user",
