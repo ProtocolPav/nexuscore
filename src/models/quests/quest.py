@@ -140,23 +140,23 @@ class QuestListModel(BaseList[QuestModel]):
         if time_start is not None and time_end is not None:
             # Both start and end provided - filter between range
             param_idx = len(params)
-            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamp AND q.end_time <= ${param_idx + 2}::timestamp")
+            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamptz AND q.end_time <= ${param_idx + 2}::timestamptz")
             params.extend([
-                datetime.strptime(time_start, '%Y-%m-%d %H:%M:%S.%f'),
-                datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f')
+                datetime.fromisoformat(time_start),
+                datetime.fromisoformat(time_end)
             ])
 
         elif time_start is not None:
             # Only start time provided - filter after this time
             param_idx = len(params)
-            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamp")
-            params.append(datetime.strptime(time_start, '%Y-%m-%d %H:%M:%S.%f'))
+            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamptz")
+            params.append(datetime.fromisoformat(time_start))
 
         elif time_end is not None:
             # Only end time provided - filter before this time
             param_idx = len(params)
-            conditions.append(f"q.end_time <= ${param_idx + 1}::timestamp")
-            params.append(datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f'))
+            conditions.append(f"q.end_time <= ${param_idx + 1}::timestamptz")
+            params.append(datetime.fromisoformat(time_end))
 
         # Handle "active", "future" and "past" quests
         if active:
