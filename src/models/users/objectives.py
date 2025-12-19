@@ -13,9 +13,9 @@ from src.utils.errors import BadRequest400, NotFound404
 
 class UserObjectiveBaseModel(BaseModel):
     start: datetime = Field(description="The time this objective was started on",
-                            json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
+                            json_schema_extra={"example": '2024-05-05 05:34:21+00:00'})
     end: Optional[datetime] = Field(description="The time that this objective was completed",
-                                    json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
+                                    json_schema_extra={"example": '2024-05-05 05:34:21+00:00'})
     completion: int = Field(description="The completion of this objective",
                             json_schema_extra={"example": 5})
     status: Literal['in_progress', 'completed', 'failed'] = Field(description="The status of this objective",

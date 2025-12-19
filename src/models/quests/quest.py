@@ -15,9 +15,9 @@ from src.utils.errors import BadRequest400, NotFound404
 
 class QuestBaseModel(BaseModel):
     start_time: datetime = Field(description="When this quest will begin to be available to be accepted",
-                                 json_schema_extra={"example": "2024-03-03 04:00:00"})
+                                 json_schema_extra={"example": "2024-03-03 04:00:00+00:00"})
     end_time: datetime = Field(description="The time that this quest will no longer be available to be accepted",
-                               json_schema_extra={"example": "2024-05-03 04:00:00"})
+                               json_schema_extra={"example": "2024-05-03 04:00:00+00:00"})
     title: str = Field(description="The quest title",
                        json_schema_extra={"example": 'Skeleton Killer'})
     description: str = Field(description="The description of the quest",
@@ -140,23 +140,23 @@ class QuestListModel(BaseList[QuestModel]):
         if time_start is not None and time_end is not None:
             # Both start and end provided - filter between range
             param_idx = len(params)
-            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamp AND q.end_time <= ${param_idx + 2}::timestamp")
+            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamptz AND q.end_time <= ${param_idx + 2}::timestamptz")
             params.extend([
-                datetime.strptime(time_start, '%Y-%m-%d %H:%M:%S.%f'),
-                datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f')
+                datetime.fromisoformat(time_start),
+                datetime.fromisoformat(time_end)
             ])
 
         elif time_start is not None:
             # Only start time provided - filter after this time
             param_idx = len(params)
-            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamp")
-            params.append(datetime.strptime(time_start, '%Y-%m-%d %H:%M:%S.%f'))
+            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamptz")
+            params.append(datetime.fromisoformat(time_start))
 
         elif time_end is not None:
             # Only end time provided - filter before this time
             param_idx = len(params)
-            conditions.append(f"q.end_time <= ${param_idx + 1}::timestamp")
-            params.append(datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f'))
+            conditions.append(f"q.end_time <= ${param_idx + 1}::timestamptz")
+            params.append(datetime.fromisoformat(time_end))
 
         # Handle "active", "future" and "past" quests
         if active:

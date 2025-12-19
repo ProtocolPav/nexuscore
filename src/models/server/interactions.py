@@ -24,7 +24,7 @@ class InteractionBaseModel(BaseModel):
     mainhand: Optional[InteractionRef] = Field(description="The item in the player's mainhand",
                                                json_schema_extra={"example": 'minecraft:diamond_sword'})
     time: datetime = Field(description="The time of this interaction",
-                           json_schema_extra={"example": '2025-01-01 04:00:00.123456'})
+                           json_schema_extra={"example": '2025-01-01 04:00:00+00:00'})
     dimension: InteractionRef = Field(description="The dimension",
                                       json_schema_extra={"example": 'minecraft:overworld'})
 
@@ -82,9 +82,9 @@ class InteractionListModel(BaseList[InteractionModel]):
             A list of references or identifiers related to the interaction events.
         dimensions : list of str, optional
             A list of dimension names to filter the interactions.
-        time_start : datetime, optional
+        time_start : str, optional
             The starting time of the interaction events to filter by.
-        time_end : datetime, optional
+        time_end : str, optional
             The ending time of the interaction events to filter by.
         page : int, optional
             The page of data to return
@@ -169,18 +169,21 @@ class InteractionListModel(BaseList[InteractionModel]):
         if time_start is not None and time_end is not None:
             # Both start and end provided - use BETWEEN
             param_idx = len(params)
-            conditions.append(f"i.time BETWEEN ${param_idx + 1}::timestamp AND ${param_idx + 2}::timestamp")
-            params.extend([datetime.strptime(time_start, '%Y-%m-%d %H:%M:%S.%f'), datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f')])
+            conditions.append(f"i.time BETWEEN ${param_idx + 1}::timestamptz AND ${param_idx + 2}::timestamptz")
+            params.extend([
+                datetime.fromisoformat(time_start),
+                datetime.fromisoformat(time_end)
+            ])
         elif time_start is not None:
             # Only start provided - everything after
             param_idx = len(params)
-            conditions.append(f"i.time >= ${param_idx + 1}::timestamp")
-            params.append(datetime.strptime(time_start, '%Y-%m-%d %H:%M:%S.%f'))
+            conditions.append(f"i.time >= ${param_idx + 1}::timestamptz")
+            params.append(datetime.fromisoformat(time_start))
         elif time_end is not None:
             # Only end provided - everything before
             param_idx = len(params)
-            conditions.append(f"i.time <= ${param_idx + 1}::timestamp")
-            params.append(datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S.%f'))
+            conditions.append(f"i.time <= ${param_idx + 1}::timestamptz")
+            params.append(datetime.fromisoformat(time_end))
 
         # Add WHERE clause if we have conditions
         if conditions:

@@ -95,7 +95,7 @@ class PlaytimeSummary(BaseModel):
     total: float = Field(description="Total playtime in seconds",
                          json_schema_extra={"example": 3600})
     session: Optional[datetime] = Field(description="The date and time when the user connected, or `null`",
-                                        json_schema_extra={"example": '2024-01-01 01:00:00.000000'})
+                                        json_schema_extra={"example": '2024-01-01 01:00:00+00:00'})
     daily: DailyPlaytimeList = Field(description="The list of playtime in seconds each day. Up to 7 days.")
     monthly: MonthlyPlaytimeList = Field(description="The list of playtime in seconds each month. Up to 12 months.")
 

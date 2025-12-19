@@ -15,9 +15,9 @@ from src.utils.errors import BadRequest400, NotFound404
 
 class UserQuestBaseModel(BaseModel):
     accepted_on: datetime = Field(description="The time that the user accepted this quest",
-                                  json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
+                                  json_schema_extra={"example": '2024-05-05 05:34:21+00:00'})
     started_on: Optional[datetime] = Field(description="The time the user actually started to complete the quest",
-                                           json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
+                                           json_schema_extra={"example": '2024-05-05 05:34:21+00:00'})
     status: Literal['in_progress', 'completed', 'failed'] = Field(description="The status of the quest",
                                                                   json_schema_extra={"example": 'in_progress'})
 
