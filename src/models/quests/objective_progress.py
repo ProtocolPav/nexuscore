@@ -128,11 +128,11 @@ class ObjectiveProgressCreateModel(BaseModel):
 
     @classmethod
     def generate_target_progress(cls, targets: list[Targets]):
-        ...
+        return [TargetProgress(x.target_uuid, x.target_type) for x in targets]
 
     @classmethod
     def generate_customization_progress(cls, customization: Customizations):
-        ...
+        return CustomizationProgress()
 
 
 ObjectiveProgressUpdateModel = optional_model('ObjectiveProgressUpdateModel', ObjectiveProgressBaseModel)

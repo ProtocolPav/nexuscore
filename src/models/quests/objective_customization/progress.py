@@ -9,6 +9,7 @@ from sanic_ext import openapi
 @openapi.component()
 class DeathCustomizationProgress(BaseModel):
     deaths: int = Field(description="The amount of deaths the player has had so far",
+                        default=0,
                         json_schema_extra={"example": 3})
 
 

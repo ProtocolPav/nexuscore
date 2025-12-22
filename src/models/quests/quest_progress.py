@@ -7,7 +7,8 @@ from typing_extensions import Optional
 from sanic_ext import openapi
 
 from src.database import Database
-from src.models.users.objectives import UserObjectiveModel, UserObjectiveUpdateModel, UserObjectivesListModel, UserObjectiveCreateModel
+from src.models.quests.objective_progress import ObjectiveProgressCreateModel, ObjectiveProgressListModel, ObjectiveProgressModel, \
+    ObjectiveProgressUpdateModel
 from src.models.quests.objective import ObjectivesListModel
 from src.utils.base import BaseModel, BaseList, optional_model
 from src.utils.errors import BadRequest400, NotFound404
@@ -32,26 +33,25 @@ class QuestProgressModel(QuestProgressBaseModel):
                            json_schema_extra={"example": 34})
     quest_id: int = Field(description="The quest ID to reference to",
                           json_schema_extra={"example": 453})
-    objectives: UserObjectivesListModel = Field(description="A list of the user's objective progress")
+    objectives: ObjectiveProgressListModel = Field(description="A list of the user's objective progress")
 
     @classmethod
-    async def fetch(cls, db: Database, thorny_id: int = None, quest_id: int = None, *args) -> "QuestProgressModel":
-        if not thorny_id and not quest_id:
-            raise BadRequest400(extra={'ids': ['thorny_id', 'quest_id']})
+    async def fetch(cls, db: Database, progress_id: int = None, *args) -> "QuestProgressModel":
+        if not progress_id:
+            raise BadRequest400(extra={'ids': ['progress_id']})
 
         data = await db.pool.fetchrow("""
-                                          SELECT * from users.quests
-                                          WHERE thorny_id = $1
-                                            AND quest_id = $2
+                                          SELECT * from quests_v3.quest_progress
+                                          WHERE progress_id = $1
                                       """,
-                                      thorny_id, quest_id)
+                                      progress_id)
 
         if data:
-            objectives = await UserObjectivesListModel.fetch(db, thorny_id, quest_id)
+            objectives = await ObjectiveProgressListModel.fetch(db, progress_id)
 
             return cls(**data, objectives=objectives)
         else:
-            raise NotFound404(extra={'resource': 'quest_progress', 'id': f'Thorny ID: {thorny_id}, Quest ID: {quest_id}'})
+            raise NotFound404(extra={'resource': 'quest_progress', 'id': f'{progress_id}'})
 
     @classmethod
     async def fetch_active_quest(cls, db: Database, thorny_id: int) -> "QuestProgressModel":
@@ -59,15 +59,15 @@ class QuestProgressModel(QuestProgressBaseModel):
             raise BadRequest400(extra={'ids': ['thorny_id']})
 
         data = await db.pool.fetchrow("""
-                                          SELECT * from users.quests
+                                          SELECT * from quests_v3.quest_progress
                                           WHERE thorny_id = $1
-                                            AND status = 'in_progress'
-                                          ORDER BY accepted_on
+                                            AND status = 'active'
+                                          ORDER BY accept_time
                                       """,
                                       thorny_id)
 
         if data:
-            objectives = await UserObjectivesListModel.fetch(db, thorny_id, data['quest_id'])
+            objectives = await ObjectiveProgressListModel.fetch(db, data[0]['progress_id'])
 
             return cls(**data, objectives=objectives)
         else:
@@ -77,25 +77,37 @@ class QuestProgressModel(QuestProgressBaseModel):
     async def create(cls, db: Database, model: "QuestProgressCreateModel", *args):
         async with db.pool.acquire() as conn:
             async with conn.transaction():
-                await conn.execute("""
-                                       INSERT INTO users.quests(quest_id, thorny_id)
-                                       VALUES($1, $2)
-                                   """,
-                                   model.quest_id, model.thorny_id)
+                progress_id = await conn.fetchrow("""
+                                                  with quest_table as (
+                                                      insert into quests_v3.quest_progress(quest_id, thorny_id)
+                                                          VALUES($1, $2)
+
+                                                          returning progress_id
+                                                  )
+                                                  select progress_id as id from quest_table
+                                                  """,
+                                                  model.quest_id, model.thorny_id)
 
                 objectives_list = await ObjectivesListModel.fetch(db, model.quest_id)
 
                 for objective in objectives_list:
-                    create_model = UserObjectiveCreateModel(thorny_id=model.thorny_id, quest_id=model.quest_id, objective_id=objective.objective_id)
-                    await UserObjectiveModel.create(db, create_model)
+                    create_model = ObjectiveProgressCreateModel(
+                        progress_id=progress_id['id'],
+                        objective_id=objective.objective_id,
+                        target_progress=ObjectiveProgressCreateModel.generate_target_progress(objective.targets),
+                        customization_progress=ObjectiveProgressCreateModel.generate_customization_progress(objective.customizations)
+                    )
+                    await ObjectiveProgressModel.create(db, create_model)
 
     async def mark_failed(self, db: Database):
-        quest_update = QuestProgressUpdateModel(status='failed')
+        quest_update = QuestProgressUpdateModel()
+        quest_update.status = 'failed'
         await self.update(db, quest_update)
 
         for objective in self.objectives:
-            if objective.status == 'in_progress':
-                objective_update = UserObjectiveUpdateModel(status='failed')
+            if objective.status == 'active':
+                objective_update = ObjectiveProgressUpdateModel()
+                objective_update.status = 'failed'
                 await objective.update(db, objective_update)
 
     async def update(self, db: Database, model: "QuestProgressUpdateModel"):
@@ -103,15 +115,13 @@ class QuestProgressModel(QuestProgressBaseModel):
             setattr(self, k, v) if v is not None else None
 
         await db.pool.execute("""
-                                  UPDATE users.quests
-                                  SET accepted_on = $1,
-                                      started_on = $2,
+                                  UPDATE quests_v3.quest_progress
+                                  SET start_time = $1,
+                                      end_time = $2,
                                       status = $3
-                                  WHERE thorny_id = $4
-                                    AND quest_id = $5
+                                  WHERE progress_id = $4
                               """,
-                              self.accepted_on, self.started_on,
-                              self.status, self.thorny_id, self.quest_id)
+                              self.start_time, self.end_time, self.status, self.progress_id)
 
 
 class QuestProgressListModel(BaseList[QuestProgressModel]):
@@ -121,14 +131,14 @@ class QuestProgressListModel(BaseList[QuestProgressModel]):
             raise BadRequest400(extra={'ids': ['thorny_id']})
 
         data = await db.pool.fetch("""
-                                       SELECT * from users.quests
-                                       WHERE thorny_id = $1
+                                   SELECT * from quests_v3.quest_progress
+                                   WHERE thorny_id = $1
                                    """,
                                    thorny_id)
 
         quests = []
         for quest in data:
-            objectives = await UserObjectivesListModel.fetch(db, thorny_id, quest['quest_id'])
+            objectives = await ObjectiveProgressListModel.fetch(db, quest['progress_id'])
 
             quests.append(QuestProgressModel(**quest, objectives=objectives))
 
