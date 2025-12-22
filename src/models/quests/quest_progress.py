@@ -67,7 +67,7 @@ class QuestProgressModel(QuestProgressBaseModel):
                                       thorny_id)
 
         if data:
-            objectives = await ObjectiveProgressListModel.fetch(db, data[0]['progress_id'])
+            objectives = await ObjectiveProgressListModel.fetch(db, data['progress_id'])
 
             return cls(**data, objectives=objectives)
         else:
