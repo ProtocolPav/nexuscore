@@ -1,7 +1,7 @@
 from pydantic import Field, StringConstraints
 from typing import Annotated, Literal, Optional, Union
 
-from src.utils.base import BaseModel, BaseList, optional_model
+from src.utils.base import BaseModel
 
 from sanic_ext import openapi
 
@@ -9,13 +9,7 @@ MinecraftID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
 
 @openapi.component()
-class CustomizationBaseModel(BaseModel):
-    customization_type: str = Field(description="The customization type",
-                                    json_schema_extra={"example": "mainhand"})
-
-
-@openapi.component()
-class MainhandCustomization(CustomizationBaseModel):
+class MainhandCustomization(BaseModel):
     customization_type: Literal["mainhand"] = Field(description="The customization type",
                                                     json_schema_extra={"example": "mainhand"})
     item: MinecraftID = Field(description="The item which is required to be held",
@@ -23,7 +17,7 @@ class MainhandCustomization(CustomizationBaseModel):
 
 
 @openapi.component()
-class LocationCustomization(CustomizationBaseModel):
+class LocationCustomization(BaseModel):
     customization_type: Literal["location"] = Field(description="The customization type",
                                                     json_schema_extra={"example": "location"})
     coordinates: tuple[int, int, int] = Field(description="The coordinates",
@@ -35,13 +29,7 @@ class LocationCustomization(CustomizationBaseModel):
 
 
 @openapi.component()
-class NaturalBlockCustomization(CustomizationBaseModel):
-    customization_type: Literal["natural_blocks"] = Field(description="The customization type",
-                                                          json_schema_extra={"example": "natural_blocks"})
-
-
-@openapi.component()
-class TimerCustomization(CustomizationBaseModel):
+class TimerCustomization(BaseModel):
     customization_type: Literal["timer"] = Field(description="The customization type",
                                                  json_schema_extra={"example": "timer"})
     seconds: int = Field(description="The timer's seconds",
@@ -51,7 +39,7 @@ class TimerCustomization(CustomizationBaseModel):
 
 
 @openapi.component()
-class MaximumDeathsCustomization(CustomizationBaseModel):
+class MaximumDeathsCustomization(BaseModel):
     customization_type: Literal["maximum_deaths"] = Field(description="The customization type",
                                                           json_schema_extra={"example": "maximum_deaths"})
     deaths: int = Field(description="The most deaths a player can have before moving to the next objective",
@@ -60,14 +48,9 @@ class MaximumDeathsCustomization(CustomizationBaseModel):
                        json_schema_extra={"example": True})
 
 
-
-Customizations = Annotated[
-    Union[
-        MainhandCustomization,
-        LocationCustomization,
-        NaturalBlockCustomization,
-        TimerCustomization,
-        MaximumDeathsCustomization
-    ],
-    Field(discriminator="customization_type")
-]
+@openapi.component()
+class Customizations(BaseModel):
+    mainhand: Optional[MainhandCustomization] = Field(description="Mainhand Customization", default=None)
+    location: Optional[LocationCustomization] = Field(description="Location Customization", default=None)
+    timer: Optional[TimerCustomization] = Field(description="Timer Customization", default=None)
+    maximum_deaths: Optional[MaximumDeathsCustomization] = Field(description="Maximum Deaths Customization", default=None)

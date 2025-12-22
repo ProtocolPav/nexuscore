@@ -33,7 +33,7 @@ class ObjectiveBaseModel(BaseModel):
     target_count: Optional[int] = Field(description="Total count for `OR` logic. If `null`, each target must meet its own count",
                                         json_schema_extra={"example": 54})
     targets: list[Targets] = Field(description="The targets of the objective. Target types must be equal to `objective_type`")
-    customizations: list[Customizations] = Field(description="The customizations of the objective")
+    customizations: Customizations = Field(description="The customizations of the objective")
 
     @model_validator(mode='before')
     @classmethod
