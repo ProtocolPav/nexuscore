@@ -74,7 +74,7 @@ class QuestProgressModel(QuestProgressBaseModel):
             raise NotFound404(extra={'resource': 'quest_progress', 'id': thorny_id})
 
     @classmethod
-    async def create(cls, db: Database, model: "QuestProgressCreateModel", *args):
+    async def create(cls, db: Database, model: "QuestProgressCreateModel", *args) -> int:
         async with db.pool.acquire() as conn:
             async with conn.transaction():
                 progress_id = await conn.fetchrow("""
@@ -98,6 +98,8 @@ class QuestProgressModel(QuestProgressBaseModel):
                         customization_progress=ObjectiveProgressCreateModel.generate_customization_progress(objective.customizations)
                     )
                     await ObjectiveProgressModel.create(db, create_model)
+
+                return progress_id['id']
 
     async def mark_failed(self, db: Database):
         quest_update = QuestProgressUpdateModel()
