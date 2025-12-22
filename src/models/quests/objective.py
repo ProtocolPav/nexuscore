@@ -126,6 +126,8 @@ class ObjectiveModel(ObjectiveBaseModel):
         for k, v in model.model_dump().items():
             setattr(self, k, v) if v is not None else None
 
+        targets = list(map(lambda x: x.model_dump(), self.targets))
+
         await db.pool.execute("""
                               UPDATE quests_v3.objective
                               SET objective_type = $1,
@@ -139,8 +141,9 @@ class ObjectiveModel(ObjectiveBaseModel):
                                   
                               WHERE objective_id = $9
                               """,
-                              self.objective_type, self.order_index, self.description, self.display, self.logic,
-                              self.target_count, self.targets, self.customizations, self.objective_id)
+                              self.objective_type, self.order_index, self.description, self.display,
+                              self.logic, self.target_count, json.dumps(targets, default=str),
+                              self.customizations.model_dump_json(), self.objective_id)
 
 
 @openapi.component()

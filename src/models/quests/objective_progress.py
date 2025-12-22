@@ -84,6 +84,8 @@ class ObjectiveProgressModel(ObjectiveProgressBaseModel):
         for k, v in model.model_dump().items():
             setattr(self, k, v) if v is not None else None
 
+        targets = list(map(lambda x: x.model_dump(), self.target_progress))
+
         await db.pool.execute("""
                                UPDATE quests_v3.objective_progress
                                SET start_time = $1,
@@ -94,7 +96,8 @@ class ObjectiveProgressModel(ObjectiveProgressBaseModel):
                                WHERE progress_id = $6
                                AND objective_id = $7
                                """,
-                              self.start_time, self.end_time, self.target_progress, self.customization_progress,
+                              self.start_time, self.end_time,
+                              json.dumps(targets, default=str), self.customization_progress.model_dump_json(),
                               self.status, self.progress_id, self.objective_id)
 
 
