@@ -30,6 +30,8 @@ async def create_quest_progress(request: Request, db: Database, body: quest_prog
     """
     quest_id = await quest_progress.QuestProgressModel.create(db, body)
     quest_model = await quest_progress.QuestProgressModel.fetch(db, quest_id)
+    await quest_model.update(db, quest_progress.QuestProgressUpdateModel(status='active'))
+    await quest_model.objectives[0].update(db, quest_progress.ObjectiveProgressUpdateModel(status='active'))
 
     return sanic.json(status=201, body=quest_model.model_dump(), default=str)
 
