@@ -14,6 +14,7 @@ class TargetProgressBaseModel(BaseModel):
     target_type: str = Field(description="The type of the target. Must be equal to `objective_type`.",
                              json_schema_extra={"example": "kill"})
     count: int = Field(description="The number of this target to be reached. At least 1.",
+                       default=0,
                        json_schema_extra={"example": 50})
 
 
@@ -22,6 +23,7 @@ class MineTargetProgressModel(TargetProgressBaseModel):
     target_type: Literal["mine"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                          json_schema_extra={"example": "mine"})
     count: int = Field(description="The number of blocks mined so far",
+                       default=0,
                        json_schema_extra={"example": 50})
 
 
@@ -30,6 +32,7 @@ class KillTargetProgressModel(TargetProgressBaseModel):
     target_type: Literal["kill"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                          json_schema_extra={"example": "kill"})
     count: int = Field(description="The number of entities killed so far",
+                       default=0,
                        json_schema_extra={"example": 50})
 
 
@@ -38,6 +41,7 @@ class EncounterTargetProgressModel(TargetProgressBaseModel):
     target_type: Literal["encounter"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                               json_schema_extra={"example": "encounter"})
     count: int = Field(description="The number of Script ID's logged so far",
+                       default=0,
                        json_schema_extra={"example": 50})
 
 TargetProgress = Annotated[
