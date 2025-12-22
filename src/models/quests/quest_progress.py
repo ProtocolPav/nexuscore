@@ -20,8 +20,8 @@ class QuestProgressBaseModel(BaseModel):
                                            json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
     end_time: Optional[datetime] = Field(description="The time the user ended the quest, either by failing or completing it",
                                          json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
-    status: Literal['in_progress', 'completed', 'failed'] = Field(description="The status of the quest",
-                                                                  json_schema_extra={"example": 'in_progress'})
+    status: Literal['active', 'pending', 'completed', 'failed'] = Field(description="The status of the quest",
+                                                                        json_schema_extra={"example": 'in_progress'})
 
 
 @openapi.component()
