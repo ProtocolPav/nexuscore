@@ -7,8 +7,8 @@ from typing_extensions import Optional
 from sanic_ext import openapi
 
 from src.database import Database
-from src.models.quests.objective_customization_progress import CustomizationProgress
-from src.models.quests.objective_target_progress import TargetProgress
+from src.models.quests.objective_customization.progress import CustomizationProgress
+from src.models.quests.objective_targets.progress import TargetProgress
 from src.utils.base import BaseModel, BaseList, optional_model
 from src.utils.errors import BadRequest400, NotFound404
 

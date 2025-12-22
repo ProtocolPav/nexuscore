@@ -3,8 +3,8 @@ import json
 from pydantic import Field, model_validator
 from typing import Literal, Optional
 
-from src.models.quests.objective_customization import Customizations
-from src.models.quests.objective_target import Targets
+from src.models.quests.objective_customization.customization import Customizations
+from src.models.quests.objective_targets.target import Targets
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
