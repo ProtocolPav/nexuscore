@@ -1,4 +1,6 @@
 from sanic import Blueprint
+
+from src.routes.quest_progress import progress_blueprint
 from src.routes.users import user_blueprint
 from src.routes.events import events_blueprint
 from src.routes.quests import quest_blueprint
@@ -13,6 +15,7 @@ blueprints = [
     project_blueprint,
     pin_blueprint,
     quest_blueprint,
+    progress_blueprint,
     events_blueprint,
     guild_blueprint,
     server_blueprint,

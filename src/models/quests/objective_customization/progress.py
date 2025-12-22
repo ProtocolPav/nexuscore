@@ -16,3 +16,8 @@ class DeathCustomizationProgress(BaseModel):
 @openapi.component()
 class CustomizationProgress(BaseModel):
     maximum_deaths: Optional[DeathCustomizationProgress] = Field(description="Death count tracking", default=None)
+
+
+CUSTOMIZATION_TYPE_MAP = {
+    "maximum_deaths": DeathCustomizationProgress,
+}

@@ -9,8 +9,8 @@ from sanic_ext import openapi
 
 from src.database import Database
 from src.models.quests.objective_customization.customization import Customizations
-from src.models.quests.objective_customization.progress import CustomizationProgress
-from src.models.quests.objective_targets.progress import TargetProgress
+from src.models.quests.objective_customization.progress import CUSTOMIZATION_TYPE_MAP, CustomizationProgress
+from src.models.quests.objective_targets.progress import TARGET_TYPE_MAP, TargetProgress
 from src.models.quests.objective_targets.target import Targets
 from src.utils.base import BaseModel, BaseList, optional_model
 from src.utils.errors import BadRequest400, NotFound404
@@ -128,11 +128,25 @@ class ObjectiveProgressCreateModel(BaseModel):
 
     @classmethod
     def generate_target_progress(cls, targets: list[Targets]):
-        return [TargetProgress(x.target_uuid, x.target_type) for x in targets]
+        target_progress = []
+        for target in targets:
+            target_model = TARGET_TYPE_MAP.get(target.target_type, None)
+
+            if target_model:
+                target_progress.append(target_model(target_uuid=target.target_uuid, target_type=target.target_type))
+
+        return target_progress
 
     @classmethod
-    def generate_customization_progress(cls, customization: Customizations):
-        return CustomizationProgress()
+    def generate_customization_progress(cls, customizations: Customizations):
+        customization_progress = {}
+        for customization in customizations.model_dump().keys():
+            customization_model = CUSTOMIZATION_TYPE_MAP.get(customization, None)
+
+            if customization_model:
+                customization_progress[customization] = customization_model()
+
+        return CustomizationProgress(**customization_progress)
 
 
 ObjectiveProgressUpdateModel = optional_model('ObjectiveProgressUpdateModel', ObjectiveProgressBaseModel)

@@ -44,7 +44,15 @@ class EncounterTargetProgressModel(TargetProgressBaseModel):
                        default=0,
                        json_schema_extra={"example": 50})
 
+
 TargetProgress = Annotated[
     Union[MineTargetProgressModel, KillTargetProgressModel, EncounterTargetProgressModel],
     Field(discriminator="target_type")
 ]
+
+
+TARGET_TYPE_MAP = {
+    "mine": MineTargetProgressModel,
+    "kill": KillTargetProgressModel,
+    "encounter": EncounterTargetProgressModel
+}
