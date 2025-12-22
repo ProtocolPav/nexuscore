@@ -123,7 +123,8 @@ class ObjectiveModel(ObjectiveBaseModel):
             raise NotFound404(extra={'resource': 'objective', 'id': objective_id})
 
     async def update(self, db: Database, model: "ObjectiveUpdateModel"):
-        for k, v in model.model_dump().items():
+        for k in model.model_dump().keys():
+            v = getattr(model, k)
             setattr(self, k, v) if v is not None else None
 
         targets = list(map(lambda x: x.model_dump(), self.targets))

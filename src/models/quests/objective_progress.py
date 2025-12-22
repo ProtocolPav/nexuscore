@@ -81,7 +81,8 @@ class ObjectiveProgressModel(ObjectiveProgressBaseModel):
                                    json.dumps(targets, default=str), model.customization_progress.model_dump_json())
 
     async def update(self, db: Database, model: "ObjectiveProgressUpdateModel"):
-        for k, v in model.model_dump().items():
+        for k in model.model_dump().keys():
+            v = getattr(model, k)
             setattr(self, k, v) if v is not None else None
 
         targets = list(map(lambda x: x.model_dump(), self.target_progress))
