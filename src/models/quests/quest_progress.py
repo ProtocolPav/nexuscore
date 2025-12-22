@@ -107,7 +107,7 @@ class QuestProgressModel(QuestProgressBaseModel):
         await self.update(db, quest_update)
 
         for objective in self.objectives:
-            if objective.status == 'active':
+            if objective.status in ['active', 'pending']:
                 objective_update = ObjectiveProgressUpdateModel()
                 objective_update.status = 'failed'
                 await objective.update(db, objective_update)
