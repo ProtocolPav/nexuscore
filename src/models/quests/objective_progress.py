@@ -7,19 +7,21 @@ from typing_extensions import Optional
 from sanic_ext import openapi
 
 from src.database import Database
+from src.models.quests.objective_customization_progress import CustomizationProgress
+from src.models.quests.objective_target_progress import TargetProgress
 from src.utils.base import BaseModel, BaseList, optional_model
 from src.utils.errors import BadRequest400, NotFound404
 
 
 class ObjectiveProgressBaseModel(BaseModel):
-    start_time: datetime = Field(description="The time this objective was started on",
-                            json_schema_extra={"example": '2024-05-05T05:34:21Z'})
+    start_time: Optional[datetime] = Field(description="The time this objective was started on",
+                                           json_schema_extra={"example": '2024-05-05T05:34:21Z'})
     end_time: Optional[datetime] = Field(description="The time that this objective was completed",
-                                    json_schema_extra={"example": '2024-05-05T05:34:21Z'})
+                                         json_schema_extra={"example": '2024-05-05T05:34:21Z'})
     status: Literal['active', 'pending', 'completed', 'failed'] = Field(description="The status of this objective",
                                                                         json_schema_extra={"example": 'active'})
-    target_progress: list = Field(description="List of each objective target's progress")
-    customization_progress: list = Field(description="List of any specific customization info to track")
+    target_progress: list[TargetProgress] = Field(description="List of each objective target's progress")
+    customization_progress: CustomizationProgress = Field(description="Specific customization info to track")
 
 
 @openapi.component()
