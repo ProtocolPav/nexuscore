@@ -26,10 +26,8 @@ class ObjectiveProgressBaseModel(BaseModel):
 
 @openapi.component()
 class ObjectiveProgressModel(ObjectiveProgressBaseModel):
-    thorny_id: int = Field(description="The ThornyID of a user. This is a unique number.",
-                           json_schema_extra={"example": 34})
-    quest_id: int = Field(description="The quest ID",
-                          json_schema_extra={"example": 453})
+    progress_id: int = Field(description="The quest progress ID",
+                             json_schema_extra={"example": 453})
     objective_id: int = Field(description="The objective ID",
                               json_schema_extra={"example": 22})
 
