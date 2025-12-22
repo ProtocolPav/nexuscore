@@ -74,8 +74,7 @@ class ObjectiveModel(ObjectiveBaseModel):
     async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> int:
         async with db.pool.acquire() as conn:
             async with conn.transaction():
-                targets = list(map(lambda x: x.model_dump() ,model.targets))
-                customizations = list(map(lambda x: x.model_dump(), model.customizations))
+                targets = list(map(lambda x: x.model_dump(), model.targets))
 
                 objective_id = await conn.fetchrow("""
                                                     with objective_table as (
@@ -98,7 +97,7 @@ class ObjectiveModel(ObjectiveBaseModel):
                                                    """,
                                                    quest_id, model.objective_type, model.order_index, model.description,
                                                    model.display, model.logic, model.target_count,
-                                                   json.dumps(targets), json.dumps(customizations))
+                                                   json.dumps(targets, default=str), model.customizations.model_dump_json())
 
         for reward in model.rewards:
             await RewardModel.create(db=db, model=reward, quest_id=quest_id, objective_id=objective_id['id'])

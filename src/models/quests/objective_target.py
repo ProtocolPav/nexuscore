@@ -1,4 +1,6 @@
-from pydantic import Field, StringConstraints
+import uuid
+
+from pydantic import Field, StringConstraints, UUID4
 from typing import Annotated, Literal, Optional, Union
 
 from src.utils.base import BaseModel, BaseList, optional_model
@@ -10,6 +12,7 @@ MinecraftID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
 @openapi.component()
 class TargetBaseModel(BaseModel):
+    target_uuid: UUID4 = Field(description="The target uuid", default_factory=uuid.uuid4)
     target_type: str = Field(description="The type of the target. Must be equal to `objective_type`.",
                              json_schema_extra={"example": "kill"})
     count: int = Field(description="The number of this target to be reached. At least 1.",
