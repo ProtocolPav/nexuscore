@@ -36,7 +36,7 @@ async def create_quest_progress(request: Request, db: Database, body: quest_prog
     return sanic.json(status=201, body=quest_model.model_dump(), default=str)
 
 
-@progress_blueprint.route('/<thorny_id:int>', methods=['GET'])
+@progress_blueprint.route('/user/<thorny_id:int>', methods=['GET'])
 @openapi.definition(response=[
     Response(quest_progress.QuestProgressListModel.doc_schema(), 200),
     Response(NotFound404, 404)
@@ -52,7 +52,7 @@ async def get_all_quests(request: Request, db: Database, thorny_id: int):
     return sanic.json(quests_list.model_dump(), default=str)
 
 
-@progress_blueprint.route('/<thorny_id:int>/active', methods=['GET'])
+@progress_blueprint.route('/user/<thorny_id:int>/active', methods=['GET'])
 @openapi.definition(response=[
     Response(quest_progress.QuestProgressModel.doc_schema(), 200),
     Response(NotFound404, 404)
@@ -68,7 +68,7 @@ async def get_active_quest(request: Request, db: Database, thorny_id: int):
     return sanic.json(quest.model_dump(), default=str)
 
 
-@progress_blueprint.route('/<thorny_id:int>/active', methods=['DELETE'])
+@progress_blueprint.route('/user/<thorny_id:int>/active', methods=['DELETE'])
 @openapi.definition(response=[
     Response(204),
     Response(BadRequest400, 400),
