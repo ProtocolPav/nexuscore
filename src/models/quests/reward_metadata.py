@@ -52,6 +52,12 @@ class NameModel(MetadataBaseModel):
                                            json_schema_extra={"example": "name"})
     item_name: str = Field(description="The item name",
                            json_schema_extra={"example": "Super Secret Note"})
+
+
+@openapi.component()
+class LoreModel(MetadataBaseModel):
+    metadata_type: Literal['lore'] = Field(description="The metadata type",
+                                           json_schema_extra={"example": "lore"})
     item_lore: str = Field(description="The item lore",
                            json_schema_extra={"example": "This item gives +3 knockback"})
 
@@ -70,6 +76,7 @@ Metadata = Annotated[
         RandomEnchantmentModel,
         PotionModel,
         NameModel,
+        LoreModel,
         DamageModel
     ],
     Field(discriminator="metadata_type")
