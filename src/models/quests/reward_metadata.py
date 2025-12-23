@@ -58,8 +58,8 @@ class NameModel(MetadataBaseModel):
 class LoreModel(MetadataBaseModel):
     metadata_type: Literal['lore'] = Field(description="The metadata type",
                                            json_schema_extra={"example": "lore"})
-    item_lore: str = Field(description="The item lore",
-                           json_schema_extra={"example": "This item gives +3 knockback"})
+    item_lore: list[str] = Field(description="The item lore",
+                                 json_schema_extra={"example": ["This item gives +3 knockback", "+4 Damage"]})
 
 
 @openapi.component()
