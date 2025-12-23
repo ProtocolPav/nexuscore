@@ -25,8 +25,6 @@ class MineTargetModel(TargetBaseModel):
                                          json_schema_extra={"example": "mine"})
     block: MinecraftID = Field(description="The block to be mined",
                                json_schema_extra={"example": "minecraft:dirt"})
-    natural: bool = Field(description="Whether the block mined must be naturally generated",
-                          json_schema_extra={"example": False})
     count: int = Field(description="The number of blocks to be mined",
                        json_schema_extra={"example": 50})
 

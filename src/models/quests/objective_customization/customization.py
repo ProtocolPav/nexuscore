@@ -39,6 +39,10 @@ class MaximumDeathsCustomization(BaseModel):
     fail: bool = Field(description="Fail the quest when the death count is exceeded",
                        json_schema_extra={"example": True})
 
+@openapi.component()
+class NaturalBlockCustomization(BaseModel):
+    pass
+
 
 @openapi.component()
 class Customizations(BaseModel):
@@ -46,3 +50,4 @@ class Customizations(BaseModel):
     location: Optional[LocationCustomization] = Field(description="Location Customization", default=None)
     timer: Optional[TimerCustomization] = Field(description="Timer Customization", default=None)
     maximum_deaths: Optional[MaximumDeathsCustomization] = Field(description="Maximum Deaths Customization", default=None)
+    natural_block: Optional[NaturalBlockCustomization] = Field(description="Natural Block Customization", default=None)
