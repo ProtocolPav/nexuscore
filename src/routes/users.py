@@ -4,7 +4,7 @@ from sanic_ext import openapi, validate
 from sanic_ext.extensions.openapi.definitions import RequestBody, Response
 
 from src.database import Database
-from src.models.users import user, profile, playtime, interactions, quests
+from src.models.users import user, profile, playtime, interactions
 from src.utils.errors import BadRequest400, Forbidden403, NotFound404
 
 user_blueprint = Blueprint("users", url_prefix='/users')
