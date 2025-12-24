@@ -304,6 +304,8 @@ async def migrate(request: Request, db: Database):
                               """,
                               q_v1.accepted_on.isoformat(), progress_id)
 
+    # {old_quest_id: new_quest_id}
+    v2_quest_memory: dict[int, int] = {}
     v2_quests = await db.pool.fetch("""
                                     select * from quests.quest
                                     """)
@@ -361,7 +363,7 @@ async def migrate(request: Request, db: Database):
                     display=obj["display"],
                     order_index=obj["order"],
                     logic="and",
-                    target_count=0,
+                    target_count=None,
                     rewards=rew_create,
                     targets=[target],
                     customizations=customizations
@@ -378,7 +380,8 @@ async def migrate(request: Request, db: Database):
                 objectives=obj_create
             )
 
-            await quest.QuestModel.create(db, quest_create)
+            quest_id = await quest.QuestModel.create(db, quest_create)
+            v2_quest_memory[q_v2["quest_id"]] = quest_id
 
     model = await quest.QuestListModel.fetch(db)
     return sanic.json(model.model_dump(), default=str)
