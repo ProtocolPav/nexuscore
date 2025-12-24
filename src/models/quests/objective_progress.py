@@ -8,6 +8,8 @@ from typing_extensions import Optional
 from sanic_ext import openapi
 
 from src.database import Database
+from asyncpg import Connection
+
 from src.models.quests.objective_customization.customization import Customizations
 from src.models.quests.objective_customization.progress import CUSTOMIZATION_TYPE_MAP, CustomizationProgress
 from src.models.quests.objective_targets.progress import TARGET_TYPE_MAP, TargetProgress
@@ -63,8 +65,8 @@ class ObjectiveProgressModel(ObjectiveProgressBaseModel):
             raise NotFound404(extra={'resource': 'objective_progress', 'id': f'Progress ID: {progress_id}, Objective ID:{objective_id}'})
 
     @classmethod
-    async def create(cls, db: Database, model: "ObjectiveProgressCreateModel", *args):
-        async with db.pool.acquire() as conn:
+    async def create(cls, db: Database, model: "ObjectiveProgressCreateModel", conn: Connection = None, *args):
+        if conn is not None:
             async with conn.transaction():
                 targets = list(map(lambda x: x.model_dump(), model.target_progress))
 

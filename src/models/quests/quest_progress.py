@@ -97,7 +97,7 @@ class QuestProgressModel(QuestProgressBaseModel):
                         target_progress=ObjectiveProgressCreateModel.generate_target_progress(objective.targets),
                         customization_progress=ObjectiveProgressCreateModel.generate_customization_progress(objective.customizations)
                     )
-                    await ObjectiveProgressModel.create(db, create_model)
+                    await ObjectiveProgressModel.create(db, create_model, conn)
 
                 return progress_id['id']
 
