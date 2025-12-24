@@ -412,7 +412,6 @@ async def migrate(request: Request, db: Database):
         quest_progress_model = await quest_progress.QuestProgressModel.fetch(db, progress_id)
 
         for i in range(len(list(quest_progress_model.objectives))):
-            print(quest_progress_model.objectives[i].objective_id, prog["quest_id"], prog["thorny_id"], len(objective_prog))
             if len(objective_prog):
                 obj = quest_progress_model.objectives[i]
                 obj.start_time = objective_prog[i]["start"]
