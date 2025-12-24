@@ -40,15 +40,15 @@ class KillTargetModel(TargetBaseModel):
 
 
 @openapi.component()
-class EncounterTargetModel(TargetBaseModel):
-    target_type: Literal["encounter"] = Field(description="The type of the target. Must be equal to `objective_type`.",
-                                              json_schema_extra={"example": "encounter"})
+class ScriptEventTargetModel(TargetBaseModel):
+    target_type: Literal["scriptevent"] = Field(description="The type of the target. Must be equal to `objective_type`.",
+                                                json_schema_extra={"example": "scriptevent"})
     script_id: MinecraftID = Field(description="The script_event ID which will trigger the objective",
                                    json_schema_extra={"example": "quest:button_1"})
     count: int = Field(description="The number of ID's before this objective is completed",
                        json_schema_extra={"example": 50})
 
 Targets = Annotated[
-    Union[MineTargetModel, KillTargetModel, EncounterTargetModel],
+    Union[MineTargetModel, KillTargetModel, ScriptEventTargetModel],
     Field(discriminator="target_type")
 ]

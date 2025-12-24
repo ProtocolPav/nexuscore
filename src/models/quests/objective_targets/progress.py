@@ -37,16 +37,16 @@ class KillTargetProgressModel(TargetProgressBaseModel):
 
 
 @openapi.component()
-class EncounterTargetProgressModel(TargetProgressBaseModel):
-    target_type: Literal["encounter"] = Field(description="The type of the target. Must be equal to `objective_type`.",
-                                              json_schema_extra={"example": "encounter"})
+class ScriptEventTargetProgressModel(TargetProgressBaseModel):
+    target_type: Literal["scriptevent"] = Field(description="The type of the target. Must be equal to `objective_type`.",
+                                                json_schema_extra={"example": "scriptevent"})
     count: int = Field(description="The number of Script ID's logged so far",
                        default=0,
                        json_schema_extra={"example": 50})
 
 
 TargetProgress = Annotated[
-    Union[MineTargetProgressModel, KillTargetProgressModel, EncounterTargetProgressModel],
+    Union[MineTargetProgressModel, KillTargetProgressModel, ScriptEventTargetProgressModel],
     Field(discriminator="target_type")
 ]
 
@@ -54,5 +54,5 @@ TargetProgress = Annotated[
 TARGET_TYPE_MAP = {
     "mine": MineTargetProgressModel,
     "kill": KillTargetProgressModel,
-    "encounter": EncounterTargetProgressModel
+    "scriptevent": ScriptEventTargetProgressModel
 }

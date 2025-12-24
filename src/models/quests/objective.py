@@ -16,7 +16,7 @@ from sanic_ext import openapi
 from src.utils.errors import BadRequest400, NotFound404
 
 Logic = Literal["and", "or", "sequential"]
-ObjectiveTypes = Literal["kill", "mine", "encounter"]
+ObjectiveTypes = Literal["kill", "mine", "scriptevent"]
 
 
 class ObjectiveBaseModel(BaseModel):
@@ -26,7 +26,7 @@ class ObjectiveBaseModel(BaseModel):
                                    json_schema_extra={"example": "Find and speak to Alan Carr"})
     order_index: int = Field(description="The order of the objective. Starts at 0.",
                              json_schema_extra={"example": 0})
-    objective_type: ObjectiveTypes = Field(description="The type of objective: kill, mine or encounter",
+    objective_type: ObjectiveTypes = Field(description="The type of objective: kill, mine or scriptevent",
                                            json_schema_extra={"example": 'kill'})
     logic: Logic = Field(description="The logic to be applied to the objective targets",
                          json_schema_extra={"example": "or"})

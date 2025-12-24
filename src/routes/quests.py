@@ -14,7 +14,7 @@ from src.models.quests import objective, objective_progress, quest, quest_progre
 # Specific for Migration
 from src.models.quests.objective_customization.customization import Customizations, LocationCustomization, MainhandCustomization, \
     MaximumDeathsCustomization, NaturalBlockCustomization, TimerCustomization
-from src.models.quests.objective_targets.target import KillTargetModel, MineTargetModel, EncounterTargetModel
+from src.models.quests.objective_targets.target import KillTargetModel, MineTargetModel, ScriptEventTargetModel
 
 quest_blueprint = Blueprint("quests", url_prefix='/quests')
 
@@ -335,7 +335,7 @@ async def migrate(request: Request, db: Database):
                 elif obj["objective_type"] == 'mine':
                     target = MineTargetModel(target_type='mine', block=obj["objective"], count=obj["objective_count"])
                 else:
-                    target = EncounterTargetModel(target_type='encounter', script_id=obj["objective"], count=obj["objective_count"])
+                    target = ScriptEventTargetModel(target_type='scriptevent', script_id=obj["objective"], count=obj["objective_count"])
 
                 customizations = Customizations(mainhand=None, location=None, natural_block=None, maximum_deaths=None)
 
@@ -359,7 +359,7 @@ async def migrate(request: Request, db: Database):
 
                 obj_create.append(objective.ObjectiveCreateModel(
                     description=obj["description"],
-                    objective_type=obj["objective_type"],
+                    objective_type='scriptevent' if obj["objective_type"] == 'encounter' else obj["objective_type"],
                     display=obj["display"],
                     order_index=obj["order"],
                     logic="and",
