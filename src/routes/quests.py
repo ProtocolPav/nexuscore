@@ -250,7 +250,7 @@ async def migrate(request: Request, db: Database):
             else:
                 target = MineTargetModel(target_type='mine', block=q_v1["objective"] if q_v1["objective"] else "minecraft:dirt", count=q_v1["objective_count"] if q_v1["objective_count"] else 1)
 
-            customizations = Customizations()
+            customizations = Customizations(mainhand=None, location=None, natural_block=None, maximum_deaths=None)
 
             if q_v1["required_mainhand"]:
                 customizations.mainhand = MainhandCustomization(item=q_v1["required_mainhand"])
@@ -337,7 +337,7 @@ async def migrate(request: Request, db: Database):
                 else:
                     target = EncounterTargetModel(target_type='encounter', script_id=obj["objective"], count=obj["objective_count"])
 
-                customizations = Customizations()
+                customizations = Customizations(mainhand=None, location=None, natural_block=None, maximum_deaths=None)
 
                 if obj["required_mainhand"]:
                     customizations.mainhand = MainhandCustomization(item=obj["required_mainhand"])

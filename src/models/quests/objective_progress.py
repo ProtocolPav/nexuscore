@@ -133,7 +133,7 @@ class ObjectiveProgressCreateModel(BaseModel):
     customization_progress: CustomizationProgress = Field(description="Specific customization info to track")
 
     @classmethod
-    def generate_target_progress(cls, targets: list[Targets]):
+    def generate_target_progress(cls, targets: list[Targets]) -> list[TargetProgress]:
         target_progress = []
         for target in targets:
             target_model = TARGET_TYPE_MAP.get(target.target_type, None)
@@ -144,12 +144,12 @@ class ObjectiveProgressCreateModel(BaseModel):
         return target_progress
 
     @classmethod
-    def generate_customization_progress(cls, customizations: Customizations):
+    def generate_customization_progress(cls, customizations: Customizations) -> CustomizationProgress:
         customization_progress = {}
         for customization in customizations.model_dump().keys():
             customization_model = CUSTOMIZATION_TYPE_MAP.get(customization, None)
 
-            if customization_model:
+            if customizations.model_dump()[customization] is not None and customization_model:
                 customization_progress[customization] = customization_model()
 
         return CustomizationProgress(**customization_progress)
