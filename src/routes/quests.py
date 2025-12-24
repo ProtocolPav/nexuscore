@@ -9,7 +9,7 @@ from src.utils.errors import BadRequest400, NotFound404
 
 from src.database import Database
 
-from src.models.quests import objective, quest, quest_progress, reward
+from src.models.quests import objective, objective_progress, quest, quest_progress, reward
 
 # Specific for Migration
 from src.models.quests.objective_customization.customization import Customizations, LocationCustomization, MainhandCustomization, \
@@ -287,22 +287,22 @@ async def migrate(request: Request, db: Database):
             quest_id = await quest.QuestModel.create(db, create_model)
             v1_quest_memory[q_v1["quest_id"]] = {"v3_id": quest_id}
 
-        v3_id = v1_quest_memory[q_v1.quest_id]["v3_id"]
-        progress_id = await quest_progress.QuestProgressModel.create(db, quest_progress.QuestProgressCreateModel(quest_id=v3_id, thorny_id=q_v1.thorny_id))
+        v3_id = v1_quest_memory[q_v1['quest_id']]["v3_id"]
+        progress_id = await quest_progress.QuestProgressModel.create(db, quest_progress.QuestProgressCreateModel(quest_id=v3_id, thorny_id=q_v1["thorny_id"]))
 
         await db.pool.execute("""
                               UPDATE quests_v3.quest_progress
                               SET accept_time = $1, start_time = $1, end_time = $1, status = 'completed'
                               WHERE progress_id = $2
                               """,
-                              q_v1.accepted_on.isoformat(), progress_id)
+                              q_v1['accepted_on'], progress_id)
 
         await db.pool.execute("""
                                   UPDATE quests_v3.objective_progress
                                   SET start_time = $1, end_time = $1, status = 'completed'
                                   WHERE progress_id = $2
                               """,
-                              q_v1.accepted_on.isoformat(), progress_id)
+                              q_v1['accepted_on'], progress_id)
 
     # {old_quest_id: new_quest_id}
     v2_quest_memory: dict[int, int] = {}
@@ -312,7 +312,7 @@ async def migrate(request: Request, db: Database):
 
     for q_v2 in v2_quests:
         if q_v2["quest_id"] not in v1_quest_memory.keys():
-            objectives = await db.pool.fetch("""select * from quests.objective where quest_id = $1""", q_v2["quest_id"])
+            objectives = await db.pool.fetch("""select * from quests.objective where quest_id = $1 order by "order" asc""", q_v2["quest_id"])
 
             obj_create = []
             for obj in objectives:
@@ -382,6 +382,45 @@ async def migrate(request: Request, db: Database):
 
             quest_id = await quest.QuestModel.create(db, quest_create)
             v2_quest_memory[q_v2["quest_id"]] = quest_id
+
+    v2_quest_prog = await db.pool.fetch("""
+                                        select * from users.quests
+                                    """)
+
+    for prog in v2_quest_prog:
+        new_quest_id = v2_quest_memory[prog["quest_id"]]
+
+        progress_id = await quest_progress.QuestProgressModel.create(db, quest_progress.QuestProgressCreateModel(quest_id=new_quest_id, thorny_id=prog['thorny_id']))
+
+        objective_prog = await db.pool.fetch("""
+                                                select *
+                                                from users.objectives
+                                                    where quest_id = $1
+                                                    and thorny_id = $2
+                                            """,
+                                             prog["quest_id"], prog['thorny_id'])
+
+        quest_status = prog['status'] if prog['status'] != "in_progress" else "active"
+        quest_end = objective_prog[-1]["end"] if len(objective_prog) > 0 else None
+        await db.pool.execute("""
+                                  UPDATE quests_v3.quest_progress
+                                  SET accept_time = $1, start_time = $2, end_time = $3, status = $4
+                                  WHERE progress_id = $5
+                              """,
+                              prog['accepted_on'], prog['started_on'], quest_end, quest_status, progress_id)
+
+        quest_progress_model = await quest_progress.QuestProgressModel.fetch(db, progress_id)
+
+        for i in range(len(list(quest_progress_model.objectives))):
+            print(quest_progress_model.objectives[i].objective_id, prog["quest_id"], prog["thorny_id"], len(objective_prog))
+            if len(objective_prog):
+                obj = quest_progress_model.objectives[i]
+                obj.start_time = objective_prog[i]["start"]
+                obj.end_time = objective_prog[i]["end"]
+                obj.status = objective_prog[i]["status"] if objective_prog[i]["status"] != "in_progress" else "active"
+                obj.target_progress[0].count = objective_prog[i]["completion"]
+
+                await obj.update(db, objective_progress.ObjectiveProgressUpdateModel())
 
     model = await quest.QuestListModel.fetch(db)
     return sanic.json(model.model_dump(), default=str)
