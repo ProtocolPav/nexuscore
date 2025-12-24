@@ -236,7 +236,7 @@ async def migrate(request: Request, db: Database):
                                         oq.item_reward,
                                         oq.item_reward_count from users.quests uq
                                     inner join quests.quest q on uq.quest_id = q.quest_id
-                                    inner join quests oq on oq.title = q.title and oq.start_time = q.start_time;
+                                    inner join quests oq on oq.title = q.title;
                                     """)
 
     # {quest_id: {"v3_id": 43}}
@@ -246,9 +246,9 @@ async def migrate(request: Request, db: Database):
         # Quest doesn't exist in the DB. Create it
         if v1_quest_memory.get(q_v1["quest_id"], None) is None:
             if q_v1["objective_type"] == 'kill':
-                target = KillTargetModel(target_type='kill', entity=q_v1["objective"], count=q_v1["objective_count"])
+                target = KillTargetModel(target_type='kill', entity=q_v1["objective"] if q_v1["objective"] else "minecraft:zombie", count=q_v1["objective_count"] if q_v1["objective_count"] else 1)
             else:
-                target = MineTargetModel(target_type='mine', block=q_v1["objective"], count=q_v1["objective_count"])
+                target = MineTargetModel(target_type='mine', block=q_v1["objective"] if q_v1["objective"] else "minecraft:dirt", count=q_v1["objective_count"] if q_v1["objective_count"] else 1)
 
             customizations = Customizations()
 
