@@ -42,7 +42,7 @@ class QuestModel(QuestBaseModel):
             async with conn.transaction():
                 quest_id = await conn.fetchrow("""
                                                 with quest_table as (
-                                                    insert into quests.quest(
+                                                    insert into quests_v3.quest(
                                                         start_time, 
                                                         end_time, 
                                                         title, 
@@ -72,7 +72,7 @@ class QuestModel(QuestBaseModel):
             raise BadRequest400(extra={'ids': ['quest_id']})
 
         data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests.quest
+                                       SELECT * FROM quests_v3.quest
                                        WHERE quest_id = $1
                                        """,
                                       quest_id)
@@ -89,7 +89,7 @@ class QuestModel(QuestBaseModel):
             setattr(self, k, v) if v is not None else None
 
         await db.pool.execute("""
-                              UPDATE quests.quest
+                              UPDATE quests_v3.quest
                               SET start_time = $1,
                                   end_time = $2,
                                   title = $3,
@@ -117,7 +117,7 @@ class QuestListModel(BaseList[QuestModel]):
                     past: bool = None,
                     *args) -> "QuestListModel":
         # Build the query dynamically
-        query_parts = ["SELECT * FROM quests.quest q"]
+        query_parts = ["SELECT * FROM quests_v3.quest q"]
         conditions = []
         params = []
 

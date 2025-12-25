@@ -1,8 +1,10 @@
-import datetime
+import json
 
-from pydantic import Field, StringConstraints
-from typing import Annotated, Literal, Optional
+from pydantic import Field, model_validator
+from typing import Literal, Optional
 
+from src.models.quests.objective_customization.customization import Customizations
+from src.models.quests.objective_targets.target import Targets
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
@@ -13,37 +15,52 @@ from sanic_ext import openapi
 
 from src.utils.errors import BadRequest400, NotFound404
 
-InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
-ObjectiveType = Literal["kill", "mine", "encounter"]
+Logic = Literal["and", "or", "sequential"]
+ObjectiveTypes = Literal["kill", "mine", "scriptevent"]
 
 
 class ObjectiveBaseModel(BaseModel):
-    objective_type: ObjectiveType = Field(description="The type of objective: kill, mine or encounter",
-                                          json_schema_extra={"example": 'kill'})
-    objective_count: int = Field(description="How much until the objective is completed",
-                                 json_schema_extra={"example": 32})
-    objective: InteractionRef = Field(description="The target of the objective",
-                                      json_schema_extra={"example": 'minecraft:skeleton'})
     description: str = Field(description="The description of the objective",
-                             json_schema_extra={"example": 'Did you know skeletons hate diamonds...'})
+                             json_schema_extra={"example": 'This is an objective description!'})
     display: Optional[str] = Field(description="Override with a custom objective task display",
-                                   json_schema_extra={"example": None})
-    order: int = Field(description="The order of the objective",
-                       json_schema_extra={"example": 0})
-    natural_block: bool = Field(description="Denotes whether the block mined must be natural or not",
-                                json_schema_extra={"example": False})
-    objective_timer: Optional[float] = Field(description='An optional timer for this objective in seconds',
-                                             json_schema_extra={"example": 30})
-    required_mainhand: Optional[InteractionRef] = Field(description="An optional mainhand requirement for this objective",
-                                                        json_schema_extra={"example": 'minecraft:diamond_sword'})
-    required_location: Optional[list[int]] = Field(description="An optional location requirement for this objective",
-                                                   json_schema_extra={"example": [56, 76]})
-    location_radius: Optional[int] = Field(description="The radius for the location requirement",
-                                           json_schema_extra={"example": 100})
-    required_deaths: Optional[int] = Field(description="An optional deaths requirement. More than this amount would fail the objective.",
-                                           json_schema_extra={"example": 3})
-    continue_on_fail: bool = Field(description="If a player fails this objective, continue rather than failing the entire quest",
-                                json_schema_extra={"example": False})
+                                   json_schema_extra={"example": "Find and speak to Alan Carr"})
+    order_index: int = Field(description="The order of the objective. Starts at 0.",
+                             json_schema_extra={"example": 0})
+    objective_type: ObjectiveTypes = Field(description="The type of objective: kill, mine or scriptevent",
+                                           json_schema_extra={"example": 'kill'})
+    logic: Logic = Field(description="The logic to be applied to the objective targets",
+                         json_schema_extra={"example": "or"})
+    target_count: Optional[int] = Field(description="Total count for `OR` logic. If `null`, each target must meet its own count",
+                                        json_schema_extra={"example": 54})
+    targets: list[Targets] = Field(description="The targets of the objective. Target types must be equal to `objective_type`")
+    customizations: Customizations = Field(description="The customizations of the objective")
+
+    @model_validator(mode='before')
+    @classmethod
+    def pre_process_json(cls, data):
+        if isinstance(data.get('targets'), str):
+            data['targets'] = json.loads(data['targets'])
+
+        if isinstance(data.get('customizations'), str):
+            data['customizations'] = json.loads(data['customizations'])
+
+        return data
+
+    @model_validator(mode='after')
+    def check_targets(self) -> "ObjectiveBaseModel":
+        if len(self.targets) == 0:
+            raise BadRequest400("Objectives must have at least one target")
+
+        for target in self.targets:
+            if target.target_type != self.objective_type:
+                raise BadRequest400(f"All targets must be of the same type. "
+                                    f"Offending target: {target.target_type} != {self.objective_type}")
+
+            if target.count < 1:
+                raise BadRequest400(f"A target's count must be at least 1.")
+
+        return self
+
 
 @openapi.component()
 class ObjectiveModel(ObjectiveBaseModel):
@@ -54,43 +71,38 @@ class ObjectiveModel(ObjectiveBaseModel):
     rewards: RewardsListModel = Field(description="The rewards for this objective, if any")
 
     @classmethod
-    async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> "ObjectiveModel":
+    async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> int:
         async with db.pool.acquire() as conn:
             async with conn.transaction():
+                targets = list(map(lambda x: x.model_dump(), model.targets))
+
                 objective_id = await conn.fetchrow("""
                                                     with objective_table as (
-                                                        insert into quests.objective(quest_id,
-                                                                                     objective,
-                                                                                     objective_count,
-                                                                                     objective_type,
-                                                                                     objective_timer,
-                                                                                     required_mainhand,
-                                                                                     required_location,
-                                                                                     location_radius,
-                                                                                     "order",
-                                                                                     description,
-                                                                                     natural_block,
-                                                                                     display,
-                                                                                     required_deaths,
-                                                                                     continue_on_fail)
-                                                        values(
-                                                            $1, $2, $3, $4, $5, $6, $7,
-                                                            $8, $9, $10, $11, $12, $13, $14
-                                                        )
+                                                        insert into quests_v3.objective (
+                                                            quest_id, 
+                                                            objective_type, 
+                                                            order_index, 
+                                                            description, 
+                                                            display, 
+                                                            logic, 
+                                                            target_count, 
+                                                            targets, 
+                                                            customizations
+                                                            )
+                                                        values($1, $2, $3, $4, $5, $6, $7, $8, $9)
         
                                                         returning objective_id
                                                     )
                                                     select objective_id as id from objective_table
                                                    """,
-                                                   quest_id, model.objective, model.objective_count,
-                                                   model.objective_type, model.objective_timer,
-                                                   model.required_mainhand, model.required_location,
-                                                   model.location_radius, model.order, model.description,
-                                                   model.natural_block, model.display, model.required_deaths,
-                                                   model.continue_on_fail)
+                                                   quest_id, model.objective_type, model.order_index, model.description,
+                                                   model.display, model.logic, model.target_count,
+                                                   json.dumps(targets, default=str), model.customizations.model_dump_json())
 
         for reward in model.rewards:
             await RewardModel.create(db=db, model=reward, quest_id=quest_id, objective_id=objective_id['id'])
+
+        return objective_id['id']
 
     @classmethod
     async def fetch(cls, db: Database, objective_id: int = None, *args) -> "ObjectiveModel":
@@ -98,7 +110,7 @@ class ObjectiveModel(ObjectiveBaseModel):
             raise BadRequest400(extra={'ids': ['objective_id']})
 
         data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests.objective
+                                       SELECT * FROM quests_v3.objective
                                        WHERE objective_id = $1
                                        """,
                                       objective_id)
@@ -111,31 +123,28 @@ class ObjectiveModel(ObjectiveBaseModel):
             raise NotFound404(extra={'resource': 'objective', 'id': objective_id})
 
     async def update(self, db: Database, model: "ObjectiveUpdateModel"):
-        for k, v in model.model_dump().items():
+        for k in model.model_dump().keys():
+            v = getattr(model, k)
             setattr(self, k, v) if v is not None else None
 
+        targets = list(map(lambda x: x.model_dump(), self.targets))
+
         await db.pool.execute("""
-                              UPDATE quests.objective
-                              SET objective = $1,
-                                  objective_count = $2,
-                                  objective_type = $3,
-                                  objective_timer = $4,
-                                  required_mainhand = $5,
-                                  required_location = $6,
-                                  location_radius = $7,
-                                  "order" = $8,
-                                  description = $9,
-                                  natural_block = $10,
-                                  display = $11,
-                                  required_deaths = $12,
-                                  continue_on_fail = $13
+                              UPDATE quests_v3.objective
+                              SET objective_type = $1,
+                                  order_index = $2,
+                                  description = $3,
+                                  display = $4,
+                                  logic = $5,
+                                  target_count = $6,
+                                  targets = $7,
+                                  customizations = $8
                                   
-                              WHERE objective_id = $14
+                              WHERE objective_id = $9
                               """,
-                              self.objective, self.objective_count, self.objective_type,
-                              self.objective_timer, self.required_mainhand, self.required_location,
-                              self.location_radius, self.order, self.description, self.natural_block,
-                              self.display, self.required_deaths, self.continue_on_fail, self.objective_id)
+                              self.objective_type, self.order_index, self.description, self.display,
+                              self.logic, self.target_count, json.dumps(targets, default=str),
+                              self.customizations.model_dump_json(), self.objective_id)
 
 
 @openapi.component()
@@ -146,9 +155,9 @@ class ObjectivesListModel(BaseList[ObjectiveModel]):
             raise BadRequest400(extra={'ids': ['quest_id']})
 
         data = await db.pool.fetch("""
-                                 SELECT * FROM quests.objective
+                                 SELECT * FROM quests_v3.objective
                                  WHERE quest_id = $1
-                                 ORDER BY "order"
+                                 ORDER BY order_index
                                  """,
                                  quest_id)
 
