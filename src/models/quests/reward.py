@@ -1,5 +1,9 @@
-from pydantic import Field, StringConstraints
+import json
+
+from pydantic import Field, StringConstraints, model_validator
 from typing import Annotated, Optional
+
+from src.models.quests.reward_metadata import Metadata
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.database import Database
@@ -8,18 +12,27 @@ from sanic_ext import openapi
 
 from src.utils.errors import BadRequest400, NotFound404
 
-InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
+MinecraftID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
 
 class RewardBaseModel(BaseModel):
     balance: Optional[int] = Field(description="The balance this reward will add",
                                    json_schema_extra={"example": None})
-    item: Optional[InteractionRef] = Field(description="The item this reward will give",
+    item: Optional[MinecraftID] = Field(description="The item this reward will give",
                                           json_schema_extra={"example": 'minecraft:gold_ingot'})
     count: Optional[int] = Field(description="The amount of this item this reward will give",
                                  json_schema_extra={"example": 43})
     display_name: Optional[str] = Field(description="The optional text to display instead of the reward item name",
                                        json_schema_extra={"example": 'Something Shiny'})
+    item_metadata: list[Metadata] = Field(description="The metadata for the item reward, to add extra customization")
+
+    @model_validator(mode='before')
+    @classmethod
+    def pre_process_json(cls, data):
+        if isinstance(data.get('item_metadata'), str):
+            data['item_metadata'] = json.loads(data['item_metadata'])
+
+        return data
 
 
 @openapi.component()
@@ -36,21 +49,26 @@ class RewardModel(RewardBaseModel):
     async def create(cls, db: Database, model: "RewardCreateModel", quest_id: int = None, objective_id: int = None, *args) -> "RewardModel":
         async with db.pool.acquire() as conn:
             async with conn.transaction():
+                metadata = list(map(lambda x: x.model_dump(), model.item_metadata))
+
                 reward_id = await conn.fetchrow("""
                                                 WITH reward_table AS (
-                                                    INSERT INTO quests.reward(quest_id, 
-                                                                              objective_id,
-                                                                              balance,
-                                                                              item,
-                                                                              count,
-                                                                              display_name)
-                                                    VALUES($1, $2, $3, $4, $5, $6)
+                                                    INSERT INTO quests_v3.reward(
+                                                        quest_id, 
+                                                        objective_id,
+                                                        balance,
+                                                        item,
+                                                        count,
+                                                        display_name,
+                                                        item_metadata
+                                                        )
+                                                    VALUES($1, $2, $3, $4, $5, $6, $7)
                                                     RETURNING reward_id
                                                 )
                                                 SELECT reward_id as id FROM reward_table
                                                 """,
                                                 quest_id, objective_id, model.balance, model.item, model.count,
-                                                model.display_name)
+                                                model.display_name, json.dumps(metadata))
 
         return cls(reward_id=reward_id['id'], quest_id=quest_id, objective_id=objective_id, **model.model_dump())
 
@@ -60,7 +78,7 @@ class RewardModel(RewardBaseModel):
             raise BadRequest400(extra={'ids': ['reward_id']})
 
         data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests.reward
+                                       SELECT * FROM quests_v3.reward
                                        WHERE reward_id = $1
                                        """,
                                       reward_id)
@@ -75,7 +93,7 @@ class RewardModel(RewardBaseModel):
             setattr(self, k, v) if v is not None else None
 
         await db.pool.execute("""
-                              UPDATE quests.reward
+                              UPDATE quests_v3.reward
                               SET objective_id = $1,
                                   balance = $2,
                                   item = $3,
@@ -95,7 +113,7 @@ class RewardsListModel(BaseList[RewardModel]):
 
         data = await db.pool.fetch("""
                                   SELECT *
-                                  FROM quests.reward
+                                  FROM quests_v3.reward
                                   WHERE objective_id = $1
                                   """,
                                   objective_id)
