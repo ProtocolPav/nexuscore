@@ -37,6 +37,8 @@ class UserBaseModel(BaseModel):
                                     json_schema_extra={"example": "ProtocolPav"})
     whitelist: Optional[str] = Field(description="The gamertag that this user is whitelisted under",
                                      json_schema_extra={"example": "ProtocolPav"})
+    xuid: Optional[int] = Field(description="The user's XUID, determined from Geode",
+                                json_schema_extra={"example": 1234567890})
     location: Optional[tuple[int, int, int]] = Field(description="The last in-game location of the user",
                                            json_schema_extra={"example": (544, 18, -432)})
     dimension: Optional[str] = Field(description="The last in-game dimension the user was in",
@@ -145,13 +147,14 @@ class UserModel(UserBaseModel):
                                    whitelist = $12,
                                    location = $13,
                                    dimension = $14,
-                                   hidden = $15
-                               WHERE thorny_id = $16
+                                   hidden = $15,
+                                   xuid = $16
+                               WHERE thorny_id = $17
                                """,
                               self.username, self.birthday, self.balance, self.active,
                               self.role, self.patron, self.level, self.xp, self.required_xp,
                               self.last_message, self.gamertag, self.whitelist, self.location,
-                              self.dimension, self.hidden, self.thorny_id)
+                              self.dimension, self.hidden, self.xuid, self.thorny_id)
 
 
 UserUpdateModel = optional_model("UserUpdateModel", UserBaseModel)

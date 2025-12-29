@@ -204,6 +204,8 @@ class OnlineEntry(BaseModel):
                                            json_schema_extra={"example": (544, 18, -432)})
     dimension: str = Field(description="The last in-game dimension the user was in",
                            json_schema_extra={"example": 'minecraft:overworld'})
+    hidden: bool = Field(description="Whether the user should be hidden on the Live Map",
+                         json_schema_extra={"example": True})
 
 
 class OnlineUsersListModel(BaseList[OnlineEntry]):
@@ -217,7 +219,8 @@ class OnlineUsersListModel(BaseList[OnlineEntry]):
                                         u.whitelist, 
                                         sv.connect_time as session,
                                         u.location,
-                                        u.dimension
+                                        u.dimension,
+                                        u.hidden
                                    FROM events.sessions_view sv
                                    INNER JOIN users.user u ON sv.thorny_id = u.thorny_id
                                    WHERE u.guild_id = $1
