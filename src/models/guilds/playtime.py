@@ -4,6 +4,7 @@ from datetime import date, datetime
 from pydantic import Field
 
 from sanic_ext import openapi
+from typing_extensions import Optional
 
 from src.database import Database
 
@@ -206,6 +207,8 @@ class OnlineEntry(BaseModel):
                            json_schema_extra={"example": 'minecraft:overworld'})
     hidden: bool = Field(description="Whether the user should be hidden on the Live Map",
                          json_schema_extra={"example": True})
+    xuid: Optional[str] = Field(description="The XUID of the user",
+                                json_schema_extra={"example": '127843834324332'})
 
 
 class OnlineUsersListModel(BaseList[OnlineEntry]):
@@ -220,7 +223,8 @@ class OnlineUsersListModel(BaseList[OnlineEntry]):
                                         sv.connect_time as session,
                                         u.location,
                                         u.dimension,
-                                        u.hidden
+                                        u.hidden,
+                                        u.xuid
                                    FROM events.sessions_view sv
                                    INNER JOIN users.user u ON sv.thorny_id = u.thorny_id
                                    WHERE u.guild_id = $1
