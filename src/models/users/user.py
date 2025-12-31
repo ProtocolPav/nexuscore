@@ -37,8 +37,8 @@ class UserBaseModel(BaseModel):
                                     json_schema_extra={"example": "ProtocolPav"})
     whitelist: Optional[str] = Field(description="The gamertag that this user is whitelisted under",
                                      json_schema_extra={"example": "ProtocolPav"})
-    xuid: Optional[int] = Field(description="The user's XUID, determined from Geode",
-                                json_schema_extra={"example": 1234567890})
+    xuid: Optional[str] = Field(description="The user's XUID, determined from Geode",
+                                json_schema_extra={"example": '1234567890'})
     location: Optional[tuple[int, int, int]] = Field(description="The last in-game location of the user",
                                            json_schema_extra={"example": (544, 18, -432)})
     dimension: Optional[str] = Field(description="The last in-game dimension the user was in",
