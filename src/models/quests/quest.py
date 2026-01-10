@@ -26,8 +26,8 @@ class QuestBaseModel(BaseModel):
                             json_schema_extra={"example": "13"})
     tags: list[str] = Field(description="A list of tags describing this quest",
                             json_schema_extra={"example": ['pvp', 'timed', 'challenge']})
-    quest_type: Literal['story', 'side', 'minor'] = Field(description="The quest type",
-                                                          json_schema_extra={"example": "side"})
+    quest_type: str = Field(description="The quest type",
+                            json_schema_extra={"example": "side"})
 
 
 @openapi.component()
