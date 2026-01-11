@@ -1,0 +1,32 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker build \
+        -t europe-docker.pkg.dev/single-inquiry-391907/everthorn/nexuscore:$SHORT_SHA \
+        -t europe-docker.pkg.dev/single-inquiry-391907/everthorn/nexuscore:latest \
+        .
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-docker.pkg.dev/single-inquiry-391907/everthorn/nexuscore:$SHORT_SHA']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-docker.pkg.dev/single-inquiry-391907/everthorn/nexuscore:latest']
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'pubsub'
+      - 'topics'
+      - 'publish'
+      - 'builds'
+      - '--message={"compose-name": "nexuscore", "image": "europe-docker.pkg.dev/single-inquiry-391907/everthorn/nexuscore:$SHORT_SHA"}'
+      - '--attribute=build_id=$BUILD_ID,commit_sha=$SHORT_SHA,branch_name=$BRANCH_NAME'
+
+images:
+  - 'europe-docker.pkg.dev/single-inquiry-391907/everthorn/nexuscore:$SHORT_SHA'
+  - 'europe-docker.pkg.dev/single-inquiry-391907/everthorn/nexuscore:latest'
+
+options:
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
