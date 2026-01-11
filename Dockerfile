@@ -1,9 +1,11 @@
-FROM python:3.11.8-alpine
+FROM python:3.12.0-alpine
 
-COPY requirements.txt /nexuscore/requirements.txt
+COPY . /nexuscore/
 
 RUN pip install -r /nexuscore/requirements.txt
 
 ENV PYTHONPATH "${PYTHONPATH}:/nexuscore/"
 
 WORKDIR /nexuscore
+
+CMD ["python", "-u", "nexus.py"]
