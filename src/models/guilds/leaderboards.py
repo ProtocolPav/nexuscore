@@ -32,6 +32,7 @@ class LeaderboardModel(BaseModel):
                     inner join users."user" u 
                     on u.thorny_id = sv.thorny_id 
                     where sv.connect_time between $1 and $2
+                    and u.active = true
                     and u.guild_id = $3
                     group by sv.thorny_id, u.user_id
                     order by playtime desc
@@ -57,6 +58,7 @@ class LeaderboardModel(BaseModel):
                                             select thorny_id, user_id, balance
                                             from users."user"
                                             where guild_id = $1
+                                            and active = true
                                             order by balance desc
                                         )
                                         
@@ -82,6 +84,7 @@ class LeaderboardModel(BaseModel):
                                             select thorny_id, user_id, level
                                             from users."user"
                                             where guild_id = $1
+                                            and active = true
                                             order by level desc
                                         )
 
@@ -109,6 +112,7 @@ class LeaderboardModel(BaseModel):
                                             inner join users.quests q on q.thorny_id = u.thorny_id
                                             where u.guild_id = $1
                                             and q.status = 'completed'
+                                            and u.active = true
                                             group by u.thorny_id
                                             order by quests desc
                                         )
