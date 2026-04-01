@@ -15,7 +15,7 @@ from src.utils.errors import NotFound404
 
 class PageContentBaseModel(BaseModel):
     content: dict[str, Any] = Field(description="The full React editor document as an opaque JSON object",
-                                    json_schema_extra={"example": {"type": "doc", "content": []}})
+                                    json_schema_extra={"example": []})
     editor_type: str = Field(description="The editor type used to create this content",
                              json_schema_extra={"example": "blocknote"})
     change_note: Optional[str] = Field(description="A note describing what changed in this version",
