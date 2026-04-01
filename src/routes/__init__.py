@@ -9,6 +9,7 @@ from src.routes.guilds import guild_blueprint
 from src.routes.server import server_blueprint
 from src.routes.pins import pin_blueprint
 from src.routes.wrapped import wrapped_blueprint
+from src.routes.wiki import wiki_blueprint
 
 blueprints = [
     user_blueprint,
@@ -19,7 +20,8 @@ blueprints = [
     events_blueprint,
     guild_blueprint,
     server_blueprint,
-    wrapped_blueprint
+    wrapped_blueprint,
+    wiki_blueprint
 ]
 
 blueprint_group = Blueprint.group(url_prefix='/', *blueprints, version=0.2, version_prefix='/api/v')
