@@ -107,7 +107,7 @@ async def create_page_content(request: Request, db: Database, page_id: str, body
         if body.edited_by != page_model.author_id and editor.role not in ('Admin', 'Owner'):
             raise Forbidden403()
 
-    content_model = await content.PageContentModel.create(db, page_id, body)
+    content_model = await content.PageContentModel.create(db, body, page_id)
 
     return sanic.json(status=201, body=content_model.model_dump(), default=str)
 

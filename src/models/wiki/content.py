@@ -1,6 +1,7 @@
+import json
 from datetime import datetime
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from typing import Any
 from typing_extensions import Optional
 
@@ -14,12 +15,20 @@ from src.utils.errors import NotFound404
 
 
 class PageContentBaseModel(BaseModel):
-    content: dict[str, Any] = Field(description="The full React editor document as an opaque JSON object",
-                                    json_schema_extra={"example": []})
+    content: list[dict] = Field(description="The full React editor document as an opaque JSON object",
+                                json_schema_extra={"example": []})
     editor_type: str = Field(description="The editor type used to create this content",
                              json_schema_extra={"example": "blocknote"})
     change_note: Optional[str] = Field(description="A note describing what changed in this version",
                                        json_schema_extra={"example": "Fixed typo in introduction"})
+
+    @model_validator(mode='before')
+    @classmethod
+    def pre_process_json(cls, data):
+        if isinstance(data.get('content'), str):
+            data['content'] = json.loads(data['content'])
+
+        return data
 
 
 @openapi.component()
@@ -37,7 +46,7 @@ class PageContentModel(PageContentBaseModel):
                                 json_schema_extra={"example": "2024-07-05 15:15:00+00:00"})
 
     @classmethod
-    async def create(cls, db: Database, page_id: str, model: "PageContentCreateModel") -> "PageContentModel":
+    async def create(cls, db: Database, model: "PageContentCreateModel", page_id: str = None, *args) -> "PageContentModel":
         data = await db.pool.fetchrow("""
                                       INSERT INTO wiki.page_content(page_id, content, editor_type, edited_by, change_note, version)
                                       VALUES($1, $2, $3, $4, $5,
@@ -46,7 +55,7 @@ class PageContentModel(PageContentBaseModel):
                                                        WHERE page_id = $1), 0) + 1)
                                       RETURNING *
                                       """,
-                                      page_id, model.content, model.editor_type, model.edited_by, model.change_note)
+                                      page_id, json.dumps(model.content, default=str), model.editor_type, model.edited_by, model.change_note)
 
         await db.pool.execute("""
                               UPDATE wiki.page
