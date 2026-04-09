@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from src.database import db
-from src.models.users import user
+from src.models.users import user, profile, playtime, interactions
 
 users = APIRouter(prefix='/users', tags=['Users'])
 
@@ -9,8 +9,6 @@ users = APIRouter(prefix='/users', tags=['Users'])
 @users.post('/')
 async def create_user(body: user.UserCreateModel) -> user.UserModel:
     """
-    Create New User
-
     Creates a user based on the discord UserID and GuildID provided.
     If a user with these ID's already exists, it returns a 400.
     """
@@ -23,138 +21,86 @@ async def create_user(body: user.UserCreateModel) -> user.UserModel:
     return user_model
 
 
-@users.get('/<thorny_id:int>')
+@users.get('/{thorny_id}')
 async def get_user(thorny_id: int) -> user.UserModel:
     """
-    Get User
-
     This returns the User object
     """
-    user_model = await user.UserModel.fetch(db, thorny_id)
+    return await user.UserModel.fetch(db, thorny_id)
 
-    return user_model
-#
-#
-# @user_blueprint.route('/<thorny_id:int>', methods=['PATCH', 'PUT'])
-# @openapi.definition(body=RequestBody(user.UserUpdateModel.doc_schema()),
-#                     response=[
-#                         Response(user.UserModel.doc_schema(), 200),
-#                         Response(BadRequest400, 400)
-#                     ])
-# @validate(json=user.UserUpdateModel)
-# async def update_thorny_id(request: Request, db: Database, thorny_id: int, body: user.UserUpdateModel):
-#     """
-#     Update User
-#
-#     This updates a user. All fields are optional, meaning you may
-#     set a field to `null` to not update it.
-#
-#     `whitelist` does not apply to this. If you set it to null, it will become null.
-#     """
-#     model = await user.UserModel.fetch(db, thorny_id)
-#     await model.update(db, body)
-#
-#     return sanic.json(model.model_dump(), default=str)
-#
-#
-# @user_blueprint.route('/<thorny_id:int>/profile', methods=['GET'])
-# @openapi.definition(response=[
-#                         Response(profile.ProfileModel.doc_schema(), 200),
-#                         Response(NotFound404, 404)
-#                     ])
-# async def get_profile(request: Request, db: Database, thorny_id: int):
-#     """
-#     Get User Profile
-#
-#     This returns the user's profile
-#     """
-#     profile_model = await profile.ProfileModel.fetch(db, thorny_id)
-#
-#     return sanic.json(profile_model.model_dump(), default=str)
-#
-#
-# @user_blueprint.route('/<thorny_id:int>/profile', methods=['PATCH', 'PUT'])
-# @openapi.definition(body=RequestBody(profile.ProfileUpdateModel.doc_schema()),
-#                     response=[
-#                         Response(profile.ProfileModel.doc_schema(), 200),
-#                         Response(BadRequest400, 400)
-#                     ])
-# @validate(json=profile.ProfileUpdateModel)
-# async def update_profile(request: Request, db: Database, thorny_id: int, body: profile.ProfileUpdateModel):
-#     """
-#     Update User Profile
-#
-#     This updates a user's profile. Anything set to NULL will be ignored.
-#     """
-#     model = await profile.ProfileModel.fetch(db, thorny_id)
-#     await model.update(db, body)
-#
-#     return sanic.json(model.model_dump(), default=str)
-#
-#
-# @user_blueprint.route('/<thorny_id:int>/playtime', methods=['GET'])
-# @openapi.definition(response=[
-#                         Response(playtime.PlaytimeSummary.doc_schema(), 200),
-#                         Response(NotFound404, 404)
-#                     ])
-# async def get_playtime(request: Request, db: Database, thorny_id: int):
-#     """
-#     Get User Playtime
-#
-#     This returns the user's playtime. Note that all playtime is in seconds!
-#     """
-#     playtime_summary = await playtime.PlaytimeSummary.fetch(db, thorny_id)
-#
-#     return sanic.json(playtime_summary.model_dump(), default=str)
-#
-#
-# @user_blueprint.route('/<thorny_id:int>/interactions', methods=['GET'])
-# @openapi.definition(response=[
-#                         Response(interactions.InteractionSummary.doc_schema(), 200),
-#                         Response(NotFound404, 404)
-#                     ])
-# async def get_interactions(request: Request, db: Database, thorny_id: int):
-#     """
-#     Get User Interactions
-#
-#     This returns the user's interaction summary.
-#     This may take long to process, so ensure you have the proper timeouts set.
-#     """
-#     summary = await interactions.InteractionSummary.fetch(db, thorny_id)
-#
-#     return sanic.json(summary.model_dump(), default=str)
-#
-#
-# @user_blueprint.route('/guild/<guild_id:int>/<gamertag:str>', methods=['GET'])
-# @openapi.definition(response=[
-#                         Response(user.UserModel.doc_schema(), 200),
-#                         Response(NotFound404, 404)
-#                     ])
-# async def user_by_gamertag(request: Request, db: Database, guild_id: int, gamertag: str):
-#     """
-#     Get User by Gamertag
-#
-#     This acts the same as `Get by ThornyID`.
-#     This will check either the whitelisted gamertag or the user-entered gamertag.
-#     """
-#     thorny_id = await user.UserModel.get_thorny_id(db, guild_id, gamertag=gamertag.replace('%20', ' '))
-#     user_view = await user.UserModel.fetch(db, thorny_id)
-#
-#     return sanic.json(user_view.model_dump(), default=str)
-#
-#
-# @user_blueprint.route('/guild/<guild_id:int>/<discord_id:int>', methods=['GET'])
-# @openapi.definition(response=[
-#                         Response(user.UserModel.doc_schema(), 200),
-#                         Response(NotFound404, 404)
-#                     ])
-# async def user_discord_id(request: Request, db: Database, guild_id: int, discord_id: int):
-#     """
-#     Get User by Discord ID
-#
-#     This acts the same as `Get by ThornyID`.
-#     """
-#     thorny_id = await user.UserModel.get_thorny_id(db, guild_id, user_id=discord_id)
-#     user_view = await user.UserModel.fetch(db, thorny_id)
-#
-#     return sanic.json(user_view.model_dump(), default=str)
+
+@users.put('/{thorny_id}', name='Update User')
+@users.patch('/{thorny_id}', name='Update User')
+async def update_user(thorny_id: int, body: user.UserUpdateModel) -> user.UserModel:
+    """
+    This updates a user. All fields are optional, meaning you may
+    set a field to `null` to not update it.
+
+    `whitelist` does not apply to this. If you set it to null, it will become null.
+    """
+    model = await user.UserModel.fetch(db, thorny_id)
+    await model.update(db, body)
+
+    return model
+
+
+@users.get('/{thorny_id}/profile', name='Get User Profile', deprecated=True)
+async def get_profile(thorny_id: int) -> profile.ProfileModel:
+    """
+    This returns the user's profile.
+
+    Will be removed in a future release. Use `/users/{thorny_id}` instead.
+    """
+    return await profile.ProfileModel.fetch(db, thorny_id)
+
+
+@users.put('/{thorny_id}/profile')
+@users.patch('/{thorny_id}/profile')
+async def update_profile(thorny_id: int, body: profile.ProfileUpdateModel) -> profile.ProfileModel:
+    """
+    This updates a user's profile. Anything set to NULL will be ignored.
+    """
+    model = await profile.ProfileModel.fetch(db, thorny_id)
+    await model.update(db, body)
+
+    return model
+
+
+@users.get('/{thorny_id}/playtime', name='Get User Playtime')
+async def get_playtime(thorny_id: int) -> playtime.PlaytimeSummary:
+    """
+    This returns the user's playtime. Note that all playtime is in seconds!
+    """
+    return await playtime.PlaytimeSummary.fetch(db, thorny_id)
+
+
+@users.get('/{thorny_id}/interactions', name='Get User Interactions')
+async def get_interactions(thorny_id: int) -> interactions.InteractionSummary:
+    """
+    This returns the user's interaction summary.
+    This may take long to process, so ensure you have the proper timeouts set.
+    """
+    return await interactions.InteractionSummary.fetch(db, thorny_id)
+
+
+@users.get('/guild/{guild_id}/{gamertag}', name='Get User by Gamertag')
+async def user_by_gamertag(guild_id: int, gamertag: str) -> user.UserModel:
+    """
+    This acts the same as `Get by ThornyID`.
+    This will check either the whitelisted gamertag or the user-entered gamertag.
+    """
+    thorny_id = await user.UserModel.get_thorny_id(db, guild_id, gamertag=gamertag.replace('%20', ' '))
+    user_view = await user.UserModel.fetch(db, thorny_id)
+
+    return user_view
+
+
+@users.get('/guild/{guild_id}/{discord_id}', name='Get User by Discord ID')
+async def user_discord_id(guild_id: int, discord_id: int) -> user.UserModel:
+    """
+    This acts the same as `Get by ThornyID`.
+    """
+    thorny_id = await user.UserModel.get_thorny_id(db, guild_id, user_id=discord_id)
+    user_view = await user.UserModel.fetch(db, thorny_id)
+
+    return user_view
