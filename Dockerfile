@@ -8,4 +8,4 @@ ENV PYTHONPATH "${PYTHONPATH}:/nexuscore/"
 
 WORKDIR /nexuscore
 
-CMD ["python", "-u", "nexus.py"]
+CMD ["fastapi", "run", "nexus.py", "--host", "0.0.0.0"]
