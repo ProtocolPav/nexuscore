@@ -1,25 +1,17 @@
-from sanic import Blueprint
+# from src.routes.quest_progress import progress_blueprint
+from src.routes.users import users
+# from src.routes.events import events_blueprint
+# from src.routes.quests import quest_blueprint
+# from src.routes.projects import project_blueprint
+# from src.routes.guilds import guild_blueprint
+# from src.routes.server import server_blueprint
+# from src.routes.pins import pin_blueprint
+# from src.routes.wrapped import wrapped_blueprint
 
-from src.routes.quest_progress import progress_blueprint
-from src.routes.users import user_blueprint
-from src.routes.events import events_blueprint
-from src.routes.quests import quest_blueprint
-from src.routes.projects import project_blueprint
-from src.routes.guilds import guild_blueprint
-from src.routes.server import server_blueprint
-from src.routes.pins import pin_blueprint
-from src.routes.wrapped import wrapped_blueprint
+from fastapi import APIRouter
 
-blueprints = [
-    user_blueprint,
-    project_blueprint,
-    pin_blueprint,
-    quest_blueprint,
-    progress_blueprint,
-    events_blueprint,
-    guild_blueprint,
-    server_blueprint,
-    wrapped_blueprint
-]
+api_router = APIRouter(
+    prefix='/v1',
+)
 
-blueprint_group = Blueprint.group(url_prefix='/', *blueprints, version=0.2, version_prefix='/api/v')
+api_router.include_router(users)

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.database import db
 
-#from src.routes import blueprint_group
+from src.routes import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -49,7 +49,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/healthcheck")
+app.include_router(api_router)
+
+@app.get("/healthcheck", include_in_schema=False)
 async def health_check():
     """
     Healthcheck
