@@ -4,8 +4,8 @@ from sanic.views import HTTPMethodView
 from sanic_ext import openapi, validate
 from sanic_ext.extensions.openapi.definitions import RequestBody, Response
 
-from src.database import Database
-from src.models.projects import project, status, members, pin
+from src.dependencies.database import Database
+from src.models.projects import project, status, members
 from src.utils.errors import BadRequest400, NotFound404
 
 project_blueprint = Blueprint("projects", url_prefix='/projects')

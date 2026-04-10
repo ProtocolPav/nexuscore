@@ -6,9 +6,9 @@ from pydantic import Field
 from sanic_ext import openapi
 from typing_extensions import Optional
 
-from src.database import Database
+from src.dependencies.database import Database
 
-from src.utils.base import BaseModel, BaseList, optional_model
+from src.utils.base import BaseModel, BaseList
 
 
 @openapi.component()

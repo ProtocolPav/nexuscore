@@ -6,7 +6,7 @@ from typing_extensions import Optional
 
 from sanic_ext import openapi
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.models.quests.objective_progress import ObjectiveProgressCreateModel, ObjectiveProgressListModel, ObjectiveProgressModel, \
     ObjectiveProgressUpdateModel
 from src.models.quests.objective import ObjectivesListModel

@@ -1,8 +1,8 @@
 from pydantic import StringConstraints, Field
-from typing_extensions import Annotated, Optional
+from typing_extensions import Annotated
 from fastapi import HTTPException
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.utils.base import BaseModel, optional_model
 
 ShortString = Annotated[str, StringConstraints(max_length=35)]

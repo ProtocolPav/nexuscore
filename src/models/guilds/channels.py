@@ -1,8 +1,8 @@
 from sanic_ext import openapi
 from pydantic import Field
-from src.database import Database
+from src.dependencies.database import Database
 
-from src.utils.base import BaseModel, BaseList, optional_model
+from src.utils.base import BaseModel, BaseList
 from src.utils.errors import BadRequest400, NotFound404
 
 

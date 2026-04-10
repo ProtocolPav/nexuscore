@@ -60,7 +60,7 @@ No linter or formatter is configured (no `.flake8`, `.pylintrc`, `.ruff.toml`, `
 ### Imports
 - **Absolute imports only** — always use the `src.` prefix from the project root:
   ```python
-  from src.database import Database
+  from src.dependencies.database import Database
   from src.utils.base import BaseModel, BaseList, optional_model
   from src.utils.errors import BadRequest400, NotFound404, Forbidden403
   ```

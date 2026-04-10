@@ -5,7 +5,7 @@ from pydantic import StringConstraints, Field
 from sanic_ext.extensions.openapi import openapi
 from typing_extensions import Annotated, Optional
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.utils.base import BaseModel, BaseList
 
 InteractionRef = Annotated[str, StringConstraints(pattern='^[a-z]+:[0-9a-z_*]+$')]

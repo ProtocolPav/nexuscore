@@ -1,7 +1,6 @@
-from datetime import date, datetime
-from typing import Literal, Optional
+from datetime import datetime
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.utils.base import BaseModel
 from pydantic import Field
 

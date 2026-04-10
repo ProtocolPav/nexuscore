@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from src.database import db
+from src.dependencies.database import db
 from src.models.users import user, profile, playtime, interactions
 
 users = APIRouter(prefix='/users', tags=['Users'])

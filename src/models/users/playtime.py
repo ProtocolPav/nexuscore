@@ -3,7 +3,7 @@ from pydantic import Field
 from typing_extensions import Optional
 from fastapi import HTTPException
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.utils.base import BaseModel, BaseList
 
 

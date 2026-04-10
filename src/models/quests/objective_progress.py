@@ -7,7 +7,7 @@ from typing_extensions import Optional
 
 from sanic_ext import openapi
 
-from src.database import Database
+from src.dependencies.database import Database
 from asyncpg import Connection
 
 from src.models.quests.objective_customization.customization import Customizations

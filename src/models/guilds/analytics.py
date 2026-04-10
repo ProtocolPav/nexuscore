@@ -2,9 +2,9 @@ from datetime import datetime
 
 from pydantic import Field
 from sanic_ext import openapi
-from src.database import Database
+from src.dependencies.database import Database
 
-from src.utils.base import BaseModel, BaseList, T, optional_model
+from src.utils.base import BaseModel
 from src.utils.errors import BadRequest400, NotFound404
 
 @openapi.component()

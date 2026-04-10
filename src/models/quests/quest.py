@@ -1,14 +1,12 @@
 from datetime import datetime
 
-from typing_extensions import Literal
-
 from src.models.quests.objective import ObjectivesListModel
 from src.utils.base import BaseModel, BaseList, optional_model
 
 from pydantic import Field
 from sanic_ext import openapi
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.models.quests.objective import ObjectiveCreateModel, ObjectiveModel
 from src.utils.errors import BadRequest400, NotFound404
 

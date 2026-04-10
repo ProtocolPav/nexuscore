@@ -1,9 +1,9 @@
-from datetime import date, datetime
+from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing_extensions import Optional, Literal
 
-from src.database import Database
+from src.dependencies.database import Database
 import sanic
 
 

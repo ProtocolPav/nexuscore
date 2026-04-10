@@ -1,6 +1,6 @@
 from pydantic import Field
 
-from src.database import Database
+from src.dependencies.database import Database
 
 from sanic_ext import openapi
 from src.utils.base import BaseModel, BaseList, optional_model

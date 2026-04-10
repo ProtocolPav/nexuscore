@@ -5,7 +5,7 @@ import sanic
 from sanic_ext import openapi, validate
 from sanic_ext.extensions.openapi.definitions import RequestBody, Response
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.models import guilds
 from src.utils.errors import BadRequest400, NotFound404
 

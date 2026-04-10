@@ -1,9 +1,9 @@
 import json
 
-from pydantic import BaseModel, Field, RootModel
+from pydantic import BaseModel, RootModel
 from sanic_ext import openapi
 
-from src.database import Database
+from src.dependencies.database import Database
 
 @openapi.component()
 class PlayerModel(BaseModel):

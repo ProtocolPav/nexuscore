@@ -6,7 +6,7 @@ from typing import Annotated, Optional
 from src.models.quests.reward_metadata import Metadata
 from src.utils.base import BaseModel, BaseList, optional_model
 
-from src.database import Database
+from src.dependencies.database import Database
 
 from sanic_ext import openapi
 

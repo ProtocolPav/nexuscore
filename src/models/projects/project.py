@@ -4,7 +4,7 @@ from datetime import date, datetime
 from pydantic import Field
 from typing_extensions import Literal, Optional
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.models.users import user
 from src.utils.base import BaseModel, BaseList, optional_model
 

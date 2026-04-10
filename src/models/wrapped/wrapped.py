@@ -2,8 +2,8 @@ from datetime import date, datetime
 from typing import Optional, List
 from pydantic import Field
 from sanic_ext import openapi
-from src.utils.base import BaseModel, BaseList
-from src.database import Database
+from src.utils.base import BaseModel
+from src.dependencies.database import Database
 from src.utils.errors import BadRequest400, NotFound404
 import json
 

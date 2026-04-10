@@ -7,7 +7,7 @@ from sanic_ext.extensions.openapi.definitions import Parameter, RequestBody, Res
 
 from src.utils.errors import BadRequest400, NotFound404
 
-from src.database import Database
+from src.dependencies.database import Database
 
 from src.models.quests import objective, objective_progress, quest, quest_progress, reward
 

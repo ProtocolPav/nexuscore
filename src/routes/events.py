@@ -4,7 +4,7 @@ from sanic import Blueprint, Request
 import sanic
 from sanic_ext.extensions.openapi.definitions import Response, RequestBody, Parameter
 
-from src.database import Database
+from src.dependencies.database import Database
 
 from sanic_ext import openapi, validate
 

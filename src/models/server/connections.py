@@ -1,7 +1,7 @@
 from pydantic import Field
 
-from src.utils.base import BaseModel, BaseList
-from src.database import Database
+from src.utils.base import BaseModel
+from src.dependencies.database import Database
 
 from datetime import datetime
 from typing import Literal
