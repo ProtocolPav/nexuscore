@@ -1,10 +1,10 @@
 from pydantic import Field
 
+from fastapi import HTTPException
+
 from src.dependencies.database import Database
 
-from sanic_ext import openapi
 from src.utils.base import BaseModel, BaseList, optional_model
-from src.utils.errors import BadRequest400, NotFound404
 
 
 class PinBaseModel(BaseModel):
@@ -20,7 +20,6 @@ class PinBaseModel(BaseModel):
                           examples=["shop", "farm"])
 
 
-@openapi.component()
 class PinModel(PinBaseModel):
     id: int = Field(description="The pin's ID",
                     examples=[1])
@@ -49,7 +48,7 @@ class PinModel(PinBaseModel):
     @classmethod
     async def fetch(cls, db: Database, pin_id: int, *args) -> "PinModel":
         if not pin_id:
-            raise BadRequest400(extra={'ids': ['pin_id']})
+            raise HTTPException(status_code=400, detail="Missing pin_id")
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM projects.pins p
@@ -60,7 +59,7 @@ class PinModel(PinBaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'pin', 'id': pin_id})
+            raise HTTPException(status_code=404, detail="Pin not found")
 
     async def update(self, db: Database, model: "PinUpdateModel", *args):
         for k, v in model.model_dump().items():

@@ -1,73 +1,44 @@
-from sanic import Blueprint, Request, HTTPResponse
-import sanic
-from sanic_ext import openapi, validate
-from sanic_ext.extensions.openapi.definitions import RequestBody, Response
+from fastapi import APIRouter, HTTPException
 
-from src.dependencies.database import Database
+from src.dependencies.database import Database, db
 from src.models.projects import pin
-from src.utils.errors import BadRequest400, NotFound404
 
-pin_blueprint = Blueprint("pins", url_prefix='/pins')
+pins = APIRouter(prefix='/pins', tags=['Pins'])
 
-@pin_blueprint.route('/', methods=['GET'])
-@openapi.definition(response=[
-    Response(pin.PinsListModel.doc_schema(), 200)
-])
-async def get_all_pins(request: Request, db: Database):
+@pins.get('/')
+async def get_all_pins() -> pin.PinsListModel:
     """
-    Get All Pins
-
     Get a list of Pins
     """
     pins_model = await pin.PinsListModel.fetch(db)
 
-    return sanic.json(pins_model.model_dump(), default=str)
+    return pins_model
 
 
-@pin_blueprint.route('/', methods=['POST'])
-@openapi.definition(body=RequestBody(pin.PinCreateModel.doc_schema()),
-                    response=[
-                        Response(pin.PinModel.doc_schema(), 201),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=pin.PinCreateModel)
-async def create_pin(request: Request, db: Database, body: pin.PinCreateModel):
+@pins.post('/', status_code=201)
+async def create_pin(body: pin.PinCreateModel) -> pin.PinModel:
     """
-    Create Pin
-
     Creates a new pin, inserts a status and content.
     """
     pin_id = await pin.PinModel.create(db, body)
     pin_model = await pin.PinModel.fetch(db, pin_id)
 
-    return sanic.json(status=201, body=pin_model.model_dump(), default=str)
+    return pin_model
 
 
-@pin_blueprint.route('/<pin_id:int>', methods=['GET'])
-@openapi.definition(response=[
-    Response(pin.PinModel.doc_schema(), 200),
-    Response(NotFound404, 404)
-])
-async def get_pin(request: Request, db: Database, pin_id: int):
+@pins.get('/{pin_id}')
+async def get_pin(pin_id: int) -> pin.PinModel:
     """
-    Get Pin
-
     Returns the pin specified
     """
     pin_model = await pin.PinModel.fetch(db, pin_id)
 
-    return sanic.json(pin_model.model_dump(), default=str)
+    return pin_model
 
 
-@pin_blueprint.route('/<pin_id:int>', methods=['PATCH', 'PUT'])
-@openapi.definition(body=RequestBody(pin.PinUpdateModel.doc_schema()),
-                    response=[
-                        Response(pin.PinModel.doc_schema(), 200),
-                        Response(BadRequest400, 400),
-                        Response(NotFound404, 404)
-                    ])
-@validate(json=pin.PinUpdateModel)
-async def update_pin(request: Request, db: Database, pin_id: int, body: pin.PinUpdateModel):
+@pins.patch('/{pin_id}')
+@pins.put('/{pin_id}')
+async def update_pin(pin_id: int, body: pin.PinUpdateModel) -> pin.PinModel:
     """
     Update Pin
 
@@ -76,4 +47,4 @@ async def update_pin(request: Request, db: Database, pin_id: int, body: pin.PinU
     model = await pin.PinModel.fetch(db, pin_id)
     await model.update(db, body)
 
-    return sanic.json(model.model_dump(), default=str)
+    return model

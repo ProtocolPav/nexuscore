@@ -1,6 +1,7 @@
 # from src.routes.quest_progress import progress_blueprint
 from src.routes.events import events
 from src.routes.guilds import guild
+from src.routes.pins import pins
 from src.routes.users import users
 # from src.routes.events import events_blueprint
 # from src.routes.quests import quest_blueprint
@@ -19,3 +20,4 @@ api_router = APIRouter(
 api_router.include_router(users)
 api_router.include_router(events)
 api_router.include_router(guild)
+api_router.include_router(pins)
