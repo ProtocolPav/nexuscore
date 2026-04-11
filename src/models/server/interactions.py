@@ -92,13 +92,8 @@ class InteractionListModel(BaseList[InteractionModel]):
             Additional arguments that may be passed but not utilized directly.
 
         Returns
-        -------
-        InteractionListModel
-            A model containing the list of fetched interactions.
-
-        Raises
-        ------
-        NotFound404
+-------
+        HTTPException(404)
             If no interactions match the specified query parameters.
         """
 

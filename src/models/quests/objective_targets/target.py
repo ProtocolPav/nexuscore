@@ -5,12 +5,10 @@ from typing import Annotated, Literal, Optional, Union
 
 from src.utils.base import BaseModel, BaseList, optional_model
 
-from sanic_ext import openapi
 
 MinecraftID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
 
-@openapi.component()
 class TargetBaseModel(BaseModel):
     target_uuid: UUID4 = Field(description="The target uuid", default_factory=uuid.uuid4)
     target_type: str = Field(description="The type of the target. Must be equal to `objective_type`.",
@@ -19,7 +17,6 @@ class TargetBaseModel(BaseModel):
                        json_schema_extra={"example": 50})
 
 
-@openapi.component()
 class MineTargetModel(TargetBaseModel):
     target_type: Literal["mine"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                          json_schema_extra={"example": "mine"})
@@ -29,7 +26,6 @@ class MineTargetModel(TargetBaseModel):
                        json_schema_extra={"example": 50})
 
 
-@openapi.component()
 class KillTargetModel(TargetBaseModel):
     target_type: Literal["kill"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                          json_schema_extra={"example": "kill"})
@@ -39,7 +35,6 @@ class KillTargetModel(TargetBaseModel):
                        json_schema_extra={"example": 50})
 
 
-@openapi.component()
 class ScriptEventTargetModel(TargetBaseModel):
     target_type: Literal["scriptevent"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                                 json_schema_extra={"example": "scriptevent"})

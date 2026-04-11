@@ -2,22 +2,20 @@ from src.dependencies.database import Database
 from src.utils.base import BaseList, BaseModel
 from pydantic import Field
 
-from sanic_ext import openapi
 
-from src.utils.errors import BadRequest400, NotFound404
 
-@openapi.component()
+from fastapi import HTTPException
+
 class KillCountModel(BaseModel):
     mob_type: str = Field(description="The mob that was killed")
     kill_count: int = Field(description="The kill count")
 
 
-@openapi.component()
 class KillCountListModel(BaseList[KillCountModel]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "KillCountListModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetch("""
                                        SELECT
@@ -39,7 +37,6 @@ class KillCountListModel(BaseList[KillCountModel]):
         return cls(root=kills)
 
 
-@openapi.component()
 class NemesisModel(BaseModel):
     arch_nemesis: str = Field(description="The arch nemesis")
     death_count: int = Field(description="The death count")
@@ -47,7 +44,7 @@ class NemesisModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "NemesisModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="")
 
         data = await db.pool.fetchrow("""
                                           SELECT
@@ -67,10 +64,9 @@ class NemesisModel(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'playtime', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No nemesis found")
 
 
-@openapi.component()
 class BuildMineModel(BaseModel):
     blocks_placed: int = Field(description="The blocks placed")
     blocks_mined: int = Field(description="The blocks mined")
@@ -80,7 +76,7 @@ class BuildMineModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "BuildMineModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                           SELECT
@@ -103,10 +99,9 @@ class BuildMineModel(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'playtime', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No build mine data found")
 
 
-@openapi.component()
 class FavouriteBlockModel(BaseModel):
     category: str = Field(description="The category of the favourite block, placed or mined")
     month_name: str = Field(description="The month name")
@@ -115,12 +110,11 @@ class FavouriteBlockModel(BaseModel):
     count: int = Field(description="The count of the favourite block")
 
 
-@openapi.component()
 class FavouriteBlockListModel(BaseList[FavouriteBlockModel]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "FavouriteBlockListModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetch("""
                                        WITH monthly_placed AS (
@@ -179,7 +173,6 @@ class FavouriteBlockListModel(BaseList[FavouriteBlockModel]):
         return cls(root=blocks)
 
 
-@openapi.component()
 class FavouriteProjectModel(BaseModel):
     project_id: str = Field(description="The project id")
     name: str = Field(description="The name of the project")
@@ -188,7 +181,7 @@ class FavouriteProjectModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "FavouriteProjectModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                           SELECT
@@ -216,10 +209,9 @@ class FavouriteProjectModel(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'playtime', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No favourite project found")
 
 
-@openapi.component()
 class MostActiveProjectModel(BaseModel):
     project_id: str = Field(description="The project id")
     name: str = Field(description="The name of the project")
@@ -231,7 +223,7 @@ class MostActiveProjectModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "MostActiveProjectModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                           SELECT
@@ -261,4 +253,4 @@ class MostActiveProjectModel(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'playtime', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No most active project found")

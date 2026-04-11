@@ -11,9 +11,8 @@ from src.dependencies.database import Database
 
 from src.models.quests.reward import RewardCreateModel, RewardModel, RewardsListModel
 
-from sanic_ext import openapi
 
-from src.utils.errors import BadRequest400, NotFound404
+from fastapi import HTTPException
 
 Logic = Literal["and", "or", "sequential"]
 ObjectiveTypes = Literal["kill", "mine", "scriptevent"]
@@ -49,20 +48,19 @@ class ObjectiveBaseModel(BaseModel):
     @model_validator(mode='after')
     def check_targets(self) -> "ObjectiveBaseModel":
         if len(self.targets) == 0:
-            raise BadRequest400("Objectives must have at least one target")
+            raise HTTPException(status_code=400, detail="Objectives must have at least one target")
 
         for target in self.targets:
             if target.target_type != self.objective_type:
-                raise BadRequest400(f"All targets must be of the same type. "
+                raise HTTPException(status_code=400, detail=f"All targets must be of the same type. "
                                     f"Offending target: {target.target_type} != {self.objective_type}")
 
             if target.count < 1:
-                raise BadRequest400(f"A target's count must be at least 1.")
+                raise HTTPException(status_code=400, detail=f"A target's count must be at least 1.")
 
         return self
 
 
-@openapi.component()
 class ObjectiveModel(ObjectiveBaseModel):
     quest_id: int = Field(description="The ID of the quest this objective belongs to",
                           json_schema_extra={"example": 732})
@@ -107,7 +105,7 @@ class ObjectiveModel(ObjectiveBaseModel):
     @classmethod
     async def fetch(cls, db: Database, objective_id: int = None, *args) -> "ObjectiveModel":
         if not objective_id:
-            raise BadRequest400(extra={'ids': ['objective_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM quests_v3.objective
@@ -120,7 +118,7 @@ class ObjectiveModel(ObjectiveBaseModel):
 
             return cls(**data, rewards=rewards)
         else:
-            raise NotFound404(extra={'resource': 'objective', 'id': objective_id})
+            raise HTTPException(status_code=404, detail="Objective not found")
 
     async def update(self, db: Database, model: "ObjectiveUpdateModel"):
         for k in model.model_dump().keys():
@@ -147,12 +145,11 @@ class ObjectiveModel(ObjectiveBaseModel):
                               self.customizations.model_dump_json(), self.objective_id)
 
 
-@openapi.component()
 class ObjectivesListModel(BaseList[ObjectiveModel]):
     @classmethod
     async def fetch(cls, db: Database, quest_id: int = None, *args) -> "ObjectivesListModel":
         if not quest_id:
-            raise BadRequest400(extra={'ids': ['quest_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetch("""
                                  SELECT * FROM quests_v3.objective
@@ -169,7 +166,6 @@ class ObjectivesListModel(BaseList[ObjectiveModel]):
         return cls(root=objectives)
 
 
-@openapi.component()
 class ObjectiveCreateModel(ObjectiveBaseModel):
     rewards: list[RewardCreateModel] = Field(description="The rewards for this objective, if any")
 

@@ -8,9 +8,8 @@ from src.utils.base import BaseModel, BaseList, optional_model
 
 from src.dependencies.database import Database
 
-from sanic_ext import openapi
 
-from src.utils.errors import BadRequest400, NotFound404
+from fastapi import HTTPException
 
 MinecraftID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
@@ -35,7 +34,6 @@ class RewardBaseModel(BaseModel):
         return data
 
 
-@openapi.component()
 class RewardModel(RewardBaseModel):
     quest_id: int = Field(description="The ID of the quest this reward belongs to",
                           json_schema_extra={"example": 732})
@@ -75,7 +73,7 @@ class RewardModel(RewardBaseModel):
     @classmethod
     async def fetch(cls, db: Database, reward_id: int = None, *args):
         if not reward_id:
-            raise BadRequest400(extra={'ids': ['reward_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM quests_v3.reward
@@ -86,7 +84,7 @@ class RewardModel(RewardBaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'reward', 'id': reward_id})
+            raise HTTPException(status_code=404, detail="Reward not found")
 
     async def update(self, db: Database, model: "RewardUpdateModel"):
         for k, v in model.model_dump().items():
@@ -104,12 +102,11 @@ class RewardModel(RewardBaseModel):
                               self.objective_id, self.balance, self.item, self.count, self.display_name, self.reward_id)
 
 
-@openapi.component()
 class RewardsListModel(BaseList[RewardModel]):
     @classmethod
     async def fetch(cls, db: Database, objective_id: int = None, *args) -> "RewardsListModel":
         if not objective_id:
-            raise BadRequest400(extra={'ids': ['objective_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetch("""
                                   SELECT *
@@ -125,7 +122,6 @@ class RewardsListModel(BaseList[RewardModel]):
         return cls(root=rewards)
 
 
-@openapi.component()
 class RewardCreateModel(RewardBaseModel):
     pass
 

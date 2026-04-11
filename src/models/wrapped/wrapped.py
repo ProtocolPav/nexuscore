@@ -1,14 +1,13 @@
 from datetime import date, datetime
 from typing import Optional, List
 from pydantic import Field
-from sanic_ext import openapi
+
 from src.utils.base import BaseModel
 from src.dependencies.database import Database
-from src.utils.errors import BadRequest400, NotFound404
+from fastapi import HTTPException
 import json
 
 
-@openapi.component()
 class PlaytimeMetrics(BaseModel):
     total_seconds: Optional[float] = Field(description="Total seconds played this year")
     highest_day: Optional[date] = Field(description="Day with most playtime")
@@ -18,7 +17,6 @@ class PlaytimeMetrics(BaseModel):
     most_active_hour_seconds: Optional[float] = Field(description="Total seconds during most active hour")
 
 
-@openapi.component()
 class QuestMetrics(BaseModel):
     total_accepted: Optional[int] = Field(description="Total quests accepted")
     total_completed: Optional[int] = Field(description="Total quests completed")
@@ -30,7 +28,6 @@ class QuestMetrics(BaseModel):
     fastest_quest_duration_seconds: Optional[float] = Field(description="Duration of fastest quest in seconds")
 
 
-@openapi.component()
 class RewardMetrics(BaseModel):
     total_rewards: Optional[int] = Field(description="Total rewards earned")
     total_balance_earned: Optional[int] = Field(description="Total balance/currency earned")
@@ -38,13 +35,11 @@ class RewardMetrics(BaseModel):
     unique_items: Optional[int] = Field(description="Unique item types earned")
 
 
-@openapi.component()
 class KillCountModel(BaseModel):
     mob_type: str = Field(description="The mob that was killed")
     kill_count: int = Field(description="The kill count")
 
 
-@openapi.component()
 class FavouriteBlockModel(BaseModel):
     category: str = Field(description="The category of the favourite block, placed or mined")
     month_name: str = Field(description="The month name")
@@ -53,7 +48,6 @@ class FavouriteBlockModel(BaseModel):
     count: int = Field(description="The count of the favourite block")
 
 
-@openapi.component()
 class InteractionMetrics(BaseModel):
     blocks_placed: Optional[int] = Field(description="Total blocks placed")
     blocks_mined: Optional[int] = Field(description="Total blocks mined")
@@ -65,7 +59,6 @@ class InteractionMetrics(BaseModel):
     block_timeline: Optional[List[FavouriteBlockModel]] = Field(description="Timeline of favorite blocks by month")
 
 
-@openapi.component()
 class ProjectMetrics(BaseModel):
     favourite_project_id: Optional[str] = Field(description="Favorite project ID (most blocks placed)")
     favourite_project_name: Optional[str] = Field(description="Favorite project name")
@@ -78,7 +71,6 @@ class ProjectMetrics(BaseModel):
     most_active_project_total_activity: Optional[int] = Field(description="Total activity in most active project")
 
 
-@openapi.component()
 class GrindDayMetrics(BaseModel):
     grind_date: Optional[date] = Field(description="Peak grind day date")
     sessions: Optional[int] = Field(description="Sessions on grind day")
@@ -94,19 +86,16 @@ class GrindDayMetrics(BaseModel):
     total_combined_actions: Optional[int] = Field(description="Total actions on grind day")
 
 
-@openapi.component()
 class FavouritePersonModel(BaseModel):
     other_player_id: int = Field(description="Other player id")
     username: str = Field(description="Username")
     seconds_played_together: float = Field(description="Total seconds played together")
 
 
-@openapi.component()
 class SocialMetrics(BaseModel):
     favourite_people: Optional[List[FavouritePersonModel]] = Field(description="Top 5 people played with most")
 
 
-@openapi.component()
 class EverthornWrapped2025(BaseModel):
     thorny_id: int = Field(description="User's thorny ID")
     username: Optional[str] = Field(description="Username")
@@ -122,7 +111,7 @@ class EverthornWrapped2025(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "EverthornWrapped2025":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                           SELECT *
@@ -131,7 +120,7 @@ class EverthornWrapped2025(BaseModel):
                                       """, thorny_id)
 
         if not data:
-            raise NotFound404(extra={'resource': 'wrapped_2025', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="Not found")
 
         # Parse kill counts
         kill_counts_list = []

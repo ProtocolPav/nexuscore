@@ -4,11 +4,10 @@ from src.dependencies.database import Database
 from src.utils.base import BaseModel
 from pydantic import Field
 
-from sanic_ext import openapi
 
-from src.utils.errors import BadRequest400, NotFound404
 
-@openapi.component()
+from fastapi import HTTPException
+
 class TotalQuests(BaseModel):
     total_accepted: int = Field(description="Total accepted quests")
     total_completed: int = Field(description="Total completed quests")
@@ -18,7 +17,7 @@ class TotalQuests(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "TotalQuests":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                           SELECT
@@ -36,10 +35,9 @@ class TotalQuests(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'quests', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No quests found for this user")
 
 
-@openapi.component()
 class FastestQuestDone(BaseModel):
     title: str = Field(description="Title of the quest")
     start_time: datetime = Field(description="Start time of the quest")
@@ -49,7 +47,7 @@ class FastestQuestDone(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "FastestQuestDone":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                           WITH quest_times AS (
@@ -84,9 +82,8 @@ class FastestQuestDone(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'quests', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No quests found for this user")
 
-@openapi.component()
 class TotalRewards(BaseModel):
     total_rewards: int = Field(description="Total rewards")
     total_balance_earned: int = Field(description="Total balance earned")
@@ -96,7 +93,7 @@ class TotalRewards(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "TotalRewards":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                           SELECT
@@ -116,4 +113,4 @@ class TotalRewards(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'quests', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No quests found for this user")

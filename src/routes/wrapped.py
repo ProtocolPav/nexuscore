@@ -1,26 +1,14 @@
-from sanic import Blueprint, Request
-import sanic
-from sanic_ext.extensions.openapi.definitions import Response, RequestBody, Parameter
+from fastapi import APIRouter
 
-from src.dependencies.database import Database
-
-from sanic_ext import openapi, validate
+from src.dependencies.database import db
 
 from src.models.wrapped.wrapped import EverthornWrapped2025
-from src.utils.errors import NotFound404, BadRequest400
 
-wrapped_blueprint = Blueprint('wrapped', '/wrapped')
+wrapped = APIRouter(prefix='/wrapped', tags=['Wrapped'])
 
 
-@wrapped_blueprint.route('/<thorny_id:int>', methods=['GET'])
-@openapi.definition(
-    response=[
-        Response(EverthornWrapped2025.doc_schema(), 200),
-        Response(BadRequest400, 400),
-        Response(NotFound404, 404)
-    ]
-)
-async def get_wrapped(request: Request, db: Database, thorny_id: int):
+@wrapped.get('/{thorny_id}')
+async def get_wrapped(thorny_id: int) -> EverthornWrapped2025:
     """
     Get Everthorn Wrapped 2025
 
@@ -29,4 +17,4 @@ async def get_wrapped(request: Request, db: Database, thorny_id: int):
     """
     wrapped_data = await EverthornWrapped2025.fetch(db, thorny_id)
 
-    return sanic.json(wrapped_data.model_dump(), default=str)
+    return wrapped_data

@@ -1,47 +1,34 @@
-from sanic import Blueprint, Request
-import sanic
-from sanic_ext import openapi, validate
-from sanic_ext.extensions.openapi.definitions import RequestBody, Response
+from fastapi import APIRouter, HTTPException, status
 
-from src.dependencies.database import Database
+from src.dependencies.database import db
+
 from src.models.server import players, items, world
-from src.utils.errors import BadRequest400, NotFound404
 
-server_blueprint = Blueprint("server", url_prefix='/server')
+server = APIRouter(prefix='/server', tags=['Server'])
 
-@server_blueprint.route('/players', methods=['POST'])
-@openapi.definition(body={'application/json': players.PlayerListCreateModel.doc_schema()})
-@openapi.response(status=201,
-                  description='Success',
-                  content={'application/json': players.PlayerListModel.doc_schema()})
-async def create_player(request: Request, db: Database):
+
+@server.post('/players', status_code=status.HTTP_201_CREATED)
+async def create_player(body: players.PlayerListCreateModel):
     """
     Add or update player's location
     """
-    body = players.PlayerListCreateModel(**{'root': request.json})
     await players.PlayerListModel.update(db, body)
 
-    return sanic.json(status=201, body={}, default=str)
+    return None
 
 
-@server_blueprint.route('/players', methods=['GET'])
-@openapi.response(status=200,
-                  description='Success',
-                  content={'application/json': players.PlayerListModel.doc_schema()})
-async def get_players(request: Request, db: Database):
+@server.get('/players')
+async def get_players() -> players.PlayerListModel:
+    """
+    Get all players
+    """
     data = await players.PlayerListModel.fetch(db)
 
-    return sanic.json(status=200, body=data.model_dump(), default=str)
+    return data
 
 
-@server_blueprint.route('/items', methods=['POST'])
-@openapi.definition(body=RequestBody(items.ItemCreateModel.doc_schema()),
-                    response=[
-                        Response(items.ItemModel.doc_schema(), 201),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=items.ItemCreateModel)
-async def create_item(request: Request, db: Database, body: items.ItemCreateModel):
+@server.post('/items', status_code=status.HTTP_201_CREATED)
+async def create_item(body: items.ItemCreateModel) -> items.ItemModel:
     """
     Create New Item
 
@@ -50,20 +37,20 @@ async def create_item(request: Request, db: Database, body: items.ItemCreateMode
     """
     try:
         await items.ItemModel.fetch(db, body.item_id)
-        raise BadRequest400('This item already exists')
-    except NotFound404:
-        await items.ItemModel.create(db, body)
+        raise HTTPException(status_code=400, detail='This item already exists')
+    except HTTPException as e:
+        if e.status_code == 404:
+            await items.ItemModel.create(db, body)
 
-        item_model = await items.ItemModel.fetch(db, body.item_id)
+            item_model = await items.ItemModel.fetch(db, body.item_id)
+        else:
+            raise e
 
-    return sanic.json(status=201, body=item_model.model_dump(), default=str)
+    return item_model
 
 
-@server_blueprint.route('/items', methods=['GET'])
-@openapi.definition(response=[
-                        Response(items.ItemListModel.doc_schema(), 200)
-                    ])
-async def get_all_items(request: Request, db: Database):
+@server.get('/items')
+async def get_all_items() -> items.ItemListModel:
     """
     Get All Item
 
@@ -71,33 +58,24 @@ async def get_all_items(request: Request, db: Database):
     """
     items_model = await items.ItemListModel.fetch(db)
 
-    return sanic.json(items_model.model_dump(), default=str)
+    return items_model
 
 
-@server_blueprint.route('/items/<item_id:str>', methods=['GET'])
-@openapi.definition(response=[
-                        Response(items.ItemModel.doc_schema(), 200),
-                        Response(NotFound404, 404)
-                    ])
-async def get_item(request: Request, db: Database, item_id: str):
+@server.get('/items/{item_id}')
+async def get_item(item_id: str) -> items.ItemModel:
     """
     Get Item
 
     This returns the Item
     """
-    item_model = await items.ItemModel.fetch(db, item_id.replace('%3A', ":"))
+    item_model = await items.ItemModel.fetch(db, item_id.replace('%3A', ':'))
 
-    return sanic.json(item_model.model_dump(), default=str)
+    return item_model
 
 
-@server_blueprint.route('/items/<item_id:str>', methods=['PATCH', 'PUT'])
-@openapi.definition(body=RequestBody(items.ItemUpdateModel.doc_schema()),
-                    response=[
-                        Response(items.ItemModel.doc_schema(), 201),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=items.ItemUpdateModel)
-async def update_item(request: Request, db: Database, item_id: str, body: items.ItemUpdateModel):
+@server.patch('/items/{item_id}')
+@server.put('/items/{item_id}')
+async def update_item(item_id: str, body: items.ItemUpdateModel) -> items.ItemModel:
     """
     Update Item
 
@@ -107,15 +85,11 @@ async def update_item(request: Request, db: Database, item_id: str, body: items.
     model = await items.ItemModel.fetch(db, item_id)
     await model.update(db, body)
 
-    return sanic.json(body.model_dump(), default=str)
+    return model
 
 
-@server_blueprint.route('/world/<guild_id:int>', methods=['GET'])
-@openapi.definition(response=[
-                        Response(world.WorldModel.doc_schema(), 200),
-                        Response(NotFound404, 404)
-                    ])
-async def get_world(request: Request, db: Database, guild_id: int):
+@server.get('/world/{guild_id}')
+async def get_world(guild_id: int) -> world.WorldModel:
     """
     Get World
 
@@ -123,17 +97,12 @@ async def get_world(request: Request, db: Database, guild_id: int):
     """
     world_model = await world.WorldModel.fetch(db, guild_id)
 
-    return sanic.json(world_model.model_dump(), default=str)
+    return world_model
 
 
-@server_blueprint.route('/world/<guild_id:int>', methods=['PATCH', 'PUT'])
-@openapi.definition(body=RequestBody(world.WorldUpdateModel.doc_schema()),
-                    response=[
-                        Response(world.WorldModel.doc_schema(), 201),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=world.WorldUpdateModel)
-async def update_world(request: Request, db: Database, guild_id: int, body: world.WorldUpdateModel):
+@server.patch('/world/{guild_id}')
+@server.put('/world/{guild_id}')
+async def update_world(guild_id: int, body: world.WorldUpdateModel) -> world.WorldModel:
     """
     Update World
 
@@ -143,4 +112,4 @@ async def update_world(request: Request, db: Database, guild_id: int, body: worl
     model = await world.WorldModel.fetch(db, guild_id)
     await model.update(db, body)
 
-    return sanic.json(model.model_dump(), default=str)
+    return model

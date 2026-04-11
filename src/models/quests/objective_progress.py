@@ -5,7 +5,6 @@ from typing import Literal
 from pydantic import Field, model_validator
 from typing_extensions import Optional
 
-from sanic_ext import openapi
 
 from src.dependencies.database import Database
 from asyncpg import Connection
@@ -15,7 +14,7 @@ from src.models.quests.objective_customization.progress import CUSTOMIZATION_TYP
 from src.models.quests.objective_targets.progress import TARGET_TYPE_MAP, TargetProgress
 from src.models.quests.objective_targets.target import Targets
 from src.utils.base import BaseModel, BaseList, optional_model
-from src.utils.errors import BadRequest400, NotFound404
+from fastapi import HTTPException
 
 
 class ObjectiveProgressBaseModel(BaseModel):
@@ -40,7 +39,6 @@ class ObjectiveProgressBaseModel(BaseModel):
         return data
 
 
-@openapi.component()
 class ObjectiveProgressModel(ObjectiveProgressBaseModel):
     progress_id: int = Field(description="The quest progress ID",
                              json_schema_extra={"example": 453})
@@ -50,7 +48,7 @@ class ObjectiveProgressModel(ObjectiveProgressBaseModel):
     @classmethod
     async def fetch(cls, db: Database, progress_id: int = None, objective_id: int = None, *args) -> "ObjectiveProgressModel":
         if not progress_id or not objective_id:
-            raise BadRequest400(extra={'ids': ['progress_id', 'objective_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                       SELECT * from quests_v3.objective_progress
@@ -62,7 +60,7 @@ class ObjectiveProgressModel(ObjectiveProgressBaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'objective_progress', 'id': f'Progress ID: {progress_id}, Objective ID:{objective_id}'})
+            raise HTTPException(status_code=404, detail="Objective progress not found")
 
     @classmethod
     async def create(cls, db: Database, model: "ObjectiveProgressCreateModel", conn: Connection = None, *args):
@@ -104,12 +102,11 @@ class ObjectiveProgressModel(ObjectiveProgressBaseModel):
                               self.status, self.progress_id, self.objective_id)
 
 
-@openapi.component()
 class ObjectiveProgressListModel(BaseList[ObjectiveProgressModel]):
     @classmethod
     async def fetch(cls, db: Database, progress_id: int = None, *args) -> "ObjectiveProgressListModel":
         if not progress_id:
-            raise BadRequest400(extra={'ids': ['progress_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetch("""
                                    SELECT * from quests_v3.objective_progress

@@ -1,11 +1,10 @@
 from typing import Annotated, Optional
 
+from fastapi import HTTPException
 from pydantic import Field, StringConstraints
-from sanic_ext import openapi
 
 from src.dependencies.database import Database
 from src.utils.base import BaseModel, BaseList
-from src.utils.errors import BadRequest400, NotFound404
 
 ItemID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
@@ -20,7 +19,7 @@ class ItemBaseModel(BaseModel):
     depreciation: float = Field(description="The depreciation of this item",
                                 json_schema_extra={"example": 0.32})
 
-@openapi.component()
+
 class ItemModel(ItemBaseModel):
     current_uses: int = Field(description="The current uses of this item",
                               json_schema_extra={"example": 32})
@@ -36,7 +35,7 @@ class ItemModel(ItemBaseModel):
     @classmethod
     async def fetch(cls, db: Database, item_id: ItemID, *args) -> "ItemModel":
         if not item_id:
-            raise BadRequest400(extra={'ids': ['item_id']})
+            raise HTTPException(status_code=400, detail={'ids': ['item_id']})
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM server.items
@@ -47,7 +46,7 @@ class ItemModel(ItemBaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'item', 'id': item_id})
+            raise HTTPException(status_code=404, detail={'resource': 'item', 'id': item_id})
 
     async def update(self, db: Database, model: "ItemUpdateModel"):
         for k, v in model.model_dump().items():
@@ -79,12 +78,10 @@ class ItemListModel(BaseList[ItemModel]):
         return cls(root=items)
 
 
-@openapi.component()
 class ItemCreateModel(ItemBaseModel):
     pass
 
 
-@openapi.component()
 class ItemUpdateModel(BaseModel):
     current_uses: Optional[int] = Field(description="The current uses of this item",
                                         json_schema_extra={"example": 32})
