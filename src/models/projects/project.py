@@ -1,16 +1,13 @@
 import re
 from datetime import date, datetime
 
+from fastapi import HTTPException
 from pydantic import Field
 from typing_extensions import Literal, Optional
 
 from src.dependencies.database import Database
 from src.models.users import user
 from src.utils.base import BaseModel, BaseList, optional_model
-
-from sanic_ext import openapi
-
-from src.utils.errors import BadRequest400, NotFound404
 
 
 class ProjectBaseModel(BaseModel):
@@ -28,7 +25,6 @@ class ProjectBaseModel(BaseModel):
                                   json_schema_extra={"example": 54})
 
 
-@openapi.component()
 class ProjectModel(ProjectBaseModel):
     project_id: str = Field(description="The string ID of the project",
                             json_schema_extra={"example": 'my_project'})
@@ -76,7 +72,7 @@ class ProjectModel(ProjectBaseModel):
     @classmethod
     async def fetch(cls, db: Database, project_id: str, *args) -> "ProjectModel":
         if not project_id:
-            raise BadRequest400(extra={'ids': ['project_id']})
+            raise HTTPException(status_code=400, detail="Missing project_id")
 
         data = await db.pool.fetchrow("""
                                       SELECT p.*, s.status, s.since AS status_since FROM projects.project p
@@ -90,7 +86,7 @@ class ProjectModel(ProjectBaseModel):
             owner = await user.UserModel.fetch(db, data['owner_id'])
             return cls(**data, owner=owner)
         else:
-            raise NotFound404(extra={'resource': 'project', 'id': project_id})
+            raise HTTPException(status_code=404, detail="Project not found")
 
     async def update(self, db: Database, model: "ProjectUpdateModel", *args):
         for k, v in model.model_dump().items():
