@@ -83,24 +83,18 @@ async def get_interactions(thorny_id: int) -> interactions.InteractionSummary:
     return await interactions.InteractionSummary.fetch(db, thorny_id)
 
 
-@users.get('/guild/{guild_id}/{gamertag}', name='Get User by Gamertag')
-async def user_by_gamertag(guild_id: int, gamertag: str) -> user.UserModel:
+@users.get('/guild/{guild_id}/{id}', name='Get User by Gamertag or Discord ID')
+async def user_by_id(guild_id: int, id: str) -> user.UserModel:
     """
     This acts the same as `Get by ThornyID`.
     This will check either the whitelisted gamertag or the user-entered gamertag.
+    If the ID is numerical, it will check the user's Discord ID.
     """
-    thorny_id = await user.UserModel.get_thorny_id(db, guild_id, gamertag=gamertag.replace('%20', ' '))
-    user_view = await user.UserModel.fetch(db, thorny_id)
+    try:
+        thorny_id = await user.UserModel.get_thorny_id(db, guild_id, user_id=int(id))
+    except TypeError:
+        thorny_id = await user.UserModel.get_thorny_id(db, guild_id, gamertag=id.replace('%20', ' '))
 
-    return user_view
-
-
-@users.get('/guild/{guild_id}/{discord_id}', name='Get User by Discord ID')
-async def user_discord_id(guild_id: int, discord_id: int) -> user.UserModel:
-    """
-    This acts the same as `Get by ThornyID`.
-    """
-    thorny_id = await user.UserModel.get_thorny_id(db, guild_id, user_id=discord_id)
     user_view = await user.UserModel.fetch(db, thorny_id)
 
     return user_view
