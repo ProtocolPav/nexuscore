@@ -92,7 +92,7 @@ async def user_by_id(guild_id: int, id: str) -> user.UserModel:
     """
     try:
         thorny_id = await user.UserModel.get_thorny_id(db, guild_id, user_id=int(id))
-    except TypeError:
+    except ValueError:
         thorny_id = await user.UserModel.get_thorny_id(db, guild_id, gamertag=id.replace('%20', ' '))
 
     user_view = await user.UserModel.fetch(db, thorny_id)
