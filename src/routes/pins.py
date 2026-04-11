@@ -5,7 +5,7 @@ from src.models.projects import pin
 
 pins = APIRouter(prefix='/pins', tags=['Pins'])
 
-@pins.get('/')
+@pins.get('')
 async def get_all_pins() -> pin.PinsListModel:
     """
     Get a list of Pins
@@ -15,7 +15,7 @@ async def get_all_pins() -> pin.PinsListModel:
     return pins_model
 
 
-@pins.post('/', status_code=201)
+@pins.post('', status_code=201)
 async def create_pin(body: pin.PinCreateModel) -> pin.PinModel:
     """
     Creates a new pin, inserts a status and content.

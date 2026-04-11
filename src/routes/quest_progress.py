@@ -7,7 +7,7 @@ from src.models.quests import quest_progress, objective_progress
 quest_progress_router = APIRouter(prefix='/quests/progress', tags=['Quest Progress'])
 
 
-@quest_progress_router.post('/', status_code=status.HTTP_201_CREATED)
+@quest_progress_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_quest_progress(body: quest_progress.QuestProgressCreateModel) -> quest_progress.QuestProgressModel:
     """
     Create New Quest Progress

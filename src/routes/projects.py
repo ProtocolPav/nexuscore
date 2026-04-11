@@ -5,7 +5,7 @@ from src.models.projects import project, status, members
 
 projects = APIRouter(prefix='/projects', tags=['Projects'])
 
-@projects.get('/')
+@projects.get('')
 async def get_all_projects() -> project.ProjectsListModel:
     """
     Get a list of Projects
@@ -15,7 +15,7 @@ async def get_all_projects() -> project.ProjectsListModel:
     return projects_model
 
 
-@projects.post('/', status_code=201)
+@projects.post('', status_code=201)
 async def create_project(body: project.ProjectCreateModel) -> project.ProjectModel:
     """
     Creates a new project, inserts a status and content.

@@ -6,7 +6,7 @@ from src.models.users import user, profile, playtime, interactions
 users = APIRouter(prefix='/users', tags=['Users'])
 
 
-@users.post('/', status_code=201)
+@users.post('', status_code=201)
 async def create_user(body: user.UserCreateModel) -> user.UserModel:
     """
     Creates a user based on the discord UserID and GuildID provided.

@@ -29,7 +29,7 @@ from src.models.quests.objective_targets.target import (
 quests = APIRouter(prefix='/quests', tags=['Quests'])
 
 
-@quests.post('/', status_code=status.HTTP_201_CREATED)
+@quests.post('', status_code=status.HTTP_201_CREATED)
 async def create_quest(body: quest.QuestCreateModel) -> quest.QuestModel:
     """
     Create New Quest
@@ -44,7 +44,7 @@ async def create_quest(body: quest.QuestCreateModel) -> quest.QuestModel:
     return quest_model
 
 
-@quests.get('/')
+@quests.get('')
 async def get_all_quests(filter_query: Annotated[QuestQuery, Query()]) -> quest.QuestListModel:
     """
     Get All Quests

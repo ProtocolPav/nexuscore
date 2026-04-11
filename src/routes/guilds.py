@@ -8,7 +8,7 @@ from src.models import guilds
 guild = APIRouter(prefix='/guilds', tags=['Guilds'])
 
 
-@guild.post('/', status_code=201)
+@guild.post('', status_code=201)
 async def create_guild(body: guilds.GuildCreateModel) -> guilds.GuildModel:
     """
     Creates a new guild. This should never be called, only by thorny.
