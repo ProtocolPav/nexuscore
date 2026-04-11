@@ -11,7 +11,7 @@ from src.routes.wrapped import wrapped
 from fastapi import APIRouter
 
 api_router = APIRouter(
-    prefix='/v1',
+    prefix='/v0.2',
 )
 
 api_router.include_router(users)

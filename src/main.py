@@ -59,7 +59,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router, dependencies=[Depends(verify_api_key)])
+app.include_router(
+    api_router,
+    # dependencies=[Depends(verify_api_key)]
+)
 
 @app.get("/healthcheck", include_in_schema=False)
 async def health_check():
