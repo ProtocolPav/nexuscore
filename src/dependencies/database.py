@@ -9,7 +9,7 @@ class Database:
         self.pool: Optional[Pool] = None
 
     async def init_pool(self):
-        config = json.load(open('./config.json', 'r'))
+        config = json.load(open('../config.json', 'r'))
 
         self.pool = await create_pool(database=config['database']['name'],
                                      user=config['database']['user'],

@@ -6,6 +6,6 @@ RUN pip install -r /nexuscore/requirements.txt
 
 ENV PYTHONPATH "${PYTHONPATH}:/nexuscore/"
 
-WORKDIR /nexuscore
+WORKDIR /nexuscore/src
 
-CMD ["fastapi", "run", "nexus.py", "--host", "0.0.0.0"]
+CMD ["fastapi", "run", "--host", "0.0.0.0"]
