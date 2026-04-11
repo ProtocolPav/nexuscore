@@ -1,12 +1,9 @@
-from sanic_ext import openapi
 from pydantic import Field
 from src.dependencies.database import Database
 
 from src.utils.base import BaseModel, BaseList
-from src.utils.errors import BadRequest400, NotFound404
 
 
-@openapi.component()
 class Channel(BaseModel):
     channel_type: str = Field(description="The type of channel",
                               examples=['project_forum'])

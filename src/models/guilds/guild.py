@@ -1,8 +1,9 @@
+from fastapi import HTTPException
+
 from pydantic import Field
 from src.dependencies.database import Database
 
 from src.utils.base import BaseModel, optional_model
-from src.utils.errors import BadRequest400, NotFound404
 
 
 class GuildBaseModel(BaseModel):
@@ -44,7 +45,7 @@ class GuildModel(GuildBaseModel):
     @classmethod
     async def fetch(cls, db: Database, guild_id: int, *args) -> "GuildModel":
         if not guild_id:
-            raise BadRequest400(extra={'ids': ['guild_id']})
+            raise HTTPException(status_code=400, detail="Missing guild_id")
 
         data = await db.pool.fetchrow("""
                                       SELECT * FROM guilds.guild
@@ -55,7 +56,7 @@ class GuildModel(GuildBaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'guild', 'id': guild_id})
+            raise HTTPException(status_code=404, detail="Guild not found")
 
     async def update(self, db: Database, model: "GuildUpdateModel", *args):
         for k, v in model.model_dump().items():
