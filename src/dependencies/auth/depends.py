@@ -20,11 +20,13 @@ oauth2_scheme = OAuth2ClientCredentials(
         clientCredentials=OAuthFlowClientCredentials(
             tokenUrl="/auth/token",
             scopes={
+                "clients:write": "Manage clients",
+                "guilds:read": "Read guild information",
+                "guilds:write": "Create and update guilds",
                 "users:read": "Read user profiles",
                 "users:write": "Create and update users",
                 "quests:read": "Read quests",
-                "quests:write": "Create and update quests",
-                # ... rest of your scopes
+                "quests:write": "Create and update quests"
             }
         )
     )
