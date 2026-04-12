@@ -17,7 +17,7 @@ async def verify_api_key(client_id: str, raw_key: str) -> Optional[dict]:
         return None
 
     try:
-        ph.verify(raw_key, row["hashed_key"])
+        ph.verify(row["hashed_key"], raw_key)
     except VerifyMismatchError:
         return None
 
