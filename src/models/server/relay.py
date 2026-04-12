@@ -5,8 +5,7 @@ import httpx
 from pydantic import Field
 
 from src.utils.base import BaseModel
-
-WEBHOOK_URL = os.environ.get('WEBHOOK_URL')
+from src.config import settings
 
 class RelayModel(BaseModel):
     type: Literal["message", "start", "stop", "crash", "join", "leave", "other"] = Field(description="The type of relay",
@@ -44,4 +43,4 @@ class RelayModel(BaseModel):
                            }
 
         async with httpx.AsyncClient() as client:
-            await client.request(method="POST", url=WEBHOOK_URL, json=webhook_content)
+            await client.request(method="POST", url=settings.WEBHOOK_URL, json=webhook_content)

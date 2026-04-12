@@ -1,24 +1,18 @@
-import os
 from typing import Optional
 
 from asyncpg import Pool, create_pool
-
-DATABASE_NAME = os.environ.get('DATABASE_NAME')
-DATABASE_USER = os.environ.get('DATABASE_USER')
-DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
-DATABASE_HOST = os.environ.get('DATABASE_HOST')
-DATABASE_PORT = os.environ.get('DATABASE_PORT')
+from src.config import settings
 
 class Database:
     def __init__(self):
         self.pool: Optional[Pool] = None
 
     async def init_pool(self):
-        self.pool = await create_pool(database=DATABASE_NAME,
-                                     user=DATABASE_USER,
-                                     password=DATABASE_PASSWORD,
-                                     host=DATABASE_HOST,
-                                     port=DATABASE_PORT,
+        self.pool = await create_pool(database=settings.DATABASE_NAME,
+                                     user=settings.DATABASE_USER,
+                                     password=settings.DATABASE_PASSWORD,
+                                     host=settings.DATABASE_HOST,
+                                     port=settings.DATABASE_PORT,
                                      min_size=1,
                                      max_size=10,
                                      loop=None)
