@@ -33,6 +33,7 @@ async def scalar_html():
         scalar_proxy_url="https://proxy.scalar.com",
         theme=Theme.ALTERNATE,
         agent=AgentScalarConfig(disabled=True),
+        servers=[{"url": "http://localhost:8000/api"}, {"url": "https://api.everthorn.net"}],
         authentication={
             'preferredSecurityScheme': 'APIKeyHeader',
             'securitySchemes': {
