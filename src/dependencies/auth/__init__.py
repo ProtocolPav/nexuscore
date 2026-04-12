@@ -1,0 +1,1 @@
+from .depends import require_scope, require_guild
