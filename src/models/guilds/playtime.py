@@ -3,15 +3,13 @@ from datetime import date, datetime
 
 from pydantic import Field
 
-from sanic_ext import openapi
 from typing_extensions import Optional
 
-from src.database import Database
+from src.dependencies.database import Database
 
-from src.utils.base import BaseModel, BaseList, optional_model
+from src.utils.base import BaseModel, BaseList
 
 
-@openapi.component()
 class DailyPlaytime(BaseModel):
     day: date = Field(description="The day this data is about",
                       examples=['2024-05-05'])
@@ -26,7 +24,6 @@ class DailyPlaytime(BaseModel):
                                                 examples=[405.325])
 
 
-@openapi.component()
 class WeeklyPlaytime(BaseModel):
     week: int = Field(description="The week of the year this data is about",
                       examples=[23])
@@ -41,7 +38,6 @@ class WeeklyPlaytime(BaseModel):
                                                 examples=[405.325])
 
 
-@openapi.component()
 class MonthlyPlaytime(BaseModel):
     month: date = Field(description="The month this data is about. Always the first day of that month",
                         examples=['2024-05-01'])
@@ -189,7 +185,6 @@ class GuildPlaytimeAnalysis(BaseModel):
         return cls(**processed_dict)
 
 
-@openapi.component()
 class OnlineEntry(BaseModel):
     thorny_id: int = Field(description="The ThornyID of the user",
                            examples=[543])

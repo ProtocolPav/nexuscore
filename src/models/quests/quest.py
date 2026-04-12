@@ -1,16 +1,13 @@
 from datetime import datetime
+from typing import Optional
 
-from typing_extensions import Literal
-
-from src.models.quests.objective import ObjectivesListModel
-from src.utils.base import BaseModel, BaseList, optional_model
+from fastapi import HTTPException
 
 from pydantic import Field
-from sanic_ext import openapi
 
-from src.database import Database
-from src.models.quests.objective import ObjectiveCreateModel, ObjectiveModel
-from src.utils.errors import BadRequest400, NotFound404
+from src.dependencies.database import Database
+from src.models.quests.objective import ObjectiveCreateModel, ObjectiveModel, ObjectivesListModel
+from src.utils.base import BaseModel, BaseList, optional_model
 
 
 class QuestBaseModel(BaseModel):
@@ -30,7 +27,6 @@ class QuestBaseModel(BaseModel):
                             json_schema_extra={"example": "side"})
 
 
-@openapi.component()
 class QuestModel(QuestBaseModel):
     quest_id: int = Field(description="The ID of the quest",
                           json_schema_extra={"example": 732})
@@ -69,7 +65,7 @@ class QuestModel(QuestBaseModel):
     @classmethod
     async def fetch(cls, db: Database, quest_id: int, *args) -> "QuestModel":
         if not quest_id:
-            raise BadRequest400(extra={'ids': ['quest_id']})
+            raise HTTPException(status_code=400, detail={'ids': ['quest_id']})
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM quests_v3.quest
@@ -82,7 +78,7 @@ class QuestModel(QuestBaseModel):
 
             return cls(**data, objectives=objectives)
         else:
-            raise NotFound404(extra={'resource': 'quest', 'id': quest_id})
+            raise HTTPException(status_code=404, detail={'resource': 'quest', 'id': quest_id})
 
     async def update(self, db: Database, model: "QuestUpdateModel"):
         for k, v in model.model_dump().items():
@@ -194,3 +190,51 @@ QuestUpdateModel = optional_model('QuestUpdateModel', QuestBaseModel)
 
 class QuestCreateModel(QuestBaseModel):
     objectives: list[ObjectiveCreateModel] = Field(description="A list of objectives for this quest")
+
+
+class QuestQuery(BaseModel):
+    creator_thorny_ids: Optional[list[int]] = Field(
+        description="Filter by creator Thorny IDs",
+        examples=[[1, 2021, 543]],
+        default=None,
+    )
+    quest_types: Optional[list[str]] = Field(
+        description="Filter by quest type",
+        examples=[["side", "main", "minor"]],
+        default=None,
+    )
+    time_start: Optional[datetime] = Field(
+        description="The start time to filter by",
+        examples=["2024-01-01 04:00:00+00:00"],
+        default=None,
+    )
+    time_end: Optional[datetime] = Field(
+        description="The end time to filter by",
+        examples=["2024-12-31 04:00:00+00:00"],
+        default=None,
+    )
+    active: Optional[bool] = Field(
+        description="Filter by active quests",
+        examples=[True],
+        default=None,
+    )
+    future: Optional[bool] = Field(
+        description="Filter by future quests",
+        examples=[True],
+        default=None,
+    )
+    past: Optional[bool] = Field(
+        description="Filter by past quests",
+        examples=[True],
+        default=None,
+    )
+    page: Optional[int] = Field(
+        description="The page to return. Default: 1",
+        examples=[1],
+        default=1,
+    )
+    page_size: Optional[int] = Field(
+        description="The size of each page in items. Default: 100",
+        examples=[10],
+        default=100,
+    )

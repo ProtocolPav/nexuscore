@@ -3,12 +3,9 @@ from datetime import datetime, date
 
 from pydantic import BaseModel, Field
 
-from sanic_ext import openapi
-
-from src.database import Database
+from src.dependencies.database import Database
 
 
-@openapi.component()
 class LeaderboardEntry(BaseModel):
     value: float | int = Field(description="The value of the leaderboard, if it's playtime then it is seconds, etc.")
     thorny_id: int

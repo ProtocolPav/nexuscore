@@ -1,27 +1,14 @@
-from datetime import datetime
+from fastapi import APIRouter, HTTPException, status
 
-from sanic import Blueprint, Request
-import sanic
-from sanic_ext import openapi, validate
-from sanic_ext.extensions.openapi.definitions import Parameter, RequestBody, Response
-
-from src.utils.errors import BadRequest400, NotFound404
-
-from src.database import Database
+from src.dependencies.database import db
 
 from src.models.quests import quest_progress, objective_progress
 
-progress_blueprint = Blueprint("quest_progress", url_prefix='/quests/progress')
+quest_progress_router = APIRouter(prefix='/quests/progress', tags=['Quest Progress'])
 
 
-@progress_blueprint.route('/', methods=['POST'])
-@openapi.definition(body=RequestBody(quest_progress.QuestProgressCreateModel.doc_schema()),
-                    response=[
-                        Response(quest_progress.QuestProgressModel.doc_schema(), 201),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=quest_progress.QuestProgressCreateModel)
-async def create_quest_progress(request: Request, db: Database, body: quest_progress.QuestProgressCreateModel):
+@quest_progress_router.post('', status_code=status.HTTP_201_CREATED)
+async def create_quest_progress(body: quest_progress.QuestProgressCreateModel) -> quest_progress.QuestProgressModel:
     """
     Create New Quest Progress
 
@@ -33,15 +20,11 @@ async def create_quest_progress(request: Request, db: Database, body: quest_prog
     await quest_model.update(db, quest_progress.QuestProgressUpdateModel(status='active'))
     await quest_model.objectives[0].update(db, quest_progress.ObjectiveProgressUpdateModel(status='active'))
 
-    return sanic.json(status=201, body=quest_model.model_dump(), default=str)
+    return quest_model
 
 
-@progress_blueprint.route('/user/<thorny_id:int>', methods=['GET'])
-@openapi.definition(response=[
-    Response(quest_progress.QuestProgressListModel.doc_schema(), 200),
-    Response(NotFound404, 404)
-])
-async def get_all_quests(request: Request, db: Database, thorny_id: int):
+@quest_progress_router.get('/user/{thorny_id}')
+async def get_all_quests(thorny_id: int) -> quest_progress.QuestProgressListModel:
     """
     Get All User's Quest Progress
 
@@ -49,15 +32,11 @@ async def get_all_quests(request: Request, db: Database, thorny_id: int):
     """
     quests_list = await quest_progress.QuestProgressListModel.fetch(db, thorny_id)
 
-    return sanic.json(quests_list.model_dump(), default=str)
+    return quests_list
 
 
-@progress_blueprint.route('/user/<thorny_id:int>/active', methods=['GET'])
-@openapi.definition(response=[
-    Response(quest_progress.QuestProgressModel.doc_schema(), 200),
-    Response(NotFound404, 404)
-])
-async def get_active_quest(request: Request, db: Database, thorny_id: int):
+@quest_progress_router.get('/user/{thorny_id}/active')
+async def get_active_quest(thorny_id: int) -> quest_progress.QuestProgressModel:
     """
     Get User's Active Quest
 
@@ -65,16 +44,11 @@ async def get_active_quest(request: Request, db: Database, thorny_id: int):
     """
     quest = await quest_progress.QuestProgressModel.fetch_active_quest(db, thorny_id)
 
-    return sanic.json(quest.model_dump(), default=str)
+    return quest
 
 
-@progress_blueprint.route('/user/<thorny_id:int>/active', methods=['DELETE'])
-@openapi.definition(response=[
-    Response(204),
-    Response(BadRequest400, 400),
-    Response(NotFound404, 404)
-])
-async def fail_active_quest(request: Request, db: Database, thorny_id: int):
+@quest_progress_router.delete('/user/{thorny_id}/active', status_code=status.HTTP_204_NO_CONTENT)
+async def fail_active_quest(thorny_id: int):
     """
     Fail User's Active Quest
 
@@ -83,17 +57,11 @@ async def fail_active_quest(request: Request, db: Database, thorny_id: int):
     quest = await quest_progress.QuestProgressModel.fetch_active_quest(db, thorny_id)
     await quest.mark_failed(db)
 
-    return sanic.empty(status=204)
+    return None
 
 
-@progress_blueprint.route('/<progress_id:int>', methods=['PUT'])
-@openapi.definition(body=RequestBody(quest_progress.QuestProgressUpdateModel.doc_schema()),
-                    response=[
-                        Response(quest_progress.QuestProgressModel.doc_schema(), 200),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=quest_progress.QuestProgressUpdateModel)
-async def update_quest(request: Request, db: Database, progress_id: int, body):
+@quest_progress_router.put('/{progress_id}')
+async def update_quest(progress_id: int, body: quest_progress.QuestProgressUpdateModel) -> quest_progress.QuestProgressModel:
     """
     Update Specific User's Quest
 
@@ -102,17 +70,13 @@ async def update_quest(request: Request, db: Database, progress_id: int, body):
     model = await quest_progress.QuestProgressModel.fetch(db, progress_id)
     await model.update(db, body)
 
-    return sanic.json(model.model_dump(), default=str)
+    return model
 
 
-@progress_blueprint.route('/<progress_id:int>/<objective_id:int>', methods=['PUT'])
-@openapi.definition(body=RequestBody(objective_progress.ObjectiveProgressUpdateModel.doc_schema()),
-                    response=[
-                        Response(objective_progress.ObjectiveProgressModel.doc_schema(), 200),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=objective_progress.ObjectiveProgressUpdateModel)
-async def update_objective(request: Request, db: Database, progress_id: int, objective_id: int, body):
+@quest_progress_router.put('/{progress_id}/{objective_id}')
+async def update_objective(
+    progress_id: int, objective_id: int, body: objective_progress.ObjectiveProgressUpdateModel
+) -> objective_progress.ObjectiveProgressModel:
     """
     Update Specific User's Quest Objective
 
@@ -121,4 +85,4 @@ async def update_objective(request: Request, db: Database, progress_id: int, obj
     model = await objective_progress.ObjectiveProgressModel.fetch(db, progress_id, objective_id)
     await model.update(db, body)
 
-    return sanic.json(model.model_dump(), default=str)
+    return model

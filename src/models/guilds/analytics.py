@@ -1,13 +1,12 @@
 from datetime import datetime
 
+from fastapi import HTTPException
 from pydantic import Field
-from sanic_ext import openapi
-from src.database import Database
+from src.dependencies.database import Database
 
-from src.utils.base import BaseModel, BaseList, T, optional_model
-from src.utils.errors import BadRequest400, NotFound404
+from src.utils.base import BaseModel
 
-@openapi.component()
+
 class ConcurrentUsersBaseModel(BaseModel):
     concurrent_users: int = Field(description="The number of concurrent users",
                                   json_schema_extra={"example": 5})
@@ -17,7 +16,7 @@ class ConcurrentUsersBaseModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, guild_id: int, *args, **kwargs) -> "ConcurrentUsersBaseModel":
         if not guild_id:
-            raise BadRequest400(extra={'ids': ['guild_id']})
+            raise HTTPException(status_code=400, detail="Missing guild_id")
 
         data = await db.pool.fetchrow("""
                                         SELECT
@@ -32,7 +31,7 @@ class ConcurrentUsersBaseModel(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'concurrent_users', 'id': guild_id})
+            raise HTTPException(status_code=404, detail="Concurrent users not found")
 
 
 class TotalAnalyticsModel(BaseModel):
@@ -51,7 +50,7 @@ class TotalAnalyticsModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, guild_id: int, *args, **kwargs) -> "TotalAnalyticsModel":
         if not guild_id:
-            raise BadRequest400(extra={'ids': ['guild_id']})
+            raise HTTPException(status_code=400, detail="Missing guild_id")
 
         data = await db.pool.fetchrow("""
                                         SELECT
@@ -70,4 +69,4 @@ class TotalAnalyticsModel(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'total_analytics', 'id': guild_id})
+            raise HTTPException(status_code=404, detail="Total analytics not found")

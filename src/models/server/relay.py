@@ -1,12 +1,12 @@
+import os
 from typing import Literal
 import httpx
-
-import json
 
 from pydantic import Field
 
 from src.utils.base import BaseModel
 
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL')
 
 class RelayModel(BaseModel):
     type: Literal["message", "start", "stop", "crash", "join", "leave", "other"] = Field(description="The type of relay",
@@ -36,7 +36,6 @@ class RelayModel(BaseModel):
         return None
 
     async def relay(self):
-        config = json.load(open('./config.json', 'r'))
         webhook_content = {'username': self.name or 'Server',
                            'content': self.content,
                            'embeds': [] if self.type == 'message' else [self.generate_embed()],
@@ -45,4 +44,4 @@ class RelayModel(BaseModel):
                            }
 
         async with httpx.AsyncClient() as client:
-            await client.request(method="POST", url=config['webhook_url'], json=webhook_content)
+            await client.request(method="POST", url=WEBHOOK_URL, json=webhook_content)

@@ -2,61 +2,57 @@ from datetime import datetime, date
 
 from pydantic import Field
 from typing_extensions import Optional
+from fastapi import HTTPException
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.models.users.profile import ProfileCreateModel, ProfileModel
-from src.utils.base import BaseModel, BaseList, optional_model
-
-from sanic_ext import openapi
-
-from src.utils.errors import BadRequest400, NotFound404
+from src.utils.base import BaseModel, optional_model
 
 
 class UserBaseModel(BaseModel):
     username: Optional[str] = Field(description="The discord username this user has. Same format as discord usernames",
-                                    json_schema_extra={"example": "protocolpav"})
+                                    examples=["protocolpav"])
     birthday: Optional[date] = Field(description="The user's birthday. This is optional.",
-                                     json_schema_extra={"example": "2005-03-03"})
+                                     examples=["2005-03-03"])
     balance: int = Field(description="The user's balance on the guild.",
-                         json_schema_extra={"example": 2})
+                         examples=[2])
     active: bool = Field(description="If the user is in the guild or not.",
-                         json_schema_extra={"example": True})
+                         examples=[True])
     role: str = Field(description="The role of the user",
-                      json_schema_extra={"example": "Owner"})
+                      examples=["Owner"])
     patron: bool = Field(description="Whether the user is a patron or not",
-                         json_schema_extra={"example": True})
+                         examples=[True])
     level: int = Field(description="The user's level",
-                       json_schema_extra={"example": 32})
+                       examples=[32])
     xp: int = Field(description="The user's xp",
-                    json_schema_extra={"example": 1023})
+                    examples=[1023])
     required_xp: int = Field(description="The xp required to reach the next level",
-                             json_schema_extra={"example": 3044})
+                             examples=[3044])
     last_message: datetime = Field(description="The last time the user gained XP",
-                                   json_schema_extra={"example": "2024-03-03 04:00:00+00:00"})
+                                   examples=["2024-03-03 04:00:00+00:00"])
     gamertag: Optional[str] = Field(description="The user's gamertag",
-                                    json_schema_extra={"example": "ProtocolPav"})
+                                    examples=["ProtocolPav"])
     whitelist: Optional[str] = Field(description="The gamertag that this user is whitelisted under",
-                                     json_schema_extra={"example": "ProtocolPav"})
+                                     examples=["ProtocolPav"])
     xuid: Optional[str] = Field(description="The user's XUID, determined from Geode",
-                                json_schema_extra={"example": '1234567890'})
+                                examples=['1234567890'])
     location: Optional[tuple[int, int, int]] = Field(description="The last in-game location of the user",
-                                           json_schema_extra={"example": (544, 18, -432)})
+                                           examples=[(544, 18, -432)])
     dimension: Optional[str] = Field(description="The last in-game dimension the user was in",
-                           json_schema_extra={"example": 'minecraft:overworld'})
+                           examples=['minecraft:overworld'])
     hidden: bool = Field(description="Whether the user should be hidden on the Live Map",
-                         json_schema_extra={"example": True})
+                         examples=[True])
 
 
-@openapi.component()
 class UserModel(UserBaseModel):
     thorny_id: int = Field(description="The ThornyID of a user. This is a unique number",
-                           json_schema_extra={"example": 34})
+                           examples=[34])
     user_id: int = Field(description="The user's Discord User ID",
-                         json_schema_extra={"example": 123456789012345678})
+                         examples=[123456789012345678])
     guild_id: int = Field(description="The Discord guild ID this user is registered in",
-                          json_schema_extra={"example": 123456789012345678})
+                          examples=[123456789012345678])
     join_date: date = Field(description="The date the ThornyID was created. Usually when a user joins the guild",
-                            json_schema_extra={"example": "2024-03-03"})
+                            examples=["2024-03-03"])
     profile: ProfileModel = Field(description="The user's profile")
 
     @classmethod
@@ -79,7 +75,7 @@ class UserModel(UserBaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int, *args) -> "UserModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing thorny_id")
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM users.user
@@ -92,7 +88,7 @@ class UserModel(UserBaseModel):
 
             return cls(**data, profile=profile)
         else:
-            raise NotFound404(extra={'resource': 'user', 'id': thorny_id})
+            raise HTTPException(status_code=404, detail="User not found")
 
     @classmethod
     async def get_thorny_id(cls, db: Database, guild_id: int, user_id: int = None, gamertag: str = None) -> Optional[int]:
@@ -163,8 +159,8 @@ UserUpdateModel = optional_model("UserUpdateModel", UserBaseModel)
 class UserCreateModel(BaseModel):
     user_id: int = Field(description="The Discord user ID. Multiple users can have Thorny accounts on "
                                      "different servers.",
-                         json_schema_extra={"example": 123456789012345678})
+                         examples=[123456789012345678])
     guild_id: int = Field(description="The Discord guild ID this user is registered in.",
-                          json_schema_extra={"example": 123456789012345678})
+                          examples=[123456789012345678])
     username: Optional[str] = Field(description="The discord username this user has. Same format as discord usernames",
-                                    json_schema_extra={"example": "protocolpav"})
+                                    examples=["protocolpav"])

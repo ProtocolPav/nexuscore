@@ -1,11 +1,9 @@
 from pydantic import StringConstraints, Field
-from typing_extensions import Annotated, Optional
+from typing_extensions import Annotated
+from fastapi import HTTPException
 
-from sanic_ext import openapi
-
-from src.database import Database
+from src.dependencies.database import Database
 from src.utils.base import BaseModel, optional_model
-from src.utils.errors import BadRequest400, NotFound404
 
 ShortString = Annotated[str, StringConstraints(max_length=35)]
 LongString = Annotated[str, StringConstraints(max_length=300)]
@@ -44,7 +42,6 @@ class ProfileBaseModel(BaseModel):
                            json_schema_extra={"example": 2})
 
 
-@openapi.component()
 class ProfileModel(ProfileBaseModel):
     thorny_id: int = Field(description="The ThornyID of a user. This is a unique number.",
                            json_schema_extra={"example": 34})
@@ -60,7 +57,7 @@ class ProfileModel(ProfileBaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int, *args) -> "ProfileModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing thorny_id")
 
         data = await db.pool.fetchrow("""
                                        SELECT * FROM users.profile
@@ -71,7 +68,7 @@ class ProfileModel(ProfileBaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'profile', 'id': thorny_id})
+            raise HTTPException(status_code=404, detail="Profile not found")
 
     async def update(self, db: Database, model: "ProfileUpdateModel"):
         for k, v in model.model_dump().items():

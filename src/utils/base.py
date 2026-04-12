@@ -1,7 +1,7 @@
 import pydantic
-from typing import Generic, Iterator, TypeVar, List, Optional, get_type_hints, Type
+from typing import Generic, Iterator, TypeVar, List, Optional, get_type_hints
 
-from src.database import Database
+from src.dependencies.database import Database
 
 T = TypeVar('T', bound="BaseModel")
 

@@ -1,11 +1,9 @@
 import json
 
-from pydantic import BaseModel, Field, RootModel
-from sanic_ext import openapi
+from pydantic import BaseModel, RootModel
 
-from src.database import Database
+from src.dependencies.database import Database
 
-@openapi.component()
 class PlayerModel(BaseModel):
     gamertag: str
     location: tuple[int, int, int]
@@ -59,7 +57,6 @@ class PlayerListModel(RootModel):
         return cls.model_json_schema(ref_template="#/components/schemas/{model}")
 
 
-@openapi.component()
 class PlayerCreateModel(BaseModel):
     gamertag: str
     location: tuple[int, int, int]

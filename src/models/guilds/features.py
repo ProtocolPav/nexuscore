@@ -1,12 +1,9 @@
 from pydantic import Field
-from sanic_ext import openapi
-from src.database import Database
+from src.dependencies.database import Database
 
-from src.utils.base import BaseModel, BaseList, optional_model
-from src.utils.errors import BadRequest400, NotFound404
+from src.utils.base import BaseModel, BaseList
 
 
-@openapi.component()
 class Feature(BaseModel):
     feature: str = Field(description="The feature itself",
                          examples=['BASIC', 'PLAYTIME', 'PROFILE'])

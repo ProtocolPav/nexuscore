@@ -1,15 +1,12 @@
 import asyncio
 
 from pydantic import Field
-from typing_extensions import Optional
-from sanic_ext import openapi
+from fastapi import HTTPException
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.utils.base import BaseModel, BaseList
-from src.utils.errors import BadRequest400, NotFound404
 
 
-@openapi.component()
 class InteractionStatistic(BaseModel):
     reference: str = Field(description="The interaction reference",
                            json_schema_extra={"example": 'minecraft:zombie'})
@@ -19,12 +16,11 @@ class InteractionStatistic(BaseModel):
                        json_schema_extra={"example": 24})
 
 
-@openapi.component()
 class InteractionStatisticsList(BaseList[InteractionStatistic]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, interaction_type: str = None, *args) -> "InteractionStatisticsList":
         if not thorny_id or not interaction_type:
-            raise BadRequest400(extra={'ids': ['thorny_id', 'interaction_type']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetch("""
                                     select "type", reference, count(reference) as "count" from events.interactions i 
@@ -41,10 +37,9 @@ class InteractionStatisticsList(BaseList[InteractionStatistic]):
 
             return cls(root=stats)
         else:
-            raise NotFound404(extra={'resource': f'user_interactions_{interaction_type}', 'id': thorny_id})
+            raise HTTPException(status_code=404, detail="No interactions found")
 
 
-@openapi.component()
 class InteractionTotals(BaseModel):
     mine: int
     kill: int
@@ -55,7 +50,7 @@ class InteractionTotals(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int, *args) -> "InteractionTotals":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                         SELECT
@@ -70,7 +65,7 @@ class InteractionTotals(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': f'user_interaction_totals', 'id': thorny_id})
+            raise HTTPException(status_code=404, detail="No interactions found")
 
 
 
@@ -85,7 +80,7 @@ class InteractionSummary(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int) -> "InteractionSummary":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         totals, mine, place, kills, deaths, uses = await asyncio.gather(
             InteractionTotals.fetch(db, thorny_id),
@@ -99,4 +94,4 @@ class InteractionSummary(BaseModel):
         if totals:
             return cls(blocks_mined=mine, blocks_placed=place, kills=kills, deaths=deaths, uses=uses, totals=totals)
         else:
-            raise NotFound404(extra={'resource': f'user_interactions', 'id': thorny_id})
+            raise HTTPException(status_code=404, detail="No interactions found")

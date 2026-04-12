@@ -1,17 +1,18 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 
+from fastapi import HTTPException
 from pydantic import Field
-from typing_extensions import Optional
 
-from sanic_ext import openapi
-
-from src.database import Database
-from src.models.quests.objective_progress import ObjectiveProgressCreateModel, ObjectiveProgressListModel, ObjectiveProgressModel, \
-    ObjectiveProgressUpdateModel
+from src.dependencies.database import Database
+from src.models.quests.objective_progress import (
+    ObjectiveProgressCreateModel,
+    ObjectiveProgressListModel,
+    ObjectiveProgressModel,
+    ObjectiveProgressUpdateModel,
+)
 from src.models.quests.objective import ObjectivesListModel
 from src.utils.base import BaseModel, BaseList, optional_model
-from src.utils.errors import BadRequest400, NotFound404
 
 
 class QuestProgressBaseModel(BaseModel):
@@ -20,12 +21,11 @@ class QuestProgressBaseModel(BaseModel):
     start_time: Optional[datetime] = Field(description="The time the user actually started to complete the quest",
                                            json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
     end_time: Optional[datetime] = Field(description="The time the user ended the quest, either by failing or completing it",
-                                         json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
+                                          json_schema_extra={"example": '2024-05-05 05:34:21.123456'})
     status: Literal['active', 'pending', 'completed', 'failed'] = Field(description="The status of the quest",
                                                                         json_schema_extra={"example": 'in_progress'})
 
 
-@openapi.component()
 class QuestProgressModel(QuestProgressBaseModel):
     progress_id: int = Field(description="The ID of this specific progress instance of the quest",
                              json_schema_extra={"example": 54})
@@ -38,7 +38,7 @@ class QuestProgressModel(QuestProgressBaseModel):
     @classmethod
     async def fetch(cls, db: Database, progress_id: int = None, *args) -> "QuestProgressModel":
         if not progress_id:
-            raise BadRequest400(extra={'ids': ['progress_id']})
+            raise HTTPException(status_code=400, detail={'ids': ['progress_id']})
 
         data = await db.pool.fetchrow("""
                                           SELECT * from quests_v3.quest_progress
@@ -51,12 +51,12 @@ class QuestProgressModel(QuestProgressBaseModel):
 
             return cls(**data, objectives=objectives)
         else:
-            raise NotFound404(extra={'resource': 'quest_progress', 'id': f'{progress_id}'})
+            raise HTTPException(status_code=404, detail={'resource': 'quest_progress', 'id': f'{progress_id}'})
 
     @classmethod
     async def fetch_active_quest(cls, db: Database, thorny_id: int) -> "QuestProgressModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail={'ids': ['thorny_id']})
 
         data = await db.pool.fetchrow("""
                                           SELECT * from quests_v3.quest_progress
@@ -71,7 +71,7 @@ class QuestProgressModel(QuestProgressBaseModel):
 
             return cls(**data, objectives=objectives)
         else:
-            raise NotFound404(extra={'resource': 'quest_progress', 'id': thorny_id})
+            raise HTTPException(status_code=404, detail={'resource': 'quest_progress', 'id': thorny_id})
 
     @classmethod
     async def create(cls, db: Database, model: "QuestProgressCreateModel", *args) -> int:
@@ -130,7 +130,7 @@ class QuestProgressListModel(BaseList[QuestProgressModel]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "QuestProgressListModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail={'ids': ['thorny_id']})
 
         data = await db.pool.fetch("""
                                    SELECT * from quests_v3.quest_progress

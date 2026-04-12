@@ -1,9 +1,8 @@
+from fastapi import HTTPException
 from pydantic import Field
-from sanic_ext import openapi
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.utils.base import BaseModel, optional_model
-from src.utils.errors import BadRequest400, NotFound404
 
 
 class WorldBaseModel(BaseModel):
@@ -15,7 +14,6 @@ class WorldBaseModel(BaseModel):
                               json_schema_extra={"example": 134.54})
 
 
-@openapi.component()
 class WorldModel(WorldBaseModel):
     guild_id: int = Field(description="The guild ID that corresponds to this world",
                           json_schema_extra={"example": 123456789012345678})
@@ -23,7 +21,7 @@ class WorldModel(WorldBaseModel):
     @classmethod
     async def fetch(cls, db: Database, guild_id: int, *args) -> "WorldModel":
         if not guild_id:
-            raise BadRequest400(extra={'ids': ['guild_id']})
+            raise HTTPException(status_code=400, detail={'ids': ['guild_id']})
 
         data = await db.pool.fetchrow("""
                                        SELECT guild_id,
@@ -38,7 +36,7 @@ class WorldModel(WorldBaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'world', 'id': guild_id})
+            raise HTTPException(status_code=404, detail={'resource': 'world', 'id': guild_id})
 
     async def update(self, db: Database, model: "WorldUpdateModel"):
         for k, v in model.model_dump().items():

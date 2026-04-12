@@ -1,10 +1,10 @@
-from datetime import date, datetime
+from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing_extensions import Optional, Literal
 
-from src.database import Database
-import sanic
+from src.dependencies.database import Database
+from fastapi import HTTPException
 
 
 class StatusModel(BaseModel):
@@ -32,7 +32,7 @@ class StatusModel(BaseModel):
                                    """,
                                   project_id, status)
         else:
-            raise sanic.BadRequest("Status should be one of: pending, ongoing, abandoned, completed")
+            raise HTTPException(status_code=400, detail="Invalid status")
 
     @classmethod
     def doc_schema(cls):

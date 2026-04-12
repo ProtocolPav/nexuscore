@@ -1,15 +1,13 @@
 from datetime import date, datetime
-from typing import Literal, Optional
 
-from src.database import Database
+from src.dependencies.database import Database
 from src.utils.base import BaseList, BaseModel
 from pydantic import Field
 
-from sanic_ext import openapi
 
-from src.utils.errors import BadRequest400, NotFound404
 
-@openapi.component()
+from fastapi import HTTPException
+
 class TotalPlaytimeModel(BaseModel):
     total_seconds: float = Field(description="Total seconds played this year",
                                json_schema_extra={"example": '144332.443203'})
@@ -17,7 +15,7 @@ class TotalPlaytimeModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "TotalPlaytimeModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                           SELECT
@@ -33,10 +31,9 @@ class TotalPlaytimeModel(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'playtime', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No playtime found for this user")
 
 
-@openapi.component()
 class HighestDayModel(BaseModel):
     day: date = Field(description="The day they played on",
                       json_schema_extra={"example": '2015-04-01'})
@@ -45,7 +42,7 @@ class HighestDayModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "HighestDayModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                           SELECT
@@ -64,10 +61,9 @@ class HighestDayModel(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'playtime', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No playtime found for this user")
 
 
-@openapi.component()
 class MostActiveHourModel(BaseModel):
     hour_of_day: int = Field(description="The hour of the day they connected (1, 3, 23)")
     session_count: int = Field(description="How many sessions this person has had connecting at this hour")
@@ -76,7 +72,7 @@ class MostActiveHourModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "MostActiveHourModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                           SELECT
@@ -96,22 +92,20 @@ class MostActiveHourModel(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'playtime', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No playtime found for this user")
 
 
-@openapi.component()
 class FavouritePersonModel(BaseModel):
     other_player_id: int = Field(description="Other player id")
     username: str = Field(description="Username")
     seconds_played_together: float = Field(description="Total seconds played together")
 
 
-@openapi.component()
 class FavouritePersonListModel(BaseList[FavouritePersonModel]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "FavouritePersonListModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetch("""
                                        WITH user_sessions AS (
@@ -165,7 +159,6 @@ class FavouritePersonListModel(BaseList[FavouritePersonModel]):
 
         return cls(root=blocks)
 
-@openapi.component()
 class GrindDayModel(BaseModel):
     grind_date: date = Field(description="Grind date")
     sessions: int = Field(description="Number of sessions")
@@ -183,7 +176,7 @@ class GrindDayModel(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "GrindDayModel":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters.")
 
         data = await db.pool.fetchrow("""
                                           WITH daily_sessions AS (
@@ -250,4 +243,4 @@ class GrindDayModel(BaseModel):
         if data:
             return cls(**data)
         else:
-            raise NotFound404(extra={'resource': 'playtime', 'id': f'{thorny_id}'})
+            raise HTTPException(status_code=404, detail="No grind data found for this user")
