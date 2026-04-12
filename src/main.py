@@ -35,6 +35,7 @@ async def scalar_html():
         theme=Theme.ALTERNATE,
         agent=AgentScalarConfig(disabled=True),
         servers=[{"url": "http://localhost:8000/api"}, {"url": "https://api.everthorn.net"}],
+        persist_auth=True,
         authentication={
             'preferredSecurityScheme': 'OAuth2ClientCredentials',
         }
