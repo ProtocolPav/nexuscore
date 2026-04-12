@@ -20,7 +20,7 @@ app = FastAPI(
     title="Nexuscore",
     description="The backend for all Everthorn internal services",
     version="1.0.0",
-    docs_url=None,
+    docs_url='/docs/swagger',
     redoc_url=None,
     root_path="/api",
     lifespan=lifespan,
@@ -34,7 +34,10 @@ async def scalar_html():
         scalar_proxy_url="https://proxy.scalar.com",
         theme=Theme.ALTERNATE,
         agent=AgentScalarConfig(disabled=True),
-        servers=[{"url": "http://localhost:8000/api"}, {"url": "https://api.everthorn.net"}]
+        servers=[{"url": "http://localhost:8000/api"}, {"url": "https://api.everthorn.net"}],
+        authentication={
+            'preferredSecurityScheme': 'OAuth2'
+        }
     )
 
 origins = [

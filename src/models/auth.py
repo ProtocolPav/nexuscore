@@ -2,20 +2,6 @@ from pydantic import BaseModel, Field, UUID4
 from typing import Literal, Optional
 
 
-class TokenRequest(BaseModel):
-    grant_type: Literal["client_credentials"] = Field(description="The grant type, always `client_credentials`")
-    client_id: UUID4 = Field(description="The client ID",
-                             examples=["123e4567-e89b-12d3-a456-426655440000"])
-    client_secret: str = Field(description="The raw API key or 'secret', sent once to get a JWT")
-    scope: list[str] = Field(description="The scopes to request. Leave empty for all available scopes.",
-                             examples=[["guilds:write", "guilds:read"]],
-                             default=[])
-    guild_id: Optional[int] = Field(description="The guild ID to request a token for.\n"
-                                                "> [!warning]\n"
-                                                "> Used only for master clients looking to perform guild-scoped actions.",
-                                    examples=[123456789012345678],
-                                    default=None)
-
 class TokenResponse(BaseModel):
     access_token: str = Field(description="The JWT token")
     token_type: Literal["bearer"] = Field(description="The token type, always `bearer`",

@@ -1,30 +1,42 @@
 import secrets
+from typing import Optional
 
 from argon2 import PasswordHasher
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, status
 
 from src.dependencies.auth import require_scope
 from src.dependencies.auth.keys import verify_api_key
 from src.dependencies.auth.token import create_token
 from src.dependencies.database import db
-from src.models.auth import ClientCreateRequest, ClientCreateResponse, TokenPayload, TokenRequest, TokenResponse
+from src.models.auth import ClientCreateRequest, ClientCreateResponse, TokenPayload, TokenResponse
 
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 ph = PasswordHasher()
 
 @auth_router.post("/token")
-async def issue_token(body: TokenRequest) -> TokenResponse:
-    client = await verify_api_key(str(body.client_id), body.client_secret)
+async def get_token(
+        grant_type: str = Form(description="The grant type, always `client_credentials`",
+                               default="client_credentials"),
+        client_id: str = Form(description="The client ID"),
+        client_secret: str = Form(description="The raw client secret"),
+        scope: str = Form(description="The scopes to request. Leave empty for all available scopes.",
+                          default=""),
+        guild_id: Optional[int] = Form(description="The guild ID to request a token for.\n"
+                                                   "> [!warning]\n"
+                                                   "> Used only for master clients looking to perform guild-scoped actions.",
+                                       default=None),
+) -> TokenResponse:
+    client = await verify_api_key(str(client_id), client_secret)
     if not client:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Invalid client credentials")
 
     # Intersect requested scopes with granted scopes
     granted = set(client["scopes"])
-    requested = set(body.scope) if body.scope else granted
+    requested = set(scope.split()) if scope else granted
     final_scopes = sorted(granted & requested)
 
-    requested_guild_id = body.guild_id if body.guild_id and client["tier"] == 'master' else client["guild_id"]
+    requested_guild_id = guild_id if guild_id and client["tier"] == 'master' else client["guild_id"]
 
     token, ttl = create_token(
         client_id=str(client["client_id"]),

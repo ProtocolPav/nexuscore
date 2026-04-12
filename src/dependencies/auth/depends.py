@@ -1,17 +1,40 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional
+
+from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import OAuth2
+from fastapi.openapi.models import OAuthFlows, OAuthFlowClientCredentials
 import jwt
 
 from .token import decode_token
 from src.models.auth import TokenPayload
 
-bearer_scheme = HTTPBearer()
+class OAuth2ClientCredentials(OAuth2):
+    async def __call__(self, request: Request) -> Optional[str]:
+        authorization = request.headers.get("Authorization")
+        if not authorization or not authorization.startswith("Bearer "):
+            return None
+        return authorization.removeprefix("Bearer ").strip()
+
+oauth2_scheme = OAuth2ClientCredentials(
+    flows=OAuthFlows(
+        clientCredentials=OAuthFlowClientCredentials(
+            tokenUrl="/auth/token",
+            scopes={
+                "users:read": "Read user profiles",
+                "users:write": "Create and update users",
+                "quests:read": "Read quests",
+                "quests:write": "Create and update quests",
+                # ... rest of your scopes
+            }
+        )
+    )
+)
 
 def require_auth(
-        credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
+        token: str = Depends(oauth2_scheme),
 ) -> TokenPayload:
     try:
-        payload = decode_token(credentials.credentials)
+        payload = decode_token(token)
         return TokenPayload(**payload)
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
