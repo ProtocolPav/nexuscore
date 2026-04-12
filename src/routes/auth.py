@@ -2,9 +2,9 @@ import secrets
 from typing import Optional
 
 from argon2 import PasswordHasher
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Security, status
 
-from src.dependencies.auth import require_scope
+from src.dependencies.auth import get_current_client
 from src.dependencies.auth.keys import verify_api_key
 from src.dependencies.auth.token import create_token
 from src.dependencies.database import db
@@ -51,7 +51,7 @@ async def get_token(
 @auth_router.post("/clients", status_code=status.HTTP_201_CREATED)
 async def register_client(
         body: ClientCreateRequest,
-        token: TokenPayload = Depends(require_scope("clients:write"))
+        token: TokenPayload = Security(get_current_client, scopes=["admin:clients"])
 ) -> ClientCreateResponse:
     """Master-tier clients only. Creates a guild-scoped API key."""
     if token.tier != "master":
