@@ -1,6 +1,8 @@
 from pydantic import Field, BaseModel
 from typing_extensions import Annotated
 
+from src.models.guilds import ChannelOut, FeatureOut
+
 GuildId = Annotated[int, Field(
     description="The Discord guild ID",
     examples=[631936703190440136]
@@ -50,7 +52,8 @@ class GuildDB(BaseModel):
     active: GuildActive
 
 class GuildOut(GuildDB):
-    pass
+    channels: list[ChannelOut]
+    features: list[FeatureOut]
 
 class GuildIn(BaseModel):
     guild_id: GuildId

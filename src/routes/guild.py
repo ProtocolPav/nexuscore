@@ -14,14 +14,20 @@ repo = GuildRepository(db)
 @guilds_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_guild(
         body: guilds.GuildIn,
-        _: TokenPayload = Security(get_current_client, scopes=['admin:guilds'])
+        auth: TokenPayload = Security(get_current_client, scopes=['admin:guilds'])
 ) -> guilds.GuildOut:
     """
     Creates a new guild. If a guild with this ID already exists, it returns a 400.
     """
     guild = await repo.create(body)
+    features = await repo.fetch_features(auth.guild_id)
+    channels = await repo.fetch_channels(auth.guild_id)
 
-    return guilds.GuildOut.model_validate(guild.model_dump())
+    return guilds.GuildOut(
+        **guild.model_dump(),
+        features=[guilds.FeatureOut(**f.model_dump()) for f in features ],
+        channels=[guilds.ChannelOut(**c.model_dump()) for c in channels],
+    )
 
 
 @guilds_router.get('/me')
@@ -32,8 +38,14 @@ async def get_guild(
     Fetch your guild information
     """
     guild = await repo.fetch(auth.guild_id)
+    features = await repo.fetch_features(auth.guild_id)
+    channels = await repo.fetch_channels(auth.guild_id)
 
-    return guilds.GuildOut.model_validate(guild.model_dump())
+    return guilds.GuildOut(
+        **guild.model_dump(),
+        features=[guilds.FeatureOut(**f.model_dump()) for f in features ],
+        channels=[guilds.ChannelOut(**c.model_dump()) for c in channels],
+    )
 
 
 @guilds_router.patch('/me')
@@ -46,8 +58,14 @@ async def partial_update_guild(
     Partially updates guild information. Both `PATCH` and `PUT` work the same way.
     """
     guild = await repo.update(auth.guild_id, body)
+    features = await repo.fetch_features(auth.guild_id)
+    channels = await repo.fetch_channels(auth.guild_id)
 
-    return guilds.GuildOut.model_validate(guild.model_dump())
+    return guilds.GuildOut(
+        **guild.model_dump(),
+        features=[guilds.FeatureOut(**f.model_dump()) for f in features ],
+        channels=[guilds.ChannelOut(**c.model_dump()) for c in channels],
+    )
 
 
 @guilds_router.get('/me/features')
@@ -57,7 +75,7 @@ async def get_features(
     """Returns a list of features enabled for the authenticated guild."""
     features = await repo.fetch_features(auth.guild_id)
 
-    return [guilds.FeatureOut.model_validate(f.model_dump()) for f in features]
+    return [guilds.FeatureOut(**f.model_dump()) for f in features]
 
 
 @guilds_router.get('/me/channels')
@@ -69,7 +87,7 @@ async def get_channels(
     """
     channels = await repo.fetch_channels(auth.guild_id)
 
-    return [guilds.ChannelOut.model_validate(c.model_dump()) for c in channels]
+    return [guilds.ChannelOut(**c.model_dump()) for c in channels]
 
 
 @guilds_router.get('/me/playtime')
@@ -98,4 +116,4 @@ async def get_online_users(
     """
     players = await repo.fetch_online_members(auth.guild_id)
 
-    return [guilds.OnlineMember.model_validate(p.model_dump()) for p in players]
+    return [guilds.OnlineMember(**p.model_dump()) for p in players]
