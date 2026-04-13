@@ -53,13 +53,11 @@ async def partial_update_guild(
 @guilds_router.get('/me/features')
 async def get_features(
         auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
-) -> guilds.FeaturesListModel:
-    """
-    This returns a list of the guild's features
-    """
-    model = await guilds.FeaturesListModel.fetch(db, auth.guild_id)
+) -> list[guilds.FeatureOut]:
+    """Returns a list of features enabled for the authenticated guild."""
+    features = await repo.fetch_features(auth.guild_id)
 
-    return model
+    return [guilds.FeatureOut.model_validate(f.model_dump()) for f in features]
 
 
 @guilds_router.get('/me/channels')
