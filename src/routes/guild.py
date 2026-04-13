@@ -5,6 +5,7 @@ from src.dependencies.auth import get_current_client, get_guild_client
 from src.dependencies.database import db
 from src.models import guilds
 from src.models.auth import TokenPayload
+from src.models.guilds import OnlineMemberOut
 from src.repositories.guild import GuildRepository
 
 guilds_router = APIRouter(prefix='/guilds', tags=['Guilds'])
@@ -91,11 +92,11 @@ async def get_guild_playtime(
 @guilds_router.get('/me/online')
 async def get_online_users(
         auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
-) -> guilds.OnlineUsersListModel:
+) -> list[OnlineMemberOut]:
     """
     Get a list of ThornyIDs that are currently
     online on the server, along with their session time.
     """
-    online = await guilds.OnlineUsersListModel.fetch(db, auth.guild_id)
+    players = await repo.fetch_online_members(auth.guild_id)
 
-    return online
+    return [guilds.OnlineMemberOut.model_validate(p.model_dump()) for p in players]

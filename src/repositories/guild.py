@@ -4,6 +4,7 @@ from src.errors import AlreadyExists, NotFound
 from src.models.guilds.channels import ChannelDB
 from src.models.guilds.features import FeatureDB
 from src.models.guilds.guild import GuildDB, GuildIn, GuildUpdate
+from src.models.guilds.online_members import OnlineMemberDB
 
 
 class GuildRepository:
@@ -36,6 +37,26 @@ class GuildRepository:
         """, guild_id)
 
         return [ChannelDB.model_validate(dict(row)) for row in data]
+
+    async def fetch_online_members(self, guild_id: int) -> list[OnlineMemberDB]:
+        data = await self.db.pool.fetch("""
+           SELECT 
+                sv.thorny_id, 
+                u.user_id, 
+                u.username, 
+                u.whitelist, 
+                sv.connect_time as session,
+                u.location,
+                u.dimension,
+                u.hidden,
+                u.xuid
+           FROM events.sessions_view sv
+           INNER JOIN users.user u ON sv.thorny_id = u.thorny_id
+           WHERE u.guild_id = $1
+           AND sv.disconnect_time IS NULL
+        """, guild_id)
+
+        return [OnlineMemberDB.model_validate(dict(row)) for row in data]
 
     async def create(self, model: GuildIn) -> GuildDB:
         try:

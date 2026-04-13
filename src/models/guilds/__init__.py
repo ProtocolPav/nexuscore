@@ -3,3 +3,4 @@ from .features import FeatureOut
 from .guild import GuildIn, GuildUpdate, GuildOut
 from .leaderboards import LeaderboardModel
 from .playtime import GuildPlaytimeAnalysis, OnlineUsersListModel
+from .online_members import OnlineMemberOut
