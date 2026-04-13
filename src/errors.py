@@ -18,6 +18,17 @@ class NotFound(NexusException):
         )
 
 
+class BadRequest(NexusException):
+    def __init__(self, message: str = "Bad request"):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "bad_request",
+                "message": message
+            }
+        )
+
+
 class AlreadyExists(NexusException):
     def __init__(self, resource: str):
         super().__init__(

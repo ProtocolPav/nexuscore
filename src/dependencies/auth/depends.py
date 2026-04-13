@@ -27,8 +27,9 @@ oauth2_scheme = OAuth2ClientCredentials(
                 "guilds:read": "Read guild configuration",
                 "guilds:write": "Update guild settings",
 
-                "users:read": "Read user profiles",
-                "users:write": "Create and update users",
+                "guilds.members:read": "Read user profiles",
+                "guilds.members:write": "Create and update users",
+
                 "quests:read": "Read quests and progress",
                 "quests:write": "Create and update quests",
                 "events:read": "Read server events",
