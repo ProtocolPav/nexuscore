@@ -1,6 +1,7 @@
 import asyncpg
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
+from src.models.users.profile import ProfileDB, ProfileUpdate
 
 from src.models.users.user import UserDB, UserIn, UserUpdate
 
@@ -28,6 +29,10 @@ class UserRepository:
                     INSERT INTO users.user(guild_id, user_id, username)
                     VALUES ($1, $2, $3)
                     RETURNING *
+                ),
+                profile_table AS (
+                    INSERT INTO users.profile(user_id)
+                    VALUES ($2)
                 )
                 SELECT * FROM user_table
             """, guild_id, model.user_id, model.username)
@@ -104,3 +109,46 @@ class UserRepository:
             raise NotFound("User")
 
         return UserDB.model_validate(dict(data))
+
+    async def fetch_profile(self, guild_id: int, thorny_id: int) -> ProfileDB:
+        data = await self.db.pool.fetchrow("""
+            SELECT * FROM users.user
+            INNER JOIN users.profile ON users.user.thorny_id = users.profile.thorny_id
+            WHERE guild_id = $1
+            AND users.user.thorny_id = $2
+        """,guild_id, thorny_id)
+
+        if not data:
+            raise NotFound("Profile")
+
+        return ProfileDB.model_validate(dict(data))
+
+    async def update_profile(self, guild_id: int, thorny_id: int, model: ProfileUpdate) -> ProfileDB:
+        profile = await self.fetch_profile(guild_id, thorny_id)
+
+        updated = profile.model_copy(update=model.model_dump(exclude_none=True))
+
+        await self.db.pool.execute("""
+           UPDATE users.profile
+           SET slogan = $1,
+               aboutme = $2,
+               lore = $3,
+               character_name = $4,
+               character_age = $5,
+               character_race = $6,
+               character_role = $7,
+               character_origin = $8,
+               character_beliefs = $9,
+               agility = $10,
+               valor = $11,
+               strength = $12,
+               charisma = $13,
+               creativity = $14,
+               ingenuity = $15
+           WHERE thorny_id = $16
+        """,updated.slogan, updated.aboutme, updated.lore, updated.character_name,
+                   updated.character_age, updated.character_race, updated.character_role, updated.character_origin,
+                   updated.character_beliefs, updated.agility, updated.valor, updated.strength, updated.charisma,
+                   updated.creativity, updated.ingenuity, updated.thorny_id)
+
+        return updated

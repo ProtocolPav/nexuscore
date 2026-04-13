@@ -5,7 +5,8 @@ from src.dependencies.auth import get_guild_client
 from src.dependencies.database import db
 from src.errors import BadRequest
 from src.models.auth import TokenPayload
-from src.models.users import user, profile, playtime, interactions
+from src.models.users import user, playtime, interactions
+from src.models.users.profile import ProfileOut, ProfileUpdate
 from src.repositories.user import UserRepository
 
 members_router = APIRouter(prefix='/guilds/me/users', tags=['Users'])
@@ -21,8 +22,9 @@ async def create_user(
     Creates a new user in the guild.
     """
     usr = await repo.create(auth.guild_id, body)
+    profile = await repo.fetch_profile(auth.guild_id, usr.thorny_id)
 
-    return user.UserOut(**usr.model_dump())
+    return user.UserOut(**usr.model_dump(), profile=ProfileOut(**profile.model_dump()))
 
 
 @members_router.get('/lookup')
@@ -45,7 +47,9 @@ async def lookup_user(
     else:
         raise BadRequest('Must provide one of: gamertag, whitelist, discord_id')
 
-    return user.UserOut(**usr.model_dump())
+    profile = await repo.fetch_profile(auth.guild_id, usr.thorny_id)
+
+    return user.UserOut(**usr.model_dump(), profile=ProfileOut(**profile.model_dump()))
 
 
 @members_router.get('/{thorny_id}')
@@ -57,8 +61,9 @@ async def get_user(
     This returns the User object
     """
     usr = await repo.fetch(auth.guild_id, thorny_id)
+    profile = await repo.fetch_profile(auth.guild_id, thorny_id)
 
-    return user.UserOut(**usr.model_dump())
+    return user.UserOut(**usr.model_dump(), profile=ProfileOut(**profile.model_dump()))
 
 
 @members_router.put('/{thorny_id}')
@@ -75,30 +80,39 @@ async def partial_update_user(
     `whitelist` does not apply to this. If you set it to null, it will become null.
     """
     usr = await repo.update(auth.guild_id, thorny_id, body)
+    profile = await repo.fetch_profile(auth.guild_id, thorny_id)
 
-    return user.UserOut(**usr.model_dump())
+    return user.UserOut(**usr.model_dump(), profile=ProfileOut(**profile.model_dump()))
 
 
 @members_router.get('/{thorny_id}/profile', name='Get User Profile', deprecated=True)
-async def get_profile(thorny_id: int) -> profile.ProfileModel:
+async def get_profile(
+        thorny_id: int,
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.members:read']),
+) -> ProfileOut:
     """
     This returns the user's profile.
 
     Will be removed in a future release. Use `/users/{thorny_id}` instead.
     """
-    return await profile.ProfileModel.fetch(db, thorny_id)
+    profile = await repo.fetch_profile(auth.guild_id, thorny_id)
+
+    return ProfileOut(**profile.model_dump())
 
 
 @members_router.put('/{thorny_id}/profile')
 @members_router.patch('/{thorny_id}/profile')
-async def update_profile(thorny_id: int, body: profile.ProfileUpdateModel) -> profile.ProfileModel:
+async def update_profile(
+        thorny_id: int,
+        body: ProfileUpdate,
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.members:write']),
+) -> ProfileOut:
     """
     This updates a user's profile. Anything set to NULL will be ignored.
     """
-    model = await profile.ProfileModel.fetch(db, thorny_id)
-    await model.update(db, body)
+    profile = await repo.update_profile(auth.guild_id, thorny_id, body)
 
-    return model
+    return ProfileOut(**profile.model_dump())
 
 
 @members_router.get('/{thorny_id}/playtime', name='Get User Playtime')

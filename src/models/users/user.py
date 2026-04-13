@@ -3,6 +3,7 @@ from datetime import datetime, date
 from pydantic import Field, BaseModel
 from typing_extensions import Annotated, Optional
 
+from src.models.users.profile import ProfileOut
 
 ThornyID = Annotated[int, Field(
     description="The ThornyID of a user. This is a unique number",
@@ -107,7 +108,7 @@ class UserDB(BaseModel):
     hidden: Hidden
 
 class UserOut(UserDB):
-    pass
+    profile: ProfileOut
 
 class UserIn(BaseModel):
     user_id: UserID
