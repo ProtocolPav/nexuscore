@@ -1,6 +1,7 @@
 from typing import Optional
 
 from asyncpg import Pool, create_pool
+
 from src.config import settings
 
 class Database:
@@ -20,5 +21,14 @@ class Database:
     async def close_pool(self):
         if self.pool:
             await self.pool.close()
+
+    async def get_transaction(self):
+        async with self.pool.acquire() as connection:
+            async with connection.transaction():
+                yield connection
+
+    async def get_connection(self):
+        async with self.pool.acquire() as connection:
+            yield connection
 
 db = Database()
