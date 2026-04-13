@@ -1,5 +1,6 @@
 from src.routes.events import events
-from src.routes.guilds import guilds_router
+from src.routes.guilds.guild import guilds_router
+from src.routes.guilds.leaderboard import leaderboard_router
 from src.routes.pins import pins
 from src.routes.projects import projects
 from src.routes.users import users
@@ -15,6 +16,7 @@ api_router = APIRouter()
 api_router.include_router(users)
 api_router.include_router(events)
 api_router.include_router(guilds_router)
+api_router.include_router(leaderboard_router)
 api_router.include_router(pins)
 api_router.include_router(projects)
 api_router.include_router(quests)

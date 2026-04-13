@@ -1,10 +1,8 @@
-from datetime import date
-
 from fastapi import APIRouter, HTTPException, Security
 from starlette import status
 
 from src.dependencies.auth import get_current_client, get_guild_client
-from src.dependencies.database import Database, db
+from src.dependencies.database import db
 from src.models import guilds
 from src.models.auth import TokenPayload
 
@@ -93,55 +91,6 @@ async def get_guild_playtime(
     guild_analysis = await guilds.GuildPlaytimeAnalysis.fetch(db, auth.guild_id)
 
     return guild_analysis
-
-
-@guilds_router.get('/me/leaderboard/playtime/{month}')
-async def get_playtime_leaderboard(
-        month: date,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
-) -> guilds.LeaderboardModel:
-    """
-    Returns the guild's playtime leaderboard, in order. Playtime is in seconds.
-    """
-    guild_leaderboard = await guilds.LeaderboardModel.fetch_playtime(db, month, auth.guild_id)
-
-    return guild_leaderboard
-
-
-@guilds_router.get('/me/leaderboard/currency')
-async def get_currency_leaderboard(
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
-) -> guilds.LeaderboardModel:
-    """
-    Returns the guild's currency leaderboard, in order.
-    """
-    guild_leaderboard = await guilds.LeaderboardModel.fetch_currency(db, auth.guild_id)
-
-    return guild_leaderboard
-
-
-@guilds_router.get('/me/leaderboard/levels')
-async def get_levels_leaderboard(
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
-) -> guilds.LeaderboardModel:
-    """
-    Returns the guild's playtime leaderboard, in order. Playtime is in seconds.
-    """
-    guild_leaderboard = await guilds.LeaderboardModel.fetch_levels(db, auth.guild_id)
-
-    return guild_leaderboard
-
-
-@guilds_router.get('/me/leaderboard/quests')
-async def get_quests_leaderboard(
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
-) -> guilds.LeaderboardModel:
-    """
-    Returns the guild's playtime leaderboard, in order. Playtime is in seconds.
-    """
-    guild_leaderboard = await guilds.LeaderboardModel.fetch_quests(db, auth.guild_id)
-
-    return guild_leaderboard
 
 
 @guilds_router.get('/me/online')
