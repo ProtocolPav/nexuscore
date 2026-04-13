@@ -5,9 +5,10 @@ from scalar_fastapi import get_scalar_api_reference, Theme, AgentScalarConfig
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.dependencies.database import db
-from src.dependencies.auth import get_current_username, verify_api_key
 
 from src.routes import api_router
+from src.routes.auth import auth_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,13 +20,14 @@ app = FastAPI(
     title="Nexuscore",
     description="The backend for all Everthorn internal services",
     version="1.0.0",
-    docs_url=None,
+    docs_url='/docs/swagger',
     redoc_url=None,
     root_path="/api",
     lifespan=lifespan,
+    redirect_slashes=False,
 )
 
-@app.get("/docs", include_in_schema=False, dependencies=[Depends(get_current_username)])
+@app.get("/docs", include_in_schema=False)
 async def scalar_html():
     return get_scalar_api_reference(
         # Your OpenAPI document
@@ -34,15 +36,9 @@ async def scalar_html():
         theme=Theme.ALTERNATE,
         agent=AgentScalarConfig(disabled=True),
         servers=[{"url": "http://localhost:8000/api"}, {"url": "https://api.everthorn.net"}],
+        persist_auth=True,
         authentication={
-            'preferredSecurityScheme': 'APIKeyHeader',
-            'securitySchemes': {
-                'APIKeyHeader': {
-                    'name': 'X-API-KEY',
-                    'in': 'header',
-                    'value': '9d207bf0-10f5-4d8f-a479-22ff5aeff8d1'
-                },
-            }
+            'preferredSecurityScheme': 'OAuth2ClientCredentials',
         }
     )
 
@@ -60,10 +56,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(
-    api_router,
-    # dependencies=[Depends(verify_api_key)]
-)
+app.include_router(auth_router)
+app.include_router(api_router, prefix='/v1')
 
 @app.get("/healthcheck", include_in_schema=False)
 async def health_check():
