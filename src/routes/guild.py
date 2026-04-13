@@ -101,18 +101,17 @@ async def get_guild_playtime(
     > The playtime analysis is currently a work in progress, and may not have all data.
     > Data shape might change in the future.
     """
-    guild_analysis = await guilds.GuildPlaytimeAnalysis.fetch(db, auth.guild_id)
+    guild_analysis = await repo.fetch_playtime_analysis(auth.guild_id)
 
     return guild_analysis
 
 
 @guilds_router.get('/me/online')
-async def get_online_users(
+async def get_online_members(
         auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
 ) -> list[guilds.OnlineMember]:
     """
-    Get a list of ThornyIDs that are currently
-    online on the server, along with their session time.
+    Returns a list of all players currently connected to Geode.
     """
     players = await repo.fetch_online_members(auth.guild_id)
 
