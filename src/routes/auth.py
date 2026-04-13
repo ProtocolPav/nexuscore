@@ -2,12 +2,13 @@ import secrets
 from typing import Optional
 
 from argon2 import PasswordHasher
-from fastapi import APIRouter, Depends, Form, HTTPException, Security, status
+from fastapi import APIRouter, Form, Security, status
 
 from src.dependencies.auth import get_current_client
 from src.dependencies.auth.keys import verify_api_key
 from src.dependencies.auth.token import create_token
 from src.dependencies.database import db
+from src.errors import InvalidCredentials
 from src.models.auth import ClientCreateRequest, ClientCreateResponse, TokenPayload, TokenResponse
 
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -28,8 +29,7 @@ async def get_token(
 ) -> TokenResponse:
     client = await verify_api_key(str(client_id), client_secret)
     if not client:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Invalid client credentials")
+        raise InvalidCredentials()
 
     # Intersect requested scopes with granted scopes
     granted = set(client["scopes"])
@@ -51,13 +51,9 @@ async def get_token(
 @auth_router.post("/clients", status_code=status.HTTP_201_CREATED)
 async def register_client(
         body: ClientCreateRequest,
-        token: TokenPayload = Security(get_current_client, scopes=["admin:clients"])
+        _: TokenPayload = Security(get_current_client, scopes=["admin:clients"])
 ) -> ClientCreateResponse:
     """Master-tier clients only. Creates a guild-scoped API key."""
-    if token.tier != "master":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Only master-tier clients can register new clients")
-
     raw_key = secrets.token_urlsafe(48)
     hashed = ph.hash(raw_key)
     client_id = await db.pool.fetchval(
