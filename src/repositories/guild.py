@@ -4,7 +4,7 @@ from src.errors import AlreadyExists, NotFound
 from src.models.guilds.channels import ChannelDB
 from src.models.guilds.features import FeatureDB
 from src.models.guilds.guild import GuildDB, GuildIn, GuildUpdate
-from src.models.guilds.online_members import OnlineMemberDB
+from src.models.guilds.online_members import OnlineMember
 
 
 class GuildRepository:
@@ -38,7 +38,7 @@ class GuildRepository:
 
         return [ChannelDB.model_validate(dict(row)) for row in data]
 
-    async def fetch_online_members(self, guild_id: int) -> list[OnlineMemberDB]:
+    async def fetch_online_members(self, guild_id: int) -> list[OnlineMember]:
         data = await self.db.pool.fetch("""
            SELECT 
                 sv.thorny_id, 
@@ -56,7 +56,7 @@ class GuildRepository:
            AND sv.disconnect_time IS NULL
         """, guild_id)
 
-        return [OnlineMemberDB.model_validate(dict(row)) for row in data]
+        return [OnlineMember.model_validate(dict(row)) for row in data]
 
     async def create(self, model: GuildIn) -> GuildDB:
         try:

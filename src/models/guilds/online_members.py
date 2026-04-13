@@ -39,7 +39,7 @@ XUID = Annotated[str, Field(
     examples=['127843834324332']
 )]
 
-class OnlineMemberDB(BaseModel):
+class OnlineMember(BaseModel):
     thorny_id: ThornyID
     user_id: UserID
     session: Session
@@ -49,6 +49,3 @@ class OnlineMemberDB(BaseModel):
     dimension: Dimension
     hidden: Hidden
     xuid: Optional[XUID]
-
-class OnlineMemberOut(OnlineMemberDB):
-    pass
