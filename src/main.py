@@ -24,6 +24,7 @@ app = FastAPI(
     redoc_url=None,
     root_path="/api",
     lifespan=lifespan,
+    redirect_slashes=False,
 )
 
 @app.get("/docs", include_in_schema=False)
@@ -56,7 +57,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
-app.include_router(api_router)
+app.include_router(api_router, prefix='/v1')
 
 @app.get("/healthcheck", include_in_schema=False)
 async def health_check():

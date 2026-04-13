@@ -10,9 +10,7 @@ from src.routes.wrapped import wrapped
 
 from fastapi import APIRouter
 
-api_router = APIRouter(
-    prefix='/v0.2',
-)
+api_router = APIRouter()
 
 api_router.include_router(user_router)
 api_router.include_router(events)
