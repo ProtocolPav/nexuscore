@@ -6,6 +6,7 @@ import jwt
 from pydantic import ValidationError
 
 from src.dependencies.auth.token import decode_token
+from src.errors import GuildScopedTokenRequired, InvalidCredentials, MissingScope, TokenExpired
 from src.models.auth import TokenPayload
 from fastapi.security import SecurityScopes
 
@@ -53,34 +54,20 @@ async def get_current_client(
     else:
         authenticate_value = "Bearer"
 
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": authenticate_value},
-    )
-
     if token is None:
-        raise credentials_exception
+        raise InvalidCredentials(authenticate_value)
 
     try:
         payload = decode_token(token)
         client = TokenPayload(**payload)
     except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired",
-            headers={"WWW-Authenticate": authenticate_value},
-        )
+        raise TokenExpired(authenticate_value)
     except (jwt.InvalidTokenError, ValidationError):
-        raise credentials_exception
+        raise InvalidCredentials(authenticate_value)
 
     for scope in security_scopes.scopes:
         if scope not in client.scopes:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Missing required scope: {scope}",
-                headers={"WWW-Authenticate": authenticate_value},
-            )
+            raise MissingScope(scope, authenticate_value)
 
     return client
 
@@ -89,5 +76,5 @@ async def get_guild_client(
         auth: Annotated[TokenPayload, Security(get_current_client)]
 ) -> TokenPayload:
     if auth.guild_id is None:
-        raise HTTPException(status_code=403, detail="Requires guild-scoped token")
+        raise GuildScopedTokenRequired()
     return auth
