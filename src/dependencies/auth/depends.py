@@ -23,10 +23,11 @@ oauth2_scheme = OAuth2ClientCredentials(
         clientCredentials=OAuthFlowClientCredentials(
             tokenUrl="/auth/token",
             scopes={
-                "users:read": "Read user profiles",
-                "users:write": "Create and update users",
                 "guilds:read": "Read guild configuration",
                 "guilds:write": "Update guild settings",
+
+                "users:read": "Read user profiles",
+                "users:write": "Create and update users",
                 "quests:read": "Read quests and progress",
                 "quests:write": "Create and update quests",
                 "events:read": "Read server events",
@@ -34,7 +35,9 @@ oauth2_scheme = OAuth2ClientCredentials(
                 "projects:read": "Read community projects",
                 "projects:write": "Create and update projects",
                 "server:read": "Read Minecraft server data",
+
                 "admin:clients": "Register new guild clients",
+                "admin:guilds": "Create new Guilds",
             }
         )
     )
