@@ -68,7 +68,7 @@ async def partial_update_guild(
     )
 
 
-@guilds_router.get('/me/features')
+@guilds_router.get('/me/features', deprecated=True)
 async def get_features(
         auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
 ) -> list[guilds.FeatureOut]:
@@ -78,7 +78,7 @@ async def get_features(
     return [guilds.FeatureOut(**f.model_dump()) for f in features]
 
 
-@guilds_router.get('/me/channels')
+@guilds_router.get('/me/channels', deprecated=True)
 async def get_channels(
         auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
 ) -> list[guilds.ChannelOut]:
