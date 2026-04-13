@@ -108,7 +108,7 @@ async def get_guild_playtime(
 
 @guilds_router.get('/me/online')
 async def get_online_members(
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read', 'users:read']),
 ) -> list[guilds.OnlineMember]:
     """
     Returns a list of all players currently connected to Geode.

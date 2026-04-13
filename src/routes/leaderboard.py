@@ -12,7 +12,7 @@ leaderboard_router = APIRouter(prefix='/guilds/me/leaderboard', tags=['Leaderboa
 @leaderboard_router.get('/playtime/{month}')
 async def get_playtime_leaderboard(
         month: date,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read', 'users:read']),
 ) -> guilds.LeaderboardModel:
     """
     Returns the guild's playtime leaderboard, in order. Playtime is in seconds.
@@ -24,7 +24,7 @@ async def get_playtime_leaderboard(
 
 @leaderboard_router.get('/currency')
 async def get_currency_leaderboard(
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read', 'users:read']),
 ) -> guilds.LeaderboardModel:
     """
     Returns the guild's currency leaderboard, in order.
@@ -36,7 +36,7 @@ async def get_currency_leaderboard(
 
 @leaderboard_router.get('/levels')
 async def get_levels_leaderboard(
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read', 'users:read']),
 ) -> guilds.LeaderboardModel:
     """
     Returns the guild's playtime leaderboard, in order. Playtime is in seconds.
@@ -48,7 +48,7 @@ async def get_levels_leaderboard(
 
 @leaderboard_router.get('/quests')
 async def get_quests_leaderboard(
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read', 'users:read']),
 ) -> guilds.LeaderboardModel:
     """
     Returns the guild's playtime leaderboard, in order. Playtime is in seconds.
