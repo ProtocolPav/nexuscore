@@ -63,13 +63,13 @@ async def get_features(
 @guilds_router.get('/me/channels')
 async def get_channels(
         auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
-) -> guilds.ChannelsListModel:
+) -> list[guilds.ChannelOut]:
     """
     This returns a list of the guild's channels
     """
-    model = await guilds.ChannelsListModel.fetch(db, auth.guild_id)
+    channels = await repo.fetch_channels(auth.guild_id)
 
-    return model
+    return [guilds.ChannelOut.model_validate(c.model_dump()) for c in channels]
 
 
 @guilds_router.get('/me/playtime')

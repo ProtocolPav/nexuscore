@@ -1,5 +1,5 @@
-from .channels import ChannelsListModel
+from .channels import ChannelOut
 from .features import FeatureOut
-from .guild import GuildDB, GuildIn, GuildUpdate, GuildOut
+from .guild import GuildIn, GuildUpdate, GuildOut
 from .leaderboards import LeaderboardModel
 from .playtime import GuildPlaytimeAnalysis, OnlineUsersListModel

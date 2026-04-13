@@ -1,6 +1,7 @@
 import asyncpg
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
+from src.models.guilds.channels import ChannelDB
 from src.models.guilds.features import FeatureDB
 from src.models.guilds.guild import GuildDB, GuildIn, GuildUpdate
 
@@ -27,6 +28,14 @@ class GuildRepository:
         """, guild_id)
 
         return [FeatureDB.model_validate(dict(row)) for row in data]
+
+    async def fetch_channels(self, guild_id: int) -> list[ChannelDB]:
+        data = await self.db.pool.fetch("""
+            SELECT * FROM guilds.channels
+            WHERE guild_id = $1
+        """, guild_id)
+
+        return [ChannelDB.model_validate(dict(row)) for row in data]
 
     async def create(self, model: GuildIn) -> GuildDB:
         try:
