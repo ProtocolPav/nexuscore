@@ -45,6 +45,7 @@ class UserRepository:
         user = await self.fetch(guild_id, thorny_id)
 
         updated = user.model_copy(update=model.model_dump(exclude_none=True))
+        # TODO: Whitelist currently cannot be set to null.
 
         await self.db.pool.execute("""
            UPDATE users.user
