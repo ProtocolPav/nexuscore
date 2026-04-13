@@ -5,52 +5,49 @@ from src.dependencies.auth import get_current_client, get_guild_client
 from src.dependencies.database import db
 from src.models import guilds
 from src.models.auth import TokenPayload
+from src.repositories.guild import GuildRepository
 
 guilds_router = APIRouter(prefix='/guilds', tags=['Guilds'])
+repo = GuildRepository(db)
 
 
 @guilds_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_guild(
-        body: guilds.GuildCreateModel,
+        body: guilds.GuildIn,
         _: TokenPayload = Security(get_current_client, scopes=['admin:guilds'])
-) -> guilds.GuildModel:
+) -> guilds.GuildOut:
     """
     Creates a new guild. If a guild with this ID already exists, it returns a 400.
     """
-    if await guilds.GuildModel.fetch(db, body.guild_id):
-        raise HTTPException(status_code=400, detail='This guild already exists')
-    else:
-        guild_id = await guilds.GuildModel.create(db, body)
-        guild_model = await guilds.GuildModel.fetch(db, guild_id)
+    guild = await repo.create(body)
 
-    return guild_model
+    return guilds.GuildOut.model_validate(guild.model_dump())
 
 
 @guilds_router.get('/me')
 async def get_guild(
         auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read'])
-) -> guilds.GuildModel:
+) -> guilds.GuildOut:
     """
     Fetch your guild information
     """
-    model = await guilds.GuildModel.fetch(db, auth.guild_id)
+    guild = await repo.fetch(auth.guild_id)
 
-    return model
+    return guilds.GuildOut.model_validate(guild.model_dump())
 
 
 @guilds_router.patch('/me')
 @guilds_router.put('/me')
 async def partial_update_guild(
-        body: guilds.GuildUpdateModel,
+        body: guilds.GuildUpdate,
         auth: TokenPayload = Security(get_guild_client, scopes=['guilds:write']),
-) -> guilds.GuildModel:
+) -> guilds.GuildOut:
     """
     Partially updates guild information. Both `PATCH` and `PUT` work the same way.
     """
-    model = await guilds.GuildModel.fetch(db, auth.guild_id)
-    await model.update(db, body)
+    guild = await repo.update(auth.guild_id, body)
 
-    return model
+    return guilds.GuildOut.model_validate(guild.model_dump())
 
 
 @guilds_router.get('/me/features')
