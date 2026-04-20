@@ -1,9 +1,11 @@
 import os
-from typing import Literal
+from typing import Literal, Optional
 import httpx
 
 from pydantic import Field
 
+from src.dependencies.database import db
+from src.models.users.user import UserModel
 from src.utils.base import BaseModel
 from src.config import settings
 
@@ -16,8 +18,9 @@ class RelayModel(BaseModel):
                              json_schema_extra={"example": "Title"})
     embed_content: str = Field(description="The content of the embed",
                                json_schema_extra={"example": "Hello, world!"})
-    name: str = Field(description="The name to use for the webhook",
-                      json_schema_extra={"example": "ProtocolPav"})
+    name: Optional[str] = Field(description="The name to use for the webhook",
+                                json_schema_extra={"example": "ProtocolPav"},
+                                default=None)
 
     def generate_embed(self):
         if self.type == 'stop':
@@ -39,8 +42,15 @@ class RelayModel(BaseModel):
                            'content': self.content,
                            'embeds': [] if self.type == 'message' else [self.generate_embed()],
                            'attachments': [],
-                           'allowed_mentions': {'parse': []}
-                           }
+                           'allowed_mentions': {'parse': []}}
+
+        thorny_id = await UserModel.get_thorny_id(db=db,
+                                                  guild_id=611008530077712395,
+                                                  gamertag=self.name)
+
+        if thorny_id:
+            thorny_user = await UserModel.fetch(db=db, thorny_id=thorny_id)
+            webhook_content['avatar_url'] = f"https://persona-secondary.franchise.minecraft-services.net/api/v1.0/profile/xuid/{thorny_user.xuid}/image/head"
 
         async with httpx.AsyncClient() as client:
             await client.request(method="POST", url=settings.WEBHOOK_URL, json=webhook_content)
