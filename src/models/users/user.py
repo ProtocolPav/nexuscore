@@ -59,8 +59,8 @@ class UserModel(UserBaseModel):
     async def create(cls, db: Database, model: "UserCreateModel", *args) -> int:
         thorny_id = await db.pool.fetchrow("""
                                             with user_table as (
-                                                insert into users.user(user_id, guild_id, username)
-                                                values($1, $2, $3)
+                                                insert into users.user(user_id, guild_id, username, hidden)
+                                                values($1, $2, $3, False)
             
                                                 returning thorny_id
                                             )
