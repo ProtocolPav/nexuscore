@@ -5,9 +5,11 @@ import httpx
 from pydantic import Field
 
 from src.dependencies.database import db
-from src.models.users.user import UserModel
+from src.repositories.user import UserRepository
 from src.utils.base import BaseModel
 from src.config import settings
+
+user_repo = UserRepository(db)
 
 class RelayModel(BaseModel):
     type: Literal["message", "start", "stop", "crash", "join", "leave", "other"] = Field(description="The type of relay",
@@ -44,13 +46,11 @@ class RelayModel(BaseModel):
                            'attachments': [],
                            'allowed_mentions': {'parse': []}}
 
-        thorny_id = await UserModel.get_thorny_id(db=db,
-                                                  guild_id=611008530077712395,
-                                                  gamertag=self.name)
+        thorny_user = await user_repo.fetch_by_gamertag(guild_id=611008530077712395,
+                                                      gamertag=self.name)
 
-        if thorny_id:
-            thorny_user = await UserModel.fetch(db=db, thorny_id=thorny_id)
-            webhook_content['avatar_url'] = f"https://persona-secondary.franchise.minecraft-services.net/api/v1.0/profile/xuid/{thorny_user.xuid}/image/head"
+        webhook_content[
+            'avatar_url'] = f"https://persona-secondary.franchise.minecraft-services.net/api/v1.0/profile/xuid/{thorny_user.xuid}/image/head"
 
         async with httpx.AsyncClient() as client:
             await client.request(method="POST", url=settings.WEBHOOK_URL, json=webhook_content)
