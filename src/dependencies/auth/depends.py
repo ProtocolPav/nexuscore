@@ -29,13 +29,13 @@ oauth2_scheme = OAuth2ClientCredentials(
 
                 "guilds.members:read": "Read user profiles",
                 "guilds.members:write": "Create and update users",
+                "guilds.projects:read": "Read project data",
+                "guilds.projects:write": "Create and update projects",
 
                 "quests:read": "Read quests and progress",
                 "quests:write": "Create and update quests",
                 "events:read": "Read server events",
                 "events:write": "Create server events",
-                "projects:read": "Read community projects",
-                "projects:write": "Create and update projects",
                 "server:read": "Read Minecraft server data",
 
                 "admin:clients": "Register new guild clients",

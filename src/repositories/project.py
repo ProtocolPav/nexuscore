@@ -23,6 +23,18 @@ class ProjectRepository:
 
         return ProjectDB.model_validate(dict(data))
 
+    async def fetch_all(self, guild_id: int) -> list[ProjectDB]:
+        data = await self.db.pool.fetchrow("""
+            SELECT * FROM projects.project p
+            INNER JOIN users.user u ON p.owner_id = u.user_id
+            WHERE u.guild_id = $1
+        """, guild_id)
+
+        if not data:
+            raise NotFound("Projects")
+
+        return [ProjectDB.model_validate(dict(row)) for row in data]
+
     async def create(self, model: ProjectIn) -> ProjectDB:
         normalized = unicodedata.normalize('NFKD', model.name)
         ascii_str = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')

@@ -2,7 +2,7 @@ from src.routes.events import events
 from src.routes.guild import guilds_router
 from src.routes.leaderboard import leaderboard_router
 from src.routes.pins import pins
-from src.routes.projects import projects
+from src.routes.project import projects
 from src.routes.user import members_router
 from src.routes.quests import quests
 from src.routes.quest_progress import quest_progress_router

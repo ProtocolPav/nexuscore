@@ -1,18 +1,28 @@
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response, Security
 
+from src.dependencies.auth import get_current_client
 from src.dependencies.database import Database, db
+from src.models.auth import TokenPayload
 from src.models.projects import project, status, members
+from src.models.projects.project import ProjectOut
+from src.repositories.project import ProjectRepository
 
 projects = APIRouter(prefix='/projects', tags=['Projects'])
 
-@projects.get('')
-async def get_all_projects() -> project.ProjectsListModel:
+projects_router = APIRouter(prefix='/guilds/me/projects', tags=['Projects'])
+repo = ProjectRepository(db)
+
+@projects_router.get('',)
+async def list_projects(
+        auth: TokenPayload = Security(get_current_client, scopes=['guilds.projects:read'])
+) -> list[project.ProjectOut]:
     """
     Get a list of Projects
     """
-    projects_model = await project.ProjectsListModel.fetch(db)
+    # TODO: add cursor pagination and filtering
+    projects_models = await repo.fetch_all(auth.guild_id)
 
-    return projects_model
+    return [ProjectOut(**p.model_dump()) for p in projects_models]
 
 
 @projects.post('', status_code=201)
