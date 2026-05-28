@@ -3,7 +3,7 @@ from src.models.users import user
 from src.utils.base import BaseList
 
 
-class MembersListModel(BaseList[user.UserModel]):
+class MembersListModel(BaseList[user.UserOut]):
     @classmethod
     async def fetch(cls, db: Database, project_id: str = None, *args) -> "MembersListModel":
         data = await db.pool.fetch("""
@@ -14,7 +14,7 @@ class MembersListModel(BaseList[user.UserModel]):
 
         members: list[user.UserModel] = []
         for member in data:
-            members.append(await user.UserModel.fetch(db, member['user_id']))
+            members.append(await user.UserOut.fetch(db, member['user_id']))
 
         return cls(root=members)
 

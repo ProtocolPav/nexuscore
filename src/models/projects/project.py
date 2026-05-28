@@ -38,7 +38,7 @@ class ProjectModel(ProjectBaseModel):
                                                                             json_schema_extra={"example": 'ongoing'})
     status_since: datetime = Field(description="When the status was last updated",
                                    json_schema_extra={"example": "2024-07-05 15:15:00+00:00"})
-    owner: user.UserModel = Field(description="The owner of the project, in the form of a User object")
+    owner: user.UserOut = Field(description="The owner of the project, in the form of a User object")
 
     @classmethod
     async def create(cls, db: Database, model: "ProjectCreateModel", *args) -> str:
@@ -83,7 +83,7 @@ class ProjectModel(ProjectBaseModel):
                                       project_id)
 
         if data:
-            owner = await user.UserModel.fetch(db, data['owner_id'])
+            owner = await user.UserOut.fetch(db, data['owner_id'])
             return cls(**data, owner=owner)
         else:
             raise HTTPException(status_code=404, detail="Project not found")
@@ -122,7 +122,7 @@ class ProjectsListModel(BaseList[ProjectModel]):
 
         projects: list[ProjectModel] = []
         for project in data:
-            owner = await user.UserModel.fetch(db, project['owner_id'])
+            owner = await user.UserOut.fetch(db, project['owner_id'])
             projects.append(ProjectModel(**project, owner=owner))
 
         return cls(root=projects)
