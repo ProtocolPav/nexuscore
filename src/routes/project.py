@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Security, status
 
 from src.dependencies.auth import get_guild_client
@@ -24,13 +26,23 @@ async def list_projects(
     # TODO: add cursor pagination and filtering
     projects = await repo.fetch_all(auth.guild_id)
 
-    return [ProjectOut(
-        **p.model_dump(),
-        owner=UserOut(
-            **(await user_repo.fetch(auth.guild_id, p.owner_id)).model_dump(),
-            profile=ProfileOut(**(await user_repo.fetch_profile(auth.guild_id, p.owner_id)).model_dump())
+    owner_ids = [p.owner_id for p in projects]
+
+    owners, profiles = await asyncio.gather(
+        asyncio.gather(*[user_repo.fetch(auth.guild_id, oid) for oid in owner_ids]),
+        asyncio.gather(*[user_repo.fetch_profile(auth.guild_id, oid) for oid in owner_ids]),
+    )
+
+    return [
+        ProjectOut(
+            **p.model_dump(),
+            owner=UserOut(
+                **owner.model_dump(),
+                profile=ProfileOut(**profile.model_dump())
+            )
         )
-    ) for p in projects]
+        for p, owner, profile in zip(projects, owners, profiles)
+    ]
 
 
 @projects_router.post('', status_code=status.HTTP_201_CREATED)
