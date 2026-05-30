@@ -50,6 +50,11 @@ async def get_current_client(
         security_scopes: SecurityScopes,
         token: Annotated[Optional[str], Depends(oauth2_scheme)],
 ) -> TokenPayload:
+    """
+    Returns the current logged in client.
+
+    Raises errors if there is no client or if the client does not have the required scopes.
+    """
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:
@@ -76,6 +81,11 @@ async def get_current_client(
 async def get_guild_client(
         auth: Annotated[TokenPayload, Security(get_current_client)]
 ) -> TokenPayload:
+    """
+    Returns the current logged in client but also ensures that the guild_id is set.
+
+    Used primarily for guild-scoped endpoints.
+    """
     if auth.guild_id is None:
         raise GuildScopedTokenRequired()
     return auth
