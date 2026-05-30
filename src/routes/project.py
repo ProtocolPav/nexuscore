@@ -27,10 +27,12 @@ async def list_projects(
     projects = await repo.fetch_all(auth.guild_id)
 
     owner_ids = [p.owner_id for p in projects]
+    project_ids = [p.project_id for p in projects]
 
-    owners, profiles = await asyncio.gather(
+    owners, profiles, statuses = await asyncio.gather(
         asyncio.gather(*[user_repo.fetch(auth.guild_id, oid) for oid in owner_ids]),
         asyncio.gather(*[user_repo.fetch_profile(auth.guild_id, oid) for oid in owner_ids]),
+        asyncio.gather(*[repo.fetch_status(pid) for pid in project_ids])
     )
 
     return [
@@ -39,9 +41,11 @@ async def list_projects(
             owner=UserOut(
                 **owner.model_dump(),
                 profile=ProfileOut(**profile.model_dump())
-            )
+            ),
+            status=project_status.status,
+            status_since=project_status.since
         )
-        for p, owner, profile in zip(projects, owners, profiles)
+        for p, owner, profile, project_status in zip(projects, owners, profiles, statuses)
     ]
 
 

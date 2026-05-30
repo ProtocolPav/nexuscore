@@ -1,10 +1,37 @@
 from datetime import datetime
+from enum import Enum
+from typing import Annotated
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing_extensions import Optional, Literal
 
 from src.dependencies.database import Database
 from fastapi import HTTPException
+
+
+class StatusEnum(str, Enum):
+    active = "ongoing"
+    inactive = "abandoned"
+    pending = "pending"
+    completed = "completed"
+
+
+Status = Annotated[StatusEnum, Field(
+    description="The project status",
+)]
+StatusSince = Annotated[datetime, Field(
+    description="When the status was last updated",
+)]
+
+class StatusDB(BaseModel):
+    status: Status
+    since: StatusSince
+
+class StatusOut(StatusDB):
+    pass
+
+class StatusIn(BaseModel):
+    status: Status
 
 
 class StatusModel(BaseModel):

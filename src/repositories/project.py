@@ -6,6 +6,7 @@ from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
 
 from src.models.projects.project import ProjectDB, ProjectIn, ProjectUpdate
+from src.models.projects.status import StatusDB
 
 
 class ProjectRepository:
@@ -90,3 +91,14 @@ class ProjectRepository:
                                    updated.dimension, updated.project_id)
 
         return updated
+
+    async def fetch_status(self, project_id: str) -> StatusDB:
+        data = await self.db.pool.fetchrow("""
+            SELECT status, since FROM projects.status
+            WHERE project_id = $1
+        """,project_id)
+
+        if not data:
+            raise NotFound("Project")
+
+        return StatusDB.model_validate(dict(data))

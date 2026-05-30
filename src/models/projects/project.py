@@ -4,14 +4,9 @@ from enum import Enum
 from pydantic import Field, BaseModel
 from typing_extensions import Annotated, Optional
 
+from src.models.projects.status import Status, StatusSince
 from src.models.users import user
 
-
-class StatusEnum(str, Enum):
-    active = "ongoing"
-    inactive = "abandoned"
-    pending = "pending"
-    completed = "completed"
 
 ProjectID = Annotated[str, Field(
     description="The string ID of the project",
@@ -46,12 +41,6 @@ StartedOn = Annotated[date, Field(
 )]
 CompletedOn = Annotated[date, Field(
     description="The date the project was completed on",
-)]
-Status = Annotated[StatusEnum, Field(
-    description="The project status",
-)]
-StatusSince = Annotated[datetime, Field(
-    description="When the status was last updated",
 )]
 Owner = Annotated[user.UserOut, Field(
     description="The owner of the project, in the form of a User object",
