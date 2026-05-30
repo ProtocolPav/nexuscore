@@ -5,10 +5,14 @@ from src.dependencies.database import db
 from src.models.auth import TokenPayload
 from src.models.projects import project
 from src.models.projects.project import ProjectOut
+from src.models.users.profile import ProfileOut
+from src.models.users.user import UserOut
 from src.repositories.project import ProjectRepository
+from src.repositories.user import UserRepository
 
 projects_router = APIRouter(prefix='/guilds/me/projects', tags=['Projects'])
 repo = ProjectRepository(db)
+user_repo = UserRepository(db)
 
 @projects_router.get('')
 async def list_projects(
@@ -20,7 +24,13 @@ async def list_projects(
     # TODO: add cursor pagination and filtering
     projects = await repo.fetch_all(auth.guild_id)
 
-    return [ProjectOut(**p.model_dump()) for p in projects]
+    return [ProjectOut(
+        **p.model_dump(),
+        owner=UserOut(
+            **(await user_repo.fetch(auth.guild_id, p.owner_id)).model_dump(),
+            profile=ProfileOut(**(await user_repo.fetch_profile(auth.guild_id, p.owner_id)).model_dump())
+        )
+    ) for p in projects]
 
 
 @projects_router.post('', status_code=status.HTTP_201_CREATED)

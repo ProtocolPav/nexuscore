@@ -24,9 +24,9 @@ class ProjectRepository:
         return ProjectDB.model_validate(dict(data))
 
     async def fetch_all(self, guild_id: int) -> list[ProjectDB]:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.pool.fetch("""
             SELECT * FROM projects.project p
-            INNER JOIN users.user u ON p.owner_id = u.user_id
+            INNER JOIN users.user u ON p.owner_id = u.thorny_id
             WHERE u.guild_id = $1
         """, guild_id)
 
