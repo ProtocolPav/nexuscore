@@ -1,64 +1,72 @@
-from fastapi import APIRouter, HTTPException, Request, Response, Security
+from fastapi import APIRouter, Security, status
 
-from src.dependencies.auth import get_current_client
-from src.dependencies.database import Database, db
+from src.dependencies.auth import get_guild_client
+from src.dependencies.database import db
 from src.models.auth import TokenPayload
-from src.models.projects import project, status, members
+from src.models.projects import project
 from src.models.projects.project import ProjectOut
 from src.repositories.project import ProjectRepository
-
-projects = APIRouter(prefix='/projects', tags=['Projects'])
 
 projects_router = APIRouter(prefix='/guilds/me/projects', tags=['Projects'])
 repo = ProjectRepository(db)
 
-@projects_router.get('',)
+@projects_router.get('')
 async def list_projects(
-        auth: TokenPayload = Security(get_current_client, scopes=['guilds.projects:read'])
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.projects:read'])
 ) -> list[project.ProjectOut]:
     """
     Get a list of Projects
     """
     # TODO: add cursor pagination and filtering
-    projects_models = await repo.fetch_all(auth.guild_id)
+    projects = await repo.fetch_all(auth.guild_id)
 
-    return [ProjectOut(**p.model_dump()) for p in projects_models]
+    return [ProjectOut(**p.model_dump()) for p in projects]
 
 
-# @projects.post('', status_code=201)
-# async def create_project(body: project.ProjectCreateModel) -> project.ProjectModel:
-#     """
-#     Creates a new project, inserts a status and content.
-#     """
-#     project_id = await project.ProjectModel.create(db, body)
-#     project_model = await project.ProjectModel.fetch(db, project_id)
+@projects_router.post('', status_code=status.HTTP_201_CREATED)
+async def create_user(
+        body: project.ProjectIn,
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.projects:write']),
+) -> project.ProjectOut:
+    """
+    Creates a new project with a status, members and content.
+    """
+    # TODO: there is no guild_id check for project creation
+    proj = await repo.create(body)
+
+    return ProjectOut(**proj.model_dump())
+
+
+@projects_router.get('/{project_id}')
+async def get_project(
+        project_id: str,
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.projects:read']),
+) -> project.ProjectOut:
+    """
+    Returns the project specified
+    """
+    # TODO: add on guild_id as secondary check
+    proj = await repo.fetch(project_id)
+
+    return ProjectOut(**proj.model_dump())
+
+
+@projects_router.put('/{project_id}')
+@projects_router.patch('/{project_id}')
+async def update_project(
+        project_id: str,
+        body: project.ProjectUpdate,
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.projects:write']),
+) -> project.ProjectOut:
+    """
+    Update the project.
+    """
+    proj = await repo.update(project_id, body)
+
+    return ProjectOut(**proj.model_dump())
 #
-#     return project_model
 #
-#
-# @projects.get('/{project_id}')
-# async def get_project(project_id: str) -> project.ProjectModel:
-#     """
-#     Returns the project specified
-#     """
-#     project_model = await project.ProjectModel.fetch(db, project_id)
-#
-#     return project_model
-#
-#
-# @projects.patch('/{project_id}')
-# @projects.put('/{project_id}')
-# async def update_project(project_id: str, body: project.ProjectUpdateModel) -> project.ProjectModel:
-#     """
-#     Update the project. Anything that you do not want to update can be left as `null`
-#     """
-#     model = await project.ProjectModel.fetch(db, project_id)
-#     await model.update(db, body)
-#
-#     return model
-#
-#
-# @projects.get('/{project_id}/status')
+# @projects_router.get('/{project_id}/status')
 # async def get_project_status(project_id: str) -> status.StatusModel:
 #     """
 #     Returns the project's status
@@ -70,7 +78,7 @@ async def list_projects(
 #
 #     return model
 #
-#
+
 # @projects.post('/{project_id}/status', status_code=201)
 # async def project_status(project_id: str, body: status.StatusCreateModel) -> Response:
 #     """
