@@ -29,13 +29,13 @@ oauth2_scheme = OAuth2ClientCredentials(
 
                 "guilds.members:read": "Read user profiles",
                 "guilds.members:write": "Create and update users",
+                "guilds.projects:read": "Read project data",
+                "guilds.projects:write": "Create and update projects",
 
                 "quests:read": "Read quests and progress",
                 "quests:write": "Create and update quests",
                 "events:read": "Read server events",
                 "events:write": "Create server events",
-                "projects:read": "Read community projects",
-                "projects:write": "Create and update projects",
                 "server:read": "Read Minecraft server data",
 
                 "admin:clients": "Register new guild clients",
@@ -50,6 +50,11 @@ async def get_current_client(
         security_scopes: SecurityScopes,
         token: Annotated[Optional[str], Depends(oauth2_scheme)],
 ) -> TokenPayload:
+    """
+    Returns the current logged in client.
+
+    Raises errors if there is no client or if the client does not have the required scopes.
+    """
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:
@@ -76,6 +81,11 @@ async def get_current_client(
 async def get_guild_client(
         auth: Annotated[TokenPayload, Security(get_current_client)]
 ) -> TokenPayload:
+    """
+    Returns the current logged in client but also ensures that the guild_id is set.
+
+    Used primarily for guild-scoped endpoints.
+    """
     if auth.guild_id is None:
         raise GuildScopedTokenRequired()
     return auth

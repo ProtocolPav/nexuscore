@@ -1,144 +1,84 @@
-import re
-from datetime import date, datetime
+from datetime import date
 
-from fastapi import HTTPException
-from pydantic import Field
-from typing_extensions import Literal, Optional
+from pydantic import Field, BaseModel
+from typing_extensions import Annotated, Optional
 
-from src.dependencies.database import Database
+from src.models.projects.status import Status, StatusSince
 from src.models.users import user
-from src.utils.base import BaseModel, BaseList, optional_model
 
 
-class ProjectBaseModel(BaseModel):
-    name: str = Field(description="The name of the project",
-                      json_schema_extra={"example": 'My Project'})
-    description: str = Field(description="A short description of the project",
-                             json_schema_extra={"example": 'This project will have houses'})
-    coordinates: list[int] = Field(description="The coordinates of the project",
-                                   json_schema_extra={"example": [132, 65, 33]})
-    dimension: str = Field(description="The dimension of the project",
-                           json_schema_extra={"example": 'minecraft:overworld'})
-    owner_id: int = Field(description="The project owner ID",
-                          json_schema_extra={"example": 12})
-    pin_id: Optional[int] = Field(description="The related pin's ID",
-                                  json_schema_extra={"example": 54})
+ProjectID = Annotated[str, Field(
+    description="The string ID of the project",
+    examples=['my_project']
+)]
+ThreadID = Annotated[int, Field(
+    description="The discord thread ID of the project",
+)]
+ProjectName = Annotated[str, Field(
+    description="The name of the project",
+    examples=['My Project']
+)]
+ProjectDescription = Annotated[str, Field(
+    description="A short description of the project",
+    examples=['This project will have houses']
+)]
+ProjectCoordinates = Annotated[list[int], Field(
+    description="The coordinates of the project",
+    examples=[[132, 65, 33]]
+)]
+ProjectOwnerID = Annotated[int, Field(
+    description="The project owner ID",
+)]
+ProjectDimension = Annotated[str, Field(
+    description="The dimension of the project",
+)]
+ProjectPinID = Annotated[int, Field(
+    description="If set, the project will not show up as a project but rather as a pin.",
+)]
+StartedOn = Annotated[date, Field(
+    description="The date the project was started on",
+)]
+CompletedOn = Annotated[date, Field(
+    description="The date the project was completed on",
+)]
+Owner = Annotated[user.UserOut, Field(
+    description="The owner of the project, in the form of a User object",
+)]
 
 
-class ProjectModel(ProjectBaseModel):
-    project_id: str = Field(description="The string ID of the project",
-                            json_schema_extra={"example": 'my_project'})
-    thread_id: Optional[int] = Field(description="The discord thread ID of the project",
-                                     json_schema_extra={"example": 134908547047468818})
-    started_on: date = Field(description="The date the project was started on",
-                             json_schema_extra={"example": '2024-05-05'})
-    completed_on: Optional[date] = Field(description="The date the project was completed on",
-                                         json_schema_extra={"example": '2024-05-05'})
-    status: Literal["pending", "ongoing", "abandoned", "completed"] = Field(description="The project status",
-                                                                            json_schema_extra={"example": 'ongoing'})
-    status_since: datetime = Field(description="When the status was last updated",
-                                   json_schema_extra={"example": "2024-07-05 15:15:00+00:00"})
-    owner: user.UserOut = Field(description="The owner of the project, in the form of a User object")
+class ProjectBase(BaseModel):
+    project_id: ProjectID
+    name: ProjectName
+    thread_id: Optional[ThreadID]
+    coordinates: ProjectCoordinates
+    description: ProjectDescription
+    completed_on: Optional[CompletedOn]
+    pin_id: Optional[ProjectPinID]
+    dimension: ProjectDimension
+    started_on: Optional[StartedOn]
 
-    @classmethod
-    async def create(cls, db: Database, model: "ProjectCreateModel", *args) -> str:
-        project_id = re.sub(r'[^a-z0-9_]', '', model.name.lower().replace(' ', '_'))
+class ProjectDB(ProjectBase):
+    owner_id: ProjectOwnerID
 
-        await db.pool.execute("""
-                                with project_table as (
-                                    insert into projects.project(project_id,
-                                                                 name, 
-                                                                 description, 
-                                                                 coordinates,
-                                                                 owner_id,
-                                                                 dimension)
-                                    values($1, $2, $3, $4, $5, $6)
-                                    RETURNING project_id
-                                ),
-                                members_table as (
-                                    insert into projects.members(project_id, user_id)
-                                    values($1, $5)
-                                ),
-                                status_table as (
-                                    insert into projects.status(project_id, status)
-                                    values($1, 'pending')
-                                )
-                                SELECT project_id FROM project_table
-                               """,
-                              project_id, model.name, model.description, model.coordinates, model.owner_id, model.dimension)
+class ProjectOut(ProjectBase):
+    status: Status
+    status_since: StatusSince
+    owner: Owner
 
-        return project_id
+class ProjectIn(BaseModel):
+    owner_id: ProjectOwnerID
+    coordinates: ProjectCoordinates
+    description: ProjectDescription
+    dimension: ProjectDimension
+    name: ProjectName
+    pin_id: Optional[ProjectPinID]
 
-    @classmethod
-    async def fetch(cls, db: Database, project_id: str, *args) -> "ProjectModel":
-        if not project_id:
-            raise HTTPException(status_code=400, detail="Missing project_id")
-
-        data = await db.pool.fetchrow("""
-                                      SELECT p.*, s.status, s.since AS status_since FROM projects.project p
-                                      INNER JOIN projects.status s ON p.project_id = s.project_id
-                                      WHERE p.project_id = $1
-                                      ORDER BY s.since DESC
-                                      """,
-                                      project_id)
-
-        if data:
-            owner = await user.UserOut.fetch(db, data['owner_id'])
-            return cls(**data, owner=owner)
-        else:
-            raise HTTPException(status_code=404, detail="Project not found")
-
-    async def update(self, db: Database, model: "ProjectUpdateModel", *args):
-        for k, v in model.model_dump().items():
-            setattr(self, k, v) if v is not None else None
-
-        await db.pool.execute("""
-                               UPDATE projects.project
-                               SET name = $1,
-                                   thread_id = $2,
-                                   coordinates = $3,
-                                   description = $4,
-                                   completed_on = $5,
-                                   owner_id = $6,
-                                   pin_id = $7,
-                                   dimension = $8
-                               WHERE project_id = $9
-                               """,
-                              self.name, self.thread_id, self.coordinates,
-                              self.description, self.completed_on, self.owner_id, self.pin_id, self.dimension,
-                              self.project_id)
-
-
-class ProjectsListModel(BaseList[ProjectModel]):
-    @classmethod
-    async def fetch(cls, db: Database, *args) -> "ProjectsListModel":
-        data = await db.pool.fetch("""
-                                    SELECT DISTINCT ON (p.project_id) 
-                                           p.*, s.status, s.since AS status_since
-                                    FROM projects.project p
-                                    JOIN projects.status s ON p.project_id = s.project_id
-                                    ORDER BY p.project_id, s.since DESC
-                                   """)
-
-        projects: list[ProjectModel] = []
-        for project in data:
-            owner = await user.UserOut.fetch(db, project['owner_id'])
-            projects.append(ProjectModel(**project, owner=owner))
-
-        return cls(root=projects)
-
-
-class ProjectCreateModel(ProjectBaseModel):
-    pass
-
-
-class ProjectUpdateMixin(ProjectBaseModel):
-    thread_id: int = Field(description="The discord thread ID of the project",
-                           json_schema_extra={"example": 134908547047468818})
-    started_on: date = Field(description="The date the project was started on",
-                             json_schema_extra={"example": '2024-05-05'})
-    completed_on: date = Field(description="The date the project was completed on",
-                               json_schema_extra={"example": '2024-05-05'})
-
-
-ProjectUpdateModel = optional_model('ProjectUpdateModel', ProjectUpdateMixin)
+class ProjectUpdate(BaseModel):
+    name: Optional[ProjectName] = None
+    thread_id: Optional[ThreadID] = None
+    coordinates: Optional[ProjectCoordinates] = None
+    description: Optional[ProjectDescription] = None
+    completed_on: Optional[CompletedOn] = None
+    pin_id: Optional[ProjectPinID] = None
+    dimension: Optional[ProjectDimension] = None
+    owner_id: Optional[ProjectOwnerID] = None
