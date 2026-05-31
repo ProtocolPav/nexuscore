@@ -10,27 +10,6 @@ from src.models.server import interactions, connections, relay
 events = APIRouter(prefix='/events', tags=['Events'])
 
 
-@events.post('/connection', status_code=201)
-async def create_connection(body: connections.ConnectionCreateModel) -> Response:
-    """
-    Creates a connection event. Either `connect` or `disconnect`.
-    """
-    try:
-        user_playtime = await playtime.PlaytimeSummary.fetch(db, body.thorny_id)
-
-        if (body.type == 'connect' and not user_playtime.session) or (body.type == 'disconnect' and user_playtime.session):
-            await connections.ConnectionModel.create(db, body)
-        else:
-            body.ignored = True
-            await connections.ConnectionModel.create(db, body)
-            raise HTTPException(status_code=400, detail='Connection was created but ignored because the user does not have a session')
-    except HTTPException as e:
-        if e.status_code == 404:
-            await connections.ConnectionModel.create(db, body)
-
-    return Response(status_code=201)
-
-
 @events.post('/interaction', status_code=201)
 async def create_interaction(body: interactions.InteractionCreateModel) -> Response:
     """

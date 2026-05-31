@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from src.dependencies.database import db
 
-from src.models.server import players, items, world
+from src.models.server import items, world
 
 server = APIRouter(prefix='/server', tags=['Server'])
 

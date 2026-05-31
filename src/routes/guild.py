@@ -5,6 +5,8 @@ from src.dependencies.auth import get_current_client, get_guild_client
 from src.dependencies.database import db
 from src.models import guilds
 from src.models.auth import TokenPayload
+from src.models.guilds import ConnectionOut
+from src.models.users import playtime
 from src.repositories.guild import GuildRepository
 
 guilds_router = APIRouter(prefix='/guilds', tags=['Guilds'])
@@ -116,3 +118,25 @@ async def get_online_members(
     players = await repo.fetch_online_members(auth.guild_id)
 
     return [guilds.OnlineMember(**p.model_dump()) for p in players]
+
+
+@guilds_router.post('/me/connection', status_code=status.HTTP_201_CREATED)
+async def create_connection(
+        body: guilds.ConnectionIn,
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:write', 'guilds.members:write']),
+) -> guilds.ConnectionOut:
+    """
+    Creates a connection event.
+    """
+    try:
+        user_playtime = await playtime.PlaytimeSummary.fetch(db, body.thorny_id)
+
+        if (body.type == 'connect' and user_playtime.session) or (body.type == 'disconnect' and not user_playtime.session):
+            body.ignored = True
+    except HTTPException:
+        # In case the playtime summary fetch fails, we still want to create the connection
+        pass
+
+    conn = await repo.create_connection(body)
+
+    return ConnectionOut(**conn.model_dump())
