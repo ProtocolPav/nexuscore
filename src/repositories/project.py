@@ -99,6 +99,6 @@ class ProjectRepository:
         """,project_id)
 
         if not data:
-            raise NotFound("Project")
+            raise NotFound("Project Status")
 
         return StatusDB.model_validate(dict(data))
