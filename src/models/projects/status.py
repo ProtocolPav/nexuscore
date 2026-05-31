@@ -3,10 +3,6 @@ from enum import Enum
 from typing import Annotated
 
 from pydantic import BaseModel, Field
-from typing_extensions import Optional, Literal
-
-from src.dependencies.database import Database
-from fastapi import HTTPException
 
 
 class StatusEnum(str, Enum):
