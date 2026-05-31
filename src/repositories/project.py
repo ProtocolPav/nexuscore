@@ -6,7 +6,7 @@ from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
 
 from src.models.projects.project import ProjectDB, ProjectIn, ProjectUpdate
-from src.models.projects.status import StatusDB
+from src.models.projects.status import StatusDB, StatusEnum, StatusIn
 
 
 class ProjectRepository:
@@ -61,10 +61,11 @@ class ProjectRepository:
                 ),
                 status_table AS (
                     INSERT INTO projects.status(project_id, status)
-                    VALUES ($1, 'pending')
+                    VALUES ($1, $7)
                 )
                 SELECT * FROM project_table
-            """, project_id, model.name, model.description, model.coordinates, model.owner_id, model.dimension)
+            """, project_id, model.name, model.description, model.coordinates, model.owner_id, model.dimension,
+                StatusEnum.pending.value)
         except asyncpg.UniqueViolationError:
             raise AlreadyExists("Project")
 
@@ -96,9 +97,27 @@ class ProjectRepository:
         data = await self.db.pool.fetchrow("""
             SELECT status, since FROM projects.status
             WHERE project_id = $1
+            ORDER BY since DESC
         """,project_id)
 
         if not data:
             raise NotFound("Project Status")
+
+        return StatusDB.model_validate(dict(data))
+
+    async def create_status(self, project_id: str, model: StatusIn) -> StatusDB:
+        try:
+            data = await self.db.pool.fetchrow("""
+                WITH status_table AS (
+                    INSERT INTO projects.status(project_id, status)
+                    VALUES ($1, $2)
+                    
+                    RETURNING *
+                )
+                SELECT * FROM status_table
+                ORDER BY since DESC LIMIT 1
+            """, project_id, model.status)
+        except asyncpg.UniqueViolationError:
+            raise AlreadyExists("Project Status")
 
         return StatusDB.model_validate(dict(data))
