@@ -7,26 +7,6 @@ from src.models.server import players, items, world
 server = APIRouter(prefix='/server', tags=['Server'])
 
 
-@server.post('/players', status_code=status.HTTP_201_CREATED)
-async def create_player(body: players.PlayerListCreateModel):
-    """
-    Add or update player's location
-    """
-    await players.PlayerListModel.update(db, body)
-
-    return None
-
-
-@server.get('/players')
-async def get_players() -> players.PlayerListModel:
-    """
-    Get all players
-    """
-    data = await players.PlayerListModel.fetch(db)
-
-    return data
-
-
 @server.post('/items', status_code=status.HTTP_201_CREATED)
 async def create_item(body: items.ItemCreateModel) -> items.ItemModel:
     """
