@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Response, Query
 from src.dependencies.database import db
 from src.models.server.interactions import InteractionQuery
 from src.models.users import playtime
-from src.models.server import interactions, connections, relay
+from src.models.server import interactions, relay
 
 events = APIRouter(prefix='/events', tags=['Events'])
 

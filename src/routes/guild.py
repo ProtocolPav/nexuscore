@@ -128,15 +128,17 @@ async def create_connection(
     """
     Creates a connection event.
     """
+    ignored = False
+
     try:
         user_playtime = await playtime.PlaytimeSummary.fetch(db, body.thorny_id)
 
         if (body.type == 'connect' and user_playtime.session) or (body.type == 'disconnect' and not user_playtime.session):
-            body.ignored = True
+            ignored = True
     except HTTPException:
         # In case the playtime summary fetch fails, we still want to create the connection
         pass
 
-    conn = await repo.create_connection(body)
+    conn = await repo.create_connection(body, ignored)
 
     return ConnectionOut(**conn.model_dump())

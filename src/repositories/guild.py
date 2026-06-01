@@ -208,7 +208,7 @@ class GuildRepository:
             monthly_playtime=json.loads(data['monthly_playtime']),
         )
 
-    async def create_connection(self, model: ConnectionIn) -> ConnectionDB:
+    async def create_connection(self, model: ConnectionIn, ignore: bool = False) -> ConnectionDB:
         data = await self.db.pool.fetchrow("""
             WITH connection_table AS (
                 INSERT INTO events.connections(type, thorny_id, ignored)
@@ -216,6 +216,6 @@ class GuildRepository:
                 RETURNING *
             )
             SELECT * FROM connection_table
-        """, model.type, model.thorny_id, model.ignored)
+        """, model.type, model.thorny_id, ignore)
 
         return ConnectionDB.model_validate(dict(data))

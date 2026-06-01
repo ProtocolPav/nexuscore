@@ -35,7 +35,6 @@ class ConnectionDB(BaseModel):
 class ConnectionIn(BaseModel):
     thorny_id: ThornyID
     type: ConnectionType
-    ignored: Ignored
 
 class ConnectionOut(ConnectionDB):
     pass
