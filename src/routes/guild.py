@@ -5,7 +5,6 @@ from src.dependencies.auth import get_current_client, get_guild_client
 from src.dependencies.database import db
 from src.models import guilds
 from src.models.auth import TokenPayload
-from src.models.guilds import ConnectionOut
 from src.models.users import playtime
 from src.repositories.guild import GuildRepository
 
@@ -141,4 +140,17 @@ async def create_connection(
 
     conn = await repo.create_connection(body, ignored)
 
-    return ConnectionOut(**conn.model_dump())
+    return guilds.ConnectionOut(**conn.model_dump())
+
+
+@guilds_router.post('/me/interaction', status_code=status.HTTP_201_CREATED)
+async def create_interaction(
+        body: guilds.InteractionIn,
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:write', 'guilds.members:write']),
+) -> guilds.InteractionOut:
+    """
+    Creates an interaction event.
+    """
+    itr = await repo.create_interaction(body)
+
+    return guilds.InteractionOut(**itr.model_dump())

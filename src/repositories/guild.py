@@ -8,6 +8,7 @@ from src.models.guilds.channels import ChannelDB
 from src.models.guilds.connection import ConnectionDB, ConnectionIn
 from src.models.guilds.features import FeatureDB
 from src.models.guilds.guild import GuildDB, GuildIn, GuildUpdate
+from src.models.guilds.interaction import InteractionDB, InteractionIn
 from src.models.guilds.online_members import OnlineMember
 
 
@@ -219,3 +220,22 @@ class GuildRepository:
         """, model.type, model.thorny_id, ignore)
 
         return ConnectionDB.model_validate(dict(data))
+
+    async def create_interaction(self, model: InteractionIn) -> InteractionDB:
+        data = await self.db.pool.fetchrow("""
+            WITH interaction_table AS (
+                INSERT INTO events.interactions(
+                    thorny_id,
+                    type,
+                    coordinates,
+                    reference,
+                    mainhand,
+                    dimension
+                    )
+                VALUES($1, $2, $3, $4, $5, $6)
+                RETURNING *
+            )
+            SELECT * FROM interaction_table
+        """, model.thorny_id, model.type, model.coordinates, model.reference, model.mainhand, model.dimension)
+
+        return InteractionDB.model_validate(dict(data))

@@ -10,16 +10,6 @@ from src.models.server import interactions, relay
 events = APIRouter(prefix='/events', tags=['Events'])
 
 
-@events.post('/interaction', status_code=201)
-async def create_interaction(body: interactions.InteractionCreateModel) -> Response:
-    """
-    Creates an interaction event.
-    """
-    await interactions.InteractionModel.create(db, body)
-
-    return Response(status_code=201)
-
-
 @events.get('/interaction', name="Interaction Check", deprecated=True)
 async def interaction_check(x: int, y: int, z: int) -> interactions.InteractionListModel:
     """

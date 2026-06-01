@@ -5,3 +5,4 @@ from .leaderboards import LeaderboardModel
 from .playtime import GuildPlaytimeAnalysis
 from .online_members import OnlineMember
 from .connection import ConnectionIn, ConnectionOut
+from .interaction import InteractionIn, InteractionOut
