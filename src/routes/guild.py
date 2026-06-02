@@ -1,10 +1,14 @@
-from fastapi import APIRouter, HTTPException, Security
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Security, Query
 from starlette import status
 
 from src.dependencies.auth import get_current_client, get_guild_client
 from src.dependencies.database import db
 from src.models import guilds
 from src.models.auth import TokenPayload
+from src.models.guilds.interaction import InteractionQuery
+from src.models.users import playtime
 from src.repositories.guild import GuildRepository
 
 guilds_router = APIRouter(prefix='/guilds', tags=['Guilds'])
@@ -116,3 +120,52 @@ async def get_online_members(
     players = await repo.fetch_online_members(auth.guild_id)
 
     return [guilds.OnlineMember(**p.model_dump()) for p in players]
+
+
+@guilds_router.post('/me/connection', status_code=status.HTTP_201_CREATED)
+async def create_connection(
+        body: guilds.ConnectionIn,
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:write', 'guilds.members:write']),
+) -> guilds.ConnectionOut:
+    """
+    Creates a connection event.
+    """
+    ignored = False
+
+    try:
+        user_playtime = await playtime.PlaytimeSummary.fetch(db, body.thorny_id)
+
+        if (body.type == 'connect' and user_playtime.session) or (body.type == 'disconnect' and not user_playtime.session):
+            ignored = True
+    except HTTPException:
+        # In case the playtime summary fetch fails, we still want to create the connection
+        pass
+
+    conn = await repo.create_connection(body, ignored)
+
+    return guilds.ConnectionOut(**conn.model_dump())
+
+
+@guilds_router.post('/me/interaction', status_code=status.HTTP_201_CREATED)
+async def create_interaction(
+        body: guilds.InteractionIn,
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:write', 'guilds.members:write']),
+) -> guilds.InteractionOut:
+    """
+    Creates an interaction event.
+    """
+    itr = await repo.create_interaction(body)
+
+    return guilds.InteractionOut(**itr.model_dump())
+
+@guilds_router.get('/me/interactions', name="Get Interactions")
+async def get_all_interactions(
+        filter_query: Annotated[InteractionQuery, Query()],
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read']),
+) -> list[guilds.InteractionOut]:
+    """
+    Filter interactions by various criteria.
+    """
+    interactions = await repo.fetch_interactions(filter_query)
+
+    return [guilds.InteractionOut(**itr.model_dump()) for itr in interactions]

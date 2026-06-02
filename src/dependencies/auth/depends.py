@@ -23,6 +23,7 @@ oauth2_scheme = OAuth2ClientCredentials(
     flows=OAuthFlows(
         clientCredentials=OAuthFlowClientCredentials(
             tokenUrl="/auth/token",
+            refreshUrl="/auth/token",
             scopes={
                 "guilds:read": "Read guild configuration",
                 "guilds:write": "Update guild settings",

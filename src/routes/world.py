@@ -1,33 +1,37 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Security, Query
+from starlette import status
 
+from src.dependencies.auth import get_guild_client
 from src.dependencies.database import db
+from src.models.auth import TokenPayload
+from src.models.worlds import world
+from src.models.server import items
+from src.repositories.world import WorldRepository
 
-from src.models.server import players, items, world
+world_router = APIRouter(prefix='/guilds/me/worlds', tags=['Worlds'])
+repo = WorldRepository(db)
 
-server = APIRouter(prefix='/server', tags=['Server'])
+@world_router.get('')
+async def get_world(
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:read'])
+) -> world.WorldOut:
+    wrld = await repo.fetch(auth.guild_id)
 
-
-@server.post('/players', status_code=status.HTTP_201_CREATED)
-async def create_player(body: players.PlayerListCreateModel):
-    """
-    Add or update player's location
-    """
-    await players.PlayerListModel.update(db, body)
-
-    return None
-
-
-@server.get('/players')
-async def get_players() -> players.PlayerListModel:
-    """
-    Get all players
-    """
-    data = await players.PlayerListModel.fetch(db)
-
-    return data
+    return world.WorldOut(**wrld.model_dump())
 
 
-@server.post('/items', status_code=status.HTTP_201_CREATED)
+@world_router.patch('')
+@world_router.put('')
+async def partial_update_world(
+        body: world.WorldUpdate,
+        auth: TokenPayload = Security(get_guild_client, scopes=['guilds:write'])
+) -> world.WorldOut:
+    wrld = await repo.update(auth.guild_id, body)
+
+    return world.WorldOut(**wrld.model_dump())
+
+
+@world_router.post('/items', status_code=status.HTTP_201_CREATED)
 async def create_item(body: items.ItemCreateModel) -> items.ItemModel:
     """
     Create New Item
@@ -49,7 +53,7 @@ async def create_item(body: items.ItemCreateModel) -> items.ItemModel:
     return item_model
 
 
-@server.get('/items')
+@world_router.get('/items')
 async def get_all_items() -> items.ItemListModel:
     """
     Get All Item
@@ -61,7 +65,7 @@ async def get_all_items() -> items.ItemListModel:
     return items_model
 
 
-@server.get('/items/{item_id}')
+@world_router.get('/items/{item_id}')
 async def get_item(item_id: str) -> items.ItemModel:
     """
     Get Item
@@ -73,8 +77,8 @@ async def get_item(item_id: str) -> items.ItemModel:
     return item_model
 
 
-@server.patch('/items/{item_id}')
-@server.put('/items/{item_id}')
+@world_router.patch('/items/{item_id}')
+@world_router.put('/items/{item_id}')
 async def update_item(item_id: str, body: items.ItemUpdateModel) -> items.ItemModel:
     """
     Update Item
@@ -83,33 +87,6 @@ async def update_item(item_id: str, body: items.ItemUpdateModel) -> items.ItemMo
     set a field to `null` to not update it.
     """
     model = await items.ItemModel.fetch(db, item_id)
-    await model.update(db, body)
-
-    return model
-
-
-@server.get('/world/{guild_id}')
-async def get_world(guild_id: int) -> world.WorldModel:
-    """
-    Get World
-
-    This returns the World
-    """
-    world_model = await world.WorldModel.fetch(db, guild_id)
-
-    return world_model
-
-
-@server.patch('/world/{guild_id}')
-@server.put('/world/{guild_id}')
-async def update_world(guild_id: int, body: world.WorldUpdateModel) -> world.WorldModel:
-    """
-    Update World
-
-    This updates a world. All fields are optional, meaning you may
-    set a field to `null` to not update it.
-    """
-    model = await world.WorldModel.fetch(db, guild_id)
     await model.update(db, body)
 
     return model
