@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from src.dependencies.database import db
 
-from src.models.server import items, world
+from src.models.server import items
 
 server = APIRouter(prefix='/server', tags=['Server'])
 
@@ -63,33 +63,6 @@ async def update_item(item_id: str, body: items.ItemUpdateModel) -> items.ItemMo
     set a field to `null` to not update it.
     """
     model = await items.ItemModel.fetch(db, item_id)
-    await model.update(db, body)
-
-    return model
-
-
-@server.get('/world/{guild_id}')
-async def get_world(guild_id: int) -> world.WorldModel:
-    """
-    Get World
-
-    This returns the World
-    """
-    world_model = await world.WorldModel.fetch(db, guild_id)
-
-    return world_model
-
-
-@server.patch('/world/{guild_id}')
-@server.put('/world/{guild_id}')
-async def update_world(guild_id: int, body: world.WorldUpdateModel) -> world.WorldModel:
-    """
-    Update World
-
-    This updates a world. All fields are optional, meaning you may
-    set a field to `null` to not update it.
-    """
-    model = await world.WorldModel.fetch(db, guild_id)
     await model.update(db, body)
 
     return model

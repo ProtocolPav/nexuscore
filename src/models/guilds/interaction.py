@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import Field, BaseModel, StringConstraints
+from pydantic import Field, BaseModel
 from typing_extensions import Annotated
 
 MINECRAFT_REGEX_PATTERN = r'^([a-z]+:[0-9a-z_*]+|[A-Za-z0-9_ \-\.]+)$'

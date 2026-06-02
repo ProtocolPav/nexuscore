@@ -8,6 +8,7 @@ from src.routes.quests import quests
 from src.routes.quest_progress import quest_progress_router
 from src.routes.server import server
 from src.routes.wrapped import wrapped
+from src.routes.world import world_router
 
 from fastapi import APIRouter
 
@@ -23,3 +24,4 @@ api_router.include_router(quests)
 api_router.include_router(quest_progress_router)
 api_router.include_router(server)
 api_router.include_router(wrapped)
+api_router.include_router(world_router)
