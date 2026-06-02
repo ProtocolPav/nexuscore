@@ -8,7 +8,7 @@ from src.models.guilds.channels import ChannelDB
 from src.models.guilds.connection import ConnectionDB, ConnectionIn
 from src.models.guilds.features import FeatureDB
 from src.models.guilds.guild import GuildDB, GuildIn, GuildUpdate
-from src.models.guilds.interaction import InteractionDB, InteractionIn
+from src.models.guilds.interaction import InteractionDB, InteractionIn, InteractionQuery
 from src.models.guilds.online_members import OnlineMember
 
 
@@ -239,3 +239,109 @@ class GuildRepository:
         """, model.thorny_id, model.type, model.coordinates, model.reference, model.mainhand, model.dimension)
 
         return InteractionDB.model_validate(dict(data))
+
+    async def fetch_interactions(self, query: InteractionQuery) -> list[InteractionDB]:
+        # Build the query dynamically
+        query_parts = ["SELECT * FROM events.interactions i"]
+        conditions = []
+        params = []
+
+        # Handle coordinates
+        if query.coordinates is not None:
+            coordinates_int = [int(x) for x in query.coordinates]
+
+            if query.coordinates_end is not None:
+                # Area query - between coordinates and coordinates_end
+                param_idx = len(params)
+                conditions.append(
+                    f"i.coordinates[1] BETWEEN ${param_idx + 1}::smallint AND ${param_idx + 4}::smallint AND "
+                    f"i.coordinates[2] BETWEEN ${param_idx + 2}::smallint AND ${param_idx + 5}::smallint AND "
+                    f"i.coordinates[3] BETWEEN ${param_idx + 3}::smallint AND ${param_idx + 6}::smallint"
+                )
+
+                coordinates_end_int = [int(x) for x in query.coordinates_end]
+                params.extend([coordinates_int[0], coordinates_int[1], coordinates_int[2],
+                               coordinates_end_int[0], coordinates_end_int[1], coordinates_end_int[2]])
+            else:
+                # Exact coordinates match
+                param_idx = len(params)
+                conditions.append(
+                    f"i.coordinates = ARRAY[${param_idx + 1}::smallint, ${param_idx + 2}::smallint, ${param_idx + 3}::smallint]")
+                params.extend([coordinates_int[0], coordinates_int[1], coordinates_int[2]])
+
+        # Handle thorny_ids (OR condition using ANY)
+        if query.thorny_ids is not None and len(query.thorny_ids) > 0:
+            param_idx = len(params)
+            conditions.append(f"i.thorny_id = ANY(${param_idx + 1}::int[])")
+
+            thorny_ids_int = [int(x) for x in query.thorny_ids]
+            params.append(thorny_ids_int)
+
+        # Handle interaction_types (OR condition using ANY)
+        if query.interaction_types is not None and len(query.interaction_types) > 0:
+            # Convert enum types to their values if needed
+            type_values = [t.value if hasattr(t, 'value') else t for t in query.interaction_types]
+            param_idx = len(params)
+            conditions.append(f"i.type = ANY(${param_idx + 1}::text[])")
+            params.append(type_values)
+
+        # Handle references (OR condition using ANY)
+        if query.references is not None and len(query.references) > 0:
+            # Convert InteractionRef to string if needed
+            ref_values = [str(r) for r in query.references]
+            ref_conditions = []
+            for ref in ref_values:
+                param_idx = len(params)
+                ref_conditions.append(f"i.reference ILIKE ${param_idx + 1}::text")
+                params.append(ref)
+            conditions.append(f"({' OR '.join(ref_conditions)})")
+
+        # Handle dimensions (OR condition using ANY)
+        if query.dimensions is not None and len(query.dimensions) > 0:
+            param_idx = len(params)
+            conditions.append(f"i.dimension = ANY(${param_idx + 1}::text[])")
+            params.append(query.dimensions)
+
+        # Handle time filtering
+        if query.time_start is not None and query.time_end is not None:
+            # Both start and end provided - use BETWEEN
+            param_idx = len(params)
+            conditions.append(f"i.time BETWEEN ${param_idx + 1}::timestamptz AND ${param_idx + 2}::timestamptz")
+            params.extend([
+                query.time_start,
+                query.time_end
+            ])
+        elif query.time_start is not None:
+            # Only start provided - everything after
+            param_idx = len(params)
+            conditions.append(f"i.time >= ${param_idx + 1}::timestamptz")
+            params.append(query.time_start)
+        elif query.time_end is not None:
+            # Only end provided - everything before
+            param_idx = len(params)
+            conditions.append(f"i.time <= ${param_idx + 1}::timestamptz")
+            params.append(query.time_end)
+
+        # Add WHERE clause if we have conditions
+        if conditions:
+            query_parts.append("WHERE")
+            query_parts.append(" AND ".join(conditions))
+
+        # Add ORDER BY clause
+        query_parts.append("ORDER BY i.interaction_id DESC")
+
+        # Handle pagination with OFFSET and LIMIT
+        if query.page is not None and query.page_size is not None:
+            # Calculate offset: (page - 1) * page_size
+            offset = (query.page - 1) * query.page_size
+            param_idx = len(params)
+
+            query_parts.append(f"LIMIT ${param_idx + 1}::int OFFSET ${param_idx + 2}::int")
+            params.extend([query.page_size, offset])
+
+        query = " ".join(query_parts)
+
+        # Execute the query
+        data = await self.db.pool.fetch(query, *params)
+
+        return [InteractionDB.model_validate(dict(itr)) for itr in data]

@@ -47,7 +47,7 @@ class InteractionDB(BaseModel):
     type: InteractionType
     coordinates: Coordinates
     reference: Reference
-    mainhand: Mainhand
+    mainhand: Optional[Mainhand]
     time: Time
     dimension: Dimension
 
@@ -56,7 +56,7 @@ class InteractionIn(BaseModel):
     type: InteractionType
     coordinates: Coordinates
     reference: Reference
-    mainhand: Mainhand
+    mainhand: Optional[Mainhand]
     dimension: Dimension
 
 class InteractionOut(InteractionDB):
