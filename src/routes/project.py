@@ -2,7 +2,7 @@ import asyncio
 
 from fastapi import APIRouter, Security, status
 
-from src.dependencies.auth import get_guild_client
+from src.dependencies.auth import Scope, get_guild_client
 from src.dependencies.database import db
 from src.models.auth import TokenPayload
 
@@ -21,7 +21,7 @@ user_repo = UserRepository(db)
 
 @projects_router.get('')
 async def list_projects(
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.projects:read'])
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_READ])
 ) -> list[ProjectOut]:
     """
     Get a list of Projects
@@ -55,7 +55,7 @@ async def list_projects(
 @projects_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_project(
         body: ProjectIn,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.projects:write']),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_WRITE]),
 ) -> ProjectOut:
     """
     Creates a new project with a status, members and content.
@@ -83,7 +83,7 @@ async def create_project(
 @projects_router.get('/{project_id}')
 async def get_project(
         project_id: str,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.projects:read']),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_READ]),
 ) -> ProjectOut:
     """
     Returns the project specified
@@ -113,7 +113,7 @@ async def get_project(
 async def update_project(
         project_id: str,
         body: ProjectUpdate,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.projects:write']),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_WRITE]),
 ) -> ProjectOut:
     """
     Update the project.
@@ -140,7 +140,7 @@ async def update_project(
 @projects_router.get('/{project_id}/status', deprecated=True)
 async def get_project_status(
         project_id: str,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.projects:read']),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_READ]),
 ) -> StatusOut:
     """
     Returns the project's status
@@ -153,7 +153,8 @@ async def get_project_status(
 @projects_router.post('/{project_id}/status', status_code=status.HTTP_201_CREATED)
 async def create_project_status(
         project_id: str,
-        body: StatusIn
+        body: StatusIn,
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_WRITE]),
 ) -> StatusOut:
     """
     New Project Status

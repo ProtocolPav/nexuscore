@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Annotated, Optional
 from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import OAuth2
@@ -9,6 +10,42 @@ from src.dependencies.auth.token import decode_token
 from src.errors import GuildScopedTokenRequired, InvalidCredentials, MissingScope, TokenExpired
 from src.models.auth import TokenPayload
 from fastapi.security import SecurityScopes
+
+
+class Scope(str, Enum):
+    GUILDS_READ = "guilds:read"
+    GUILDS_WRITE = "guilds:write"
+
+    GUILDS_MEMBERS_READ = "guilds.members:read"
+    GUILDS_MEMBERS_WRITE = "guilds.members:write"
+    GUILDS_PROJECTS_READ = "guilds.projects:read"
+    GUILDS_PROJECTS_WRITE = "guilds.projects:write"
+
+    QUESTS_READ = "quests:read"
+    QUESTS_WRITE = "quests:write"
+    EVENTS_READ = "events:read"
+    EVENTS_WRITE = "events:write"
+    SERVER_READ = "server:read"
+
+    ADMIN_CLIENTS = "admin:clients"
+    ADMIN_GUILDS = "admin:guilds"
+
+
+SCOPE_DESCRIPTIONS: dict[Scope, str] = {
+    Scope.GUILDS_READ: "Read guild configuration",
+    Scope.GUILDS_WRITE: "Update guild settings",
+    Scope.GUILDS_MEMBERS_READ: "Read user profiles",
+    Scope.GUILDS_MEMBERS_WRITE: "Create and update users",
+    Scope.GUILDS_PROJECTS_READ: "Read project data",
+    Scope.GUILDS_PROJECTS_WRITE: "Create and update projects",
+    Scope.QUESTS_READ: "Read quests and progress",
+    Scope.QUESTS_WRITE: "Create and update quests",
+    Scope.EVENTS_READ: "Read server events",
+    Scope.EVENTS_WRITE: "Create server events",
+    Scope.SERVER_READ: "Read Minecraft server data",
+    Scope.ADMIN_CLIENTS: "Register new guild clients",
+    Scope.ADMIN_GUILDS: "Create new Guilds",
+}
 
 
 class OAuth2ClientCredentials(OAuth2):
@@ -24,24 +61,7 @@ oauth2_scheme = OAuth2ClientCredentials(
         clientCredentials=OAuthFlowClientCredentials(
             tokenUrl="/auth/token",
             refreshUrl="/auth/token",
-            scopes={
-                "guilds:read": "Read guild configuration",
-                "guilds:write": "Update guild settings",
-
-                "guilds.members:read": "Read user profiles",
-                "guilds.members:write": "Create and update users",
-                "guilds.projects:read": "Read project data",
-                "guilds.projects:write": "Create and update projects",
-
-                "quests:read": "Read quests and progress",
-                "quests:write": "Create and update quests",
-                "events:read": "Read server events",
-                "events:write": "Create server events",
-                "server:read": "Read Minecraft server data",
-
-                "admin:clients": "Register new guild clients",
-                "admin:guilds": "Create new Guilds",
-            }
+            scopes={scope.value: desc for scope, desc in SCOPE_DESCRIPTIONS.items()}
         )
     )
 )

@@ -1,1 +1,1 @@
-from .depends import get_current_client, get_guild_client
+from .depends import get_current_client, get_guild_client, Scope

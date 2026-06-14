@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Security
 from starlette import status
 
-from src.dependencies.auth import get_guild_client
+from src.dependencies.auth import Scope, get_guild_client
 from src.dependencies.database import db
 from src.errors import BadRequest
 from src.models.auth import TokenPayload
@@ -16,7 +16,7 @@ repo = UserRepository(db)
 @members_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_user(
         body: user.UserIn,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.members:write']),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),
 ) -> user.UserOut:
     """
     Creates a new user in the guild.
@@ -32,7 +32,7 @@ async def lookup_user(
         gamertag: str = None,
         whitelist: str = None,
         discord_id: int = None,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.members:read']),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_READ]),
 ) -> user.UserOut:
     """
     Looks up a guild member by gamertag, whitelisted gamertag, or Discord ID.
@@ -55,7 +55,7 @@ async def lookup_user(
 @members_router.get('/{thorny_id}')
 async def get_user(
         thorny_id: int,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.members:read']),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_READ]),
 ) -> user.UserOut:
     """
     This returns the User object
@@ -71,7 +71,7 @@ async def get_user(
 async def partial_update_user(
         thorny_id: int,
         body: user.UserUpdate,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.members:write']),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),
 ) -> user.UserOut:
     """
     This updates a user. All fields are optional, meaning you may
@@ -88,7 +88,7 @@ async def partial_update_user(
 @members_router.get('/{thorny_id}/profile', name='Get User Profile', deprecated=True)
 async def get_profile(
         thorny_id: int,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.members:read']),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_READ]),
 ) -> ProfileOut:
     """
     This returns the user's profile.
@@ -105,7 +105,7 @@ async def get_profile(
 async def update_profile(
         thorny_id: int,
         body: ProfileUpdate,
-        auth: TokenPayload = Security(get_guild_client, scopes=['guilds.members:write']),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),
 ) -> ProfileOut:
     """
     This updates a user's profile. Anything set to NULL will be ignored.
