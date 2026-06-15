@@ -19,35 +19,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Auth Table
-    op.execute("""
-        CREATE TABLE IF NOT EXISTS auth.clients (
-            client_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            client_name     TEXT NOT NULL,
-            hashed_key      TEXT NOT NULL,
-            tier            TEXT NOT NULL DEFAULT 'guild',
-            guild_id        BIGINT,
-            scopes          TEXT[] NOT NULL DEFAULT '{}',
-            is_active       BOOLEAN NOT NULL DEFAULT TRUE,
-            created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-            last_used_at    TIMESTAMPTZ
-        );
-    """)
-
-    op.execute("""
-        ALTER TABLE auth.clients
-        ADD CONSTRAINT chk_guild_id
-        CHECK (
-            (tier = 'guild' AND guild_id IS NOT NULL) OR
-            (tier = 'master' AND guild_id IS NULL)
-        );
-    """)
-
-    op.execute("""
-        CREATE INDEX idx_clients_guild_id ON auth.clients (guild_id)
-            WHERE guild_id IS NOT NULL;
-    """)
-
     # Guild Tables
     op.execute("""
         CREATE TABLE IF NOT EXISTS guilds.guild (
@@ -95,7 +66,101 @@ def upgrade() -> None:
         FOREIGN KEY (guild_id) REFERENCES guilds.guild(guild_id);
     """)
 
-    #
+    # Auth Table
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS auth.clients (
+            client_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            client_name     TEXT NOT NULL,
+            hashed_key      TEXT NOT NULL,
+            tier            TEXT NOT NULL DEFAULT 'guild',
+            guild_id        BIGINT,
+            scopes          TEXT[] NOT NULL DEFAULT '{}',
+            is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+            last_used_at    TIMESTAMPTZ
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE auth.clients
+        ADD CONSTRAINT auth_clients_guild_fk 
+        FOREIGN KEY (guild_id) REFERENCES guilds.guild(guild_id);
+    """)
+
+    op.execute("""
+        ALTER TABLE auth.clients
+        ADD CONSTRAINT chk_guild_id
+        CHECK (
+            (tier = 'guild' AND guild_id IS NOT NULL) OR
+            (tier = 'master' AND guild_id IS NULL)
+        );
+    """)
+
+    op.execute("""
+        CREATE INDEX idx_clients_guild_id ON auth.clients (guild_id)
+            WHERE guild_id IS NOT NULL;
+    """)
+
+    # User Tables
+    op.execute("""
+        CREATE TABLE users."user" (
+            thorny_id bigserial NOT NULL,
+            user_id int8 NOT NULL,
+            guild_id int8 NOT NULL,
+            username varchar NULL,
+            join_date date DEFAULT now() NOT NULL,
+            birthday date NULL,
+            balance int4 DEFAULT 0 NOT NULL,
+            active bool DEFAULT true NOT NULL,
+            "role" varchar DEFAULT 'Dweller'::character varying NOT NULL,
+            patron bool DEFAULT false NOT NULL,
+            "level" int4 DEFAULT 0 NOT NULL,
+            xp int4 DEFAULT 0 NOT NULL,
+            required_xp int4 DEFAULT 100 NOT NULL,
+            last_message timestamptz DEFAULT now() NOT NULL,
+            gamertag varchar NULL,
+            whitelist varchar NULL,
+            "location" _int2 NULL,
+            dimension varchar NULL,
+            hidden bool DEFAULT false NOT NULL,
+            xuid varchar NULL,
+            CONSTRAINT user_pkey PRIMARY KEY (thorny_id)
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE users."user"
+        ADD CONSTRAINT user_guild_fk 
+        FOREIGN KEY (guild_id) REFERENCES guilds.guild(guild_id);
+    """)
+
+    op.execute("""
+        CREATE TABLE users.profile (
+            thorny_id int8 NOT NULL,
+            slogan varchar(35) DEFAULT 'My Cool Slogan'::character varying NOT NULL,
+            aboutme varchar(300) DEFAULT 'I am a really amazing person and I should definitely write more about myself!'::character varying NOT NULL,
+            lore varchar(300) DEFAULT 'This character has a super interesting backstory. I should write about it.'::character varying NOT NULL,
+            character_name varchar(35) DEFAULT 'My Character'::character varying NOT NULL,
+            character_age int4 DEFAULT 0 NOT NULL,
+            character_race varchar(35) DEFAULT 'Human'::character varying NOT NULL,
+            character_role varchar(35) DEFAULT 'Adventurer'::character varying NOT NULL,
+            character_origin varchar(35) DEFAULT 'Earth-like Realm'::character varying NOT NULL,
+            character_beliefs varchar(35) DEFAULT 'Thorny Religion'::character varying NOT NULL,
+            agility int4 DEFAULT 1 NOT NULL,
+            valor int4 DEFAULT 1 NOT NULL,
+            strength int4 DEFAULT 1 NOT NULL,
+            charisma int4 DEFAULT 1 NOT NULL,
+            creativity int4 DEFAULT 1 NOT NULL,
+            ingenuity int4 DEFAULT 1 NOT NULL,
+            CONSTRAINT profile_pkey PRIMARY KEY (thorny_id)
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE users.profile 
+        ADD CONSTRAINT profile_user_fk 
+        FOREIGN KEY (thorny_id) REFERENCES users."user"(thorny_id);
+    """)
 
 
 def downgrade() -> None:
