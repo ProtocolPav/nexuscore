@@ -1,99 +1,57 @@
-from pydantic import Field
+from typing import Annotated, Optional
+
+from pydantic import Field, BaseModel
 
 from fastapi import HTTPException
 
 from src.dependencies.database import Database
 
-from src.utils.base import BaseModel, BaseList, optional_model
+PinID = Annotated[int, Field(
+    description="The pin's ID"
+)]
+PinName = Annotated[str, Field(
+    description="The name of the pin",
+    examples=['Bloomin Flower Shop']
+)]
+PinDescription = Annotated[str, Field(
+    description="A short description of the pin, such as what the shop sells, etc.",
+    examples=['Sells Flowers']
+)]
+PinCoordinates = Annotated[list[int], Field(
+    description="The coordinates of the pin",
+    examples=[[333, 55, -65]]
+)]
+PinDimension = Annotated[str, Field(
+    description="The dimension of the pin",
+    examples=['minecraft:overworld']
+)]
+PinType = Annotated[str, Field(
+    description="The type of pin this is",
+    examples=["shop", "farm"]
+)]
 
 
-class PinBaseModel(BaseModel):
-    name: str = Field(description="The pin's Name",
-                      examples=['Bloomin Flower Shop'])
-    description: str = Field(description="A short description of the pin, such as what the shop sells, etc.",
-                             examples=['Sells Flowers'])
-    coordinates: tuple[int, int, int] = Field(description="The coordinates of the pin",
-                                              examples=[[333, 55, -65]])
-    dimension: str = Field(description="The dimension of the pin",
-                           examples=['minecraft:overworld'])
-    pin_type: str = Field(description="The type of pin this is",
-                          examples=["shop", "farm"])
+class PinDB(BaseModel):
+    id: PinID
+    name: PinName
+    description: PinDescription
+    coordinates: PinCoordinates
+    dimension: PinDimension
+    pin_type: PinType
 
+class PinIn(BaseModel):
+    name: PinName
+    description: PinDescription
+    coordinates: PinCoordinates
+    dimension: PinDimension
+    pin_type: PinType
 
-class PinModel(PinBaseModel):
-    id: int = Field(description="The pin's ID",
-                    examples=[1])
-
-    @classmethod
-    async def create(cls, db: Database, model: "PinCreateModel", *args) -> int:
-        pin = await db.pool.fetchrow("""
-                                    with pins_table as (
-                                        insert into projects.pins(name,
-                                                                  description,
-                                                                  coordinates,
-                                                                  dimension,
-                                                                  pin_type
-                                                                 )
-                                        values($1, $2, $3, $4, $5)
-
-                                        returning id
-                                    )
-
-                                    select id from pins_table
-                                   """,
-                                     model.name, model.description, model.coordinates, model.dimension, model.pin_type)
-
-        return pin['id']
-
-    @classmethod
-    async def fetch(cls, db: Database, pin_id: int, *args) -> "PinModel":
-        if not pin_id:
-            raise HTTPException(status_code=400, detail="Missing pin_id")
-
-        data = await db.pool.fetchrow("""
-                                       SELECT * FROM projects.pins p
-                                       WHERE p.id = $1
-                                       """,
-                                      pin_id)
-
-        if data:
-            return cls(**data)
-        else:
-            raise HTTPException(status_code=404, detail="Pin not found")
-
-    async def update(self, db: Database, model: "PinUpdateModel", *args):
-        for k, v in model.model_dump().items():
-            setattr(self, k, v) if v is not None else None
-
-        await db.pool.execute("""
-                               UPDATE projects.pins
-                               SET name = $1,
-                                   pin_type = $2,
-                                   coordinates = $3,
-                                   description = $4,
-                                   dimension = $5
-                               WHERE id = $6
-                               """,
-                              self.name, self.pin_type, self.coordinates,
-                              self.description, self.dimension, self.id)
-
-
-class PinsListModel(BaseList[PinModel]):
-    @classmethod
-    async def fetch(cls, db: Database, *args) -> "PinsListModel":
-        data = await db.pool.fetch("""
-                                   SELECT * FROM projects.pins
-                                   """)
-
-        pins: list[PinModel] = []
-        for pin in data:
-            pins.append(PinModel(**pin))
-
-        return cls(root=pins)
-
-
-class PinCreateModel(PinBaseModel):
+class PinOut(PinDB):
     pass
 
-
-PinUpdateModel = optional_model('PinUpdateModel', PinBaseModel)
+class PinUpdate(BaseModel):
+    name: Optional[PinName] = None
+    description: Optional[PinDescription] = None
+    coordinates: Optional[PinCoordinates] = None
+    dimension: Optional[PinDimension] = None
+    pin_type: Optional[PinType] = None
