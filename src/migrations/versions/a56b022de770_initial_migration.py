@@ -21,7 +21,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Guild
     op.execute("""
-        CREATE TABLE IF NOT EXISTS guilds.guild (
+        CREATE TABLE guilds.guild (
             guild_id         int8 NOT NULL,
             "name"           varchar NOT NULL,
             currency_name    varchar DEFAULT 'nugs'::character varying NULL,
@@ -38,7 +38,7 @@ def upgrade() -> None:
 
     # Guild Features
     op.execute("""
-        CREATE TABLE IF NOT EXISTS guilds.features (
+        CREATE TABLE guilds.features (
             guild_id int8 NOT NULL,
             feature varchar NOT NULL,
             configured bool DEFAULT false NOT NULL,
@@ -54,7 +54,7 @@ def upgrade() -> None:
 
     # Guild Channels
     op.execute("""
-        CREATE TABLE IF NOT EXISTS guilds.channels (
+        CREATE TABLE guilds.channels (
             guild_id int8 NOT NULL,
             channel_type varchar NOT NULL,
             channel_id int8 NOT NULL,
@@ -70,7 +70,7 @@ def upgrade() -> None:
 
     # Auth Table
     op.execute("""
-        CREATE TABLE IF NOT EXISTS auth.clients (
+        CREATE TABLE auth.clients (
             client_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             client_name     TEXT NOT NULL,
             hashed_key      TEXT NOT NULL,
