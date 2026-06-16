@@ -312,6 +312,35 @@ def upgrade() -> None:
         FOREIGN KEY (user_id) REFERENCES users."user"(thorny_id);
     """)
 
+    # World
+    op.execute("""
+        CREATE TABLE "server".world (
+            guild_id int8 NOT NULL,
+            overworld_border float4 NULL,
+            nether_border float4 NULL,
+            end_border float4 NULL,
+            CONSTRAINT world_pk PRIMARY KEY (guild_id)
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE "server".world  
+        ADD CONSTRAINT world_guild_fk 
+        FOREIGN KEY (guild_id) REFERENCES guilds.guild(guild_id);
+    """)
+
+    # Altar Items
+    op.execute("""
+        CREATE TABLE "server".items (
+            item_id varchar NOT NULL,
+            value float4 NOT NULL,
+            max_uses int4 NOT NULL,
+            depreciation float4 NOT NULL,
+            current_uses int4 DEFAULT 0 NOT NULL,
+            CONSTRAINT items_pk PRIMARY KEY (item_id)
+        );
+    """)
+
 def downgrade() -> None:
     """Downgrade schema."""
     pass
