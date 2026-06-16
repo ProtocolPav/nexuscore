@@ -32,7 +32,7 @@ def upgrade() -> None:
             xp_multiplier    int4 DEFAULT 1 NOT NULL,
             active           bool DEFAULT true NOT NULL,
             created_on       timestamptz DEFAULT now() NOT NULL,
-            CONSTRAINT guildv2_pk PRIMARY KEY (guild_id)
+            CONSTRAINT guild_pk PRIMARY KEY (guild_id)
         );
     """)
 
@@ -124,7 +124,7 @@ def upgrade() -> None:
             dimension varchar NULL,
             hidden bool DEFAULT false NOT NULL,
             xuid varchar NULL,
-            CONSTRAINT user_pkey PRIMARY KEY (thorny_id)
+            CONSTRAINT user_pk PRIMARY KEY (thorny_id)
         );
     """)
 
@@ -152,7 +152,7 @@ def upgrade() -> None:
             charisma int4 DEFAULT 1 NOT NULL,
             creativity int4 DEFAULT 1 NOT NULL,
             ingenuity int4 DEFAULT 1 NOT NULL,
-            CONSTRAINT profile_pkey PRIMARY KEY (thorny_id)
+            CONSTRAINT profile_pk PRIMARY KEY (thorny_id)
         );
     """)
 
@@ -170,7 +170,7 @@ def upgrade() -> None:
             "type" varchar NOT NULL,
             thorny_id int8 NOT NULL,
             ignored bool DEFAULT false NOT NULL,
-            CONSTRAINT connections_pk PRIMARY KEY (connection_id)
+            CONSTRAINT connection_pk PRIMARY KEY (connection_id)
         );
     """)
 
@@ -214,7 +214,7 @@ def upgrade() -> None:
             reference varchar NOT NULL,
             mainhand varchar NULL,
             coordinates _int2 NULL,
-            CONSTRAINT gamestats_pk PRIMARY KEY (interaction_id)
+            CONSTRAINT interaction_pk PRIMARY KEY (interaction_id)
         );
     """)
 
