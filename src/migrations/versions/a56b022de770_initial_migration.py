@@ -19,6 +19,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    op.execute("CREATE SCHEMA IF NOT EXISTS guilds;")
+    op.execute("CREATE SCHEMA IF NOT EXISTS users;")
+    op.execute("CREATE SCHEMA IF NOT EXISTS quests_v3;")
+    op.execute("CREATE SCHEMA IF NOT EXISTS events;")
+    op.execute("CREATE SCHEMA IF NOT EXISTS auth;")
+    op.execute("CREATE SCHEMA IF NOT EXISTS \"server\";")
+    op.execute("CREATE SCHEMA IF NOT EXISTS projects;")
+
     # Guild
     op.execute("""
         CREATE TABLE guilds.guild (
@@ -177,12 +185,10 @@ def upgrade() -> None:
         );
     """)
 
-    op.execute("""
-        CREATE INDEX idx_connections_ignored ON events.connections USING btree (ignored);
-        CREATE INDEX idx_connections_thorny_id ON events.connections USING btree (thorny_id);
-        CREATE INDEX idx_connections_time ON events.connections USING btree ("time");
-        CREATE INDEX idx_connections_type ON events.connections USING btree (type);
-    """)
+    op.execute("CREATE INDEX idx_connections_ignored ON events.connections USING btree (ignored);")
+    op.execute("CREATE INDEX idx_connections_thorny_id ON events.connections USING btree (thorny_id);")
+    op.execute("CREATE INDEX idx_connections_time ON events.connections USING btree (\"time\");")
+    op.execute("CREATE INDEX idx_connections_type ON events.connections USING btree (type);")
 
     op.execute("""
         ALTER TABLE events.connections 
@@ -222,12 +228,10 @@ def upgrade() -> None:
         );
     """)
 
-    op.execute("""
-        CREATE INDEX interactions_coordinates_gin_idx ON events.interactions USING gin (coordinates);
-        CREATE INDEX interactions_reference_idx ON events.interactions USING btree (reference);
-        CREATE INDEX interactions_thorny_id_idx ON events.interactions USING btree (thorny_id, type, reference);
-        CREATE INDEX interactions_time_idx ON events.interactions USING btree ("time", reference, coordinates);
-    """)
+    op.execute("CREATE INDEX interactions_coordinates_gin_idx ON events.interactions USING gin (coordinates);")
+    op.execute("CREATE INDEX interactions_reference_idx ON events.interactions USING btree (reference);")
+    op.execute("CREATE INDEX interactions_thorny_id_idx ON events.interactions USING btree (thorny_id, type, reference);")
+    op.execute("CREATE INDEX interactions_time_idx ON events.interactions USING btree (\"time\", reference, coordinates);")
 
     op.execute("""
         ALTER TABLE events.interactions 
