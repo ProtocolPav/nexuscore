@@ -341,6 +341,129 @@ def upgrade() -> None:
         );
     """)
 
+    # Quest Table
+    op.execute("""
+        CREATE TABLE quests_v3.quest (
+            quest_id bigserial NOT NULL,
+            start_time timestamptz NOT NULL,
+            end_time timestamptz NOT NULL,
+            title varchar NOT NULL,
+            description varchar NOT NULL,
+            created_by int8 DEFAULT 15 NOT NULL,
+            tags _varchar DEFAULT '{}'::character varying[] NOT NULL,
+            quest_type varchar DEFAULT 'side'::character varying NOT NULL,
+            CONSTRAINT quest_pk PRIMARY KEY (quest_id)
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE quests_v3.quest
+        ADD CONSTRAINT quest_user_fk 
+        FOREIGN KEY (created_by) REFERENCES users."user"(thorny_id);
+    """)
+
+    # Objectives
+    op.execute("""
+        CREATE TABLE quests_v3.objective (
+            objective_id bigserial NOT NULL,
+            quest_id int8 NOT NULL,
+            objective_type varchar DEFAULT 'kill'::character varying NOT NULL,
+            order_index int4 DEFAULT 0 NOT NULL,
+            description varchar DEFAULT 'No objective description'::character varying NOT NULL,
+            display varchar NULL,
+            logic varchar DEFAULT 'and'::character varying NOT NULL,
+            target_count int4 NULL,
+            targets jsonb DEFAULT '[]'::jsonb NOT NULL,
+            customizations jsonb DEFAULT '[]'::jsonb NOT NULL,
+            CONSTRAINT objective_pk PRIMARY KEY (objective_id)
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE quests_v3.objective 
+        ADD CONSTRAINT objective_quest_fk 
+        FOREIGN KEY (quest_id) REFERENCES quests_v3.quest(quest_id);
+    """)
+
+    # Rewards
+    op.execute("""
+        CREATE TABLE quests_v3.reward (
+            reward_id bigserial NOT NULL,
+            quest_id int8 NOT NULL,
+            objective_id int8 NOT NULL,
+            balance int4 NULL,
+            item varchar NULL,
+            count int4 NULL,
+            display_name varchar NULL,
+            item_metadata jsonb DEFAULT '[]'::jsonb NOT NULL,
+            CONSTRAINT reward_pk PRIMARY KEY (reward_id)
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE quests_v3.reward 
+        ADD CONSTRAINT reward_objective_fk 
+        FOREIGN KEY (objective_id) REFERENCES quests_v3.objective(objective_id);
+    """)
+
+    op.execute("""
+        ALTER TABLE quests_v3.reward 
+        ADD CONSTRAINT reward_quest_fk 
+        FOREIGN KEY (quest_id) REFERENCES quests_v3.quest(quest_id);
+    """)
+
+    # Quest Progress
+    op.execute("""
+        CREATE TABLE quests_v3.quest_progress (
+            progress_id bigserial NOT NULL,
+            thorny_id int8 NOT NULL,
+            quest_id int8 NOT NULL,
+            accept_time timestamptz DEFAULT now() NOT NULL,
+            start_time timestamptz NULL,
+            end_time timestamptz NULL,
+            status varchar DEFAULT 'pending'::character varying NOT NULL,
+            CONSTRAINT quest_progress_pk PRIMARY KEY (progress_id)
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE quests_v3.quest_progress 
+        ADD CONSTRAINT quest_progress_quest_fk 
+        FOREIGN KEY (quest_id) REFERENCES quests_v3.quest(quest_id);
+    """)
+
+    op.execute("""
+        ALTER TABLE quests_v3.quest_progress 
+        ADD CONSTRAINT quest_progress_user_fk 
+        FOREIGN KEY (thorny_id) REFERENCES users."user"(thorny_id);
+    """)
+
+    # Objective Progress
+    op.execute("""
+        CREATE TABLE quests_v3.objective_progress (
+            progress_id int8 NOT NULL,
+            objective_id int8 NOT NULL,
+            start_time timestamptz NULL,
+            end_time timestamptz NULL,
+            status varchar DEFAULT 'pending'::character varying NOT NULL,
+            target_progress jsonb DEFAULT '[]'::jsonb NOT NULL,
+            customization_progress jsonb DEFAULT '{}'::jsonb NOT NULL,
+            CONSTRAINT objective_progress_pk PRIMARY KEY (progress_id, objective_id)
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE quests_v3.objective_progress 
+        ADD CONSTRAINT objective_progress_objective_fk 
+        FOREIGN KEY (objective_id) REFERENCES quests_v3.objective(objective_id);
+    """)
+
+    op.execute("""
+        ALTER TABLE quests_v3.objective_progress 
+        ADD CONSTRAINT objective_progress_quest_progress_fk 
+        FOREIGN KEY (progress_id) REFERENCES quests_v3.quest_progress(progress_id);
+    """)
+
 def downgrade() -> None:
     """Downgrade schema."""
     pass
