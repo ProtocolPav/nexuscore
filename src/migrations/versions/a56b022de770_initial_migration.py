@@ -187,6 +187,34 @@ def upgrade() -> None:
         FOREIGN KEY (thorny_id) REFERENCES users."user"(thorny_id);
     """)
 
+    # Interactions
+    op.execute("""
+        CREATE TABLE events.interactions (
+            interaction_id bigserial NOT NULL,
+            thorny_id int8 NOT NULL,
+            "type" varchar NOT NULL,
+            "time" timestamptz DEFAULT now() NOT NULL,
+            dimension varchar DEFAULT 'minecraft:overworld'::character varying NOT NULL,
+            reference varchar NOT NULL,
+            mainhand varchar NULL,
+            coordinates _int2 NULL,
+            CONSTRAINT gamestats_pk PRIMARY KEY (interaction_id)
+        );
+    """)
+
+    op.execute("""
+        CREATE INDEX interactions_coordinates_gin_idx ON events.interactions USING gin (coordinates);
+        CREATE INDEX interactions_reference_idx ON events.interactions USING btree (reference);
+        CREATE INDEX interactions_thorny_id_idx ON events.interactions USING btree (thorny_id, type, reference);
+        CREATE INDEX interactions_time_idx ON events.interactions USING btree ("time", reference, coordinates);
+    """)
+
+    op.execute("""
+        ALTER TABLE events.interactions 
+        ADD CONSTRAINT interactions_user_fk 
+        FOREIGN KEY (thorny_id) REFERENCES users."user"(thorny_id);
+    """)
+
 
 
 def downgrade() -> None:
