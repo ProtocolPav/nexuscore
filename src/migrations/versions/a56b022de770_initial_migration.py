@@ -19,7 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Guild Tables
+    # Guild
     op.execute("""
         CREATE TABLE IF NOT EXISTS guilds.guild (
             guild_id         int8 NOT NULL,
@@ -36,6 +36,7 @@ def upgrade() -> None:
         );
     """)
 
+    # Guild Features
     op.execute("""
         CREATE TABLE IF NOT EXISTS guilds.features (
             guild_id int8 NOT NULL,
@@ -51,6 +52,7 @@ def upgrade() -> None:
         FOREIGN KEY (guild_id) REFERENCES guilds.guild(guild_id);
     """)
 
+    # Guild Channels
     op.execute("""
         CREATE TABLE IF NOT EXISTS guilds.channels (
             guild_id int8 NOT NULL,
@@ -101,7 +103,7 @@ def upgrade() -> None:
             WHERE guild_id IS NOT NULL;
     """)
 
-    # User Tables
+    # User
     op.execute("""
         CREATE TABLE users."user" (
             thorny_id bigserial NOT NULL,
@@ -134,6 +136,7 @@ def upgrade() -> None:
         FOREIGN KEY (guild_id) REFERENCES guilds.guild(guild_id);
     """)
 
+    # User Profile
     op.execute("""
         CREATE TABLE users.profile (
             thorny_id int8 NOT NULL,
@@ -187,6 +190,7 @@ def upgrade() -> None:
         FOREIGN KEY (thorny_id) REFERENCES users."user"(thorny_id);
     """)
 
+    # Sessions View
     op.execute("""
         CREATE OR REPLACE VIEW events.sessions_view
         AS SELECT connect.connection_id AS connect_event_id,
@@ -231,7 +235,82 @@ def upgrade() -> None:
         FOREIGN KEY (thorny_id) REFERENCES users."user"(thorny_id);
     """)
 
+    # Pins
+    op.execute("""
+        CREATE TABLE projects.pins (
+            id bigserial NOT NULL,
+            pin_type varchar NOT NULL,
+            "name" varchar NOT NULL,
+            coordinates _int4 NOT NULL,
+            description varchar NOT NULL,
+            dimension varchar DEFAULT 'minecraft:overworld'::character varying NOT NULL,
+            CONSTRAINT pins_pk PRIMARY KEY (id)
+        );
+    """)
 
+    # Projects
+    op.execute("""
+        CREATE TABLE projects.project (
+            project_id varchar NOT NULL,
+            "name" varchar NOT NULL,
+            thread_id int8 NULL,
+            description varchar NOT NULL,
+            started_on date DEFAULT now() NOT NULL,
+            completed_on date NULL,
+            owner_id int8 NOT NULL,
+            coordinates _int4 NULL,
+            dimension varchar DEFAULT 'minecraft:overworld'::character varying NOT NULL,
+            pin_id int2 NULL,
+            CONSTRAINT project_pk PRIMARY KEY (project_id)
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE projects.project 
+        ADD CONSTRAINT project_pins_fk 
+        FOREIGN KEY (pin_id) REFERENCES projects.pins(id);
+    """)
+
+    op.execute("""
+        ALTER TABLE projects.project 
+        ADD CONSTRAINT project_user_fk 
+        FOREIGN KEY (owner_id) REFERENCES users."user"(thorny_id);
+    """)
+
+    # Project Status
+    op.execute("""
+        CREATE TABLE projects.status (
+            project_id varchar NULL,
+            status varchar NULL,
+            since timestamptz DEFAULT now() NOT NULL
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE projects.status 
+        ADD CONSTRAINT status_project_fk 
+        FOREIGN KEY (project_id) REFERENCES projects.project(project_id);
+    """)
+
+    # Project Members
+    op.execute("""
+        CREATE TABLE projects.members (
+            project_id varchar NULL,
+            user_id int8 NULL
+        );
+    """)
+
+    op.execute("""
+        ALTER TABLE projects.members 
+        ADD CONSTRAINT members_project_fk 
+        FOREIGN KEY (project_id) REFERENCES projects.project(project_id);
+    """)
+
+    op.execute("""
+        ALTER TABLE projects.members 
+        ADD CONSTRAINT members_user_fk 
+        FOREIGN KEY (user_id) REFERENCES users."user"(thorny_id);
+    """)
 
 def downgrade() -> None:
     """Downgrade schema."""
