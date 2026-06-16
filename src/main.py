@@ -1,13 +1,8 @@
-import asyncio
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI, Response, Depends
 from scalar_fastapi import get_scalar_api_reference, Theme, AgentScalarConfig
 from fastapi.middleware.cors import CORSMiddleware
-
-from alembic.config import Config
-from alembic import command
 
 from src.dependencies.database import db
 
@@ -17,9 +12,6 @@ from src.routes.auth import auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    alembic_config = Config(Path(__file__).parent.parent / "alembic.ini")
-    await asyncio.to_thread(command.upgrade, alembic_config, "head")
-
     await db.init_pool()
     yield
     await db.close_pool()
