@@ -162,6 +162,32 @@ def upgrade() -> None:
         FOREIGN KEY (thorny_id) REFERENCES users."user"(thorny_id);
     """)
 
+    # Connections
+    op.execute("""
+        CREATE TABLE events.connections (
+            connection_id bigserial NOT NULL,
+            "time" timestamptz DEFAULT now() NOT NULL,
+            "type" varchar NOT NULL,
+            thorny_id int8 NOT NULL,
+            ignored bool DEFAULT false NOT NULL,
+            CONSTRAINT connections_pk PRIMARY KEY (connection_id)
+        );
+    """)
+
+    op.execute("""
+        CREATE INDEX idx_connections_ignored ON events.connections USING btree (ignored);
+        CREATE INDEX idx_connections_thorny_id ON events.connections USING btree (thorny_id);
+        CREATE INDEX idx_connections_time ON events.connections USING btree ("time");
+        CREATE INDEX idx_connections_type ON events.connections USING btree (type);
+    """)
+
+    op.execute("""
+        ALTER TABLE events.connections 
+        ADD CONSTRAINT connections_user_fk 
+        FOREIGN KEY (thorny_id) REFERENCES users."user"(thorny_id);
+    """)
+
+
 
 def downgrade() -> None:
     """Downgrade schema."""
