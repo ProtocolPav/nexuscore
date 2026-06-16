@@ -187,6 +187,22 @@ def upgrade() -> None:
         FOREIGN KEY (thorny_id) REFERENCES users."user"(thorny_id);
     """)
 
+    op.execute("""
+        CREATE OR REPLACE VIEW events.sessions_view
+        AS SELECT connect.connection_id AS connect_event_id,
+            connect."time" AS connect_time,
+            disconnect.connection_id AS disconnect_event_id,
+            disconnect."time" AS disconnect_time,
+            disconnect."time" - connect."time" AS playtime,
+            connect.thorny_id
+           FROM events.connections connect
+             LEFT JOIN events.connections disconnect ON connect.thorny_id = disconnect.thorny_id AND disconnect.type::text = 'disconnect'::text AND disconnect.ignored = false AND disconnect."time" = (( SELECT min(d."time") AS min
+                   FROM events.connections d
+                  WHERE d.type::text = 'disconnect'::text AND d.ignored = false AND d.thorny_id = connect.thorny_id AND d."time" > connect."time"))
+          WHERE connect.type::text = 'connect'::text AND connect.ignored = false
+          ORDER BY connect."time";
+    """)
+
     # Interactions
     op.execute("""
         CREATE TABLE events.interactions (
