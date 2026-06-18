@@ -67,13 +67,13 @@ class QuestIn(BaseModel):
 
 
 class QuestUpdate(BaseModel):
-    start_time: StartTime
-    end_time: EndTime
-    title: Title
-    description: Description
-    tags: Tags
-    quest_type: QuestType
-    created_by: CreatedBy
+    start_time: Optional[StartTime] = None
+    end_time: Optional[EndTime] = None
+    title: Optional[Title] = None
+    description: Optional[Description] = None
+    tags: Optional[Tags] = None
+    quest_type: Optional[QuestType] = None
+    created_by: Optional[CreatedBy] = None
     # objectives (update)
 
 
