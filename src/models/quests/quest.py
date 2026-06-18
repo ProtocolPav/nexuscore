@@ -1,103 +1,80 @@
 from datetime import datetime
-from typing import Optional
+from typing import Annotated, Optional
 
 from fastapi import HTTPException
 
-from pydantic import Field
+from pydantic import Field, BaseModel
 
-from src.dependencies.database import Database
 from src.models.quests.objective import ObjectiveCreateModel, ObjectiveModel, ObjectivesListModel
-from src.utils.base import BaseModel, BaseList, optional_model
+from src.models.users.user import UserOut
+
+QuestID = Annotated[int, Field(
+    description="The Quest ID",
+    examples=[732]
+)]
+StartTime = Annotated[datetime, Field(
+    description="The time that this quest begins to be able to be accepted",
+)]
+EndTime = Annotated[datetime, Field(
+    description="The time that this quest will no longer be available to be accepted"
+)]
+Title = Annotated[str, Field(
+    description="The quest title",
+)]
+Description = Annotated[str, Field(
+    description="The quest description",
+)]
+CreatedBy = Annotated[int, Field(
+    description="The Thorny ID that created this quest",
+)]
+Tags = Annotated[list[str], Field(
+    description="A list of tags describing this quest",
+)]
+QuestType = Annotated[str, Field(
+    description="The quest type",
+    examples=["side"]
+)]
 
 
-class QuestBaseModel(BaseModel):
-    start_time: datetime = Field(description="When this quest will begin to be available to be accepted",
-                                 json_schema_extra={"example": "2024-03-03 04:00:00+00:00"})
-    end_time: datetime = Field(description="The time that this quest will no longer be available to be accepted",
-                               json_schema_extra={"example": "2024-05-03 04:00:00+00:00"})
-    title: str = Field(description="The quest title",
-                       json_schema_extra={"example": 'Skeleton Killer'})
-    description: str = Field(description="The description of the quest",
-                             json_schema_extra={"example": 'Skeletons are evil...'})
-    created_by: int = Field(description="The user that created this quest",
-                            json_schema_extra={"example": "13"})
-    tags: list[str] = Field(description="A list of tags describing this quest",
-                            json_schema_extra={"example": ['pvp', 'timed', 'challenge']})
-    quest_type: str = Field(description="The quest type",
-                            json_schema_extra={"example": "side"})
+class QuestBase(BaseModel):
+    quest_id: QuestID
+    start_time: StartTime
+    end_time: EndTime
+    title: Title
+    description: Description
+    tags: Tags
+    quest_type: QuestType
 
 
-class QuestModel(QuestBaseModel):
-    quest_id: int = Field(description="The ID of the quest",
-                          json_schema_extra={"example": 732})
-    objectives: ObjectivesListModel = Field(description="A list of objectives for this quest")
+class QuestDB(QuestBase):
+    created_by: CreatedBy
 
-    @classmethod
-    async def create(cls, db: Database, model: "QuestCreateModel", *args) -> int:
-        async with db.pool.acquire() as conn:
-            async with conn.transaction():
-                quest_id = await conn.fetchrow("""
-                                                with quest_table as (
-                                                    insert into quests_v3.quest(
-                                                        start_time, 
-                                                        end_time, 
-                                                        title, 
-                                                        description,
-                                                        created_by,
-                                                        tags,
-                                                        quest_type
-                                                    )
-                                                    values($1, $2, $3, $4, $5, $6, $7)
 
-                                                    returning quest_id
-                                                )
-                                                select quest_id as id from quest_table
-                                               """,
-                                               model.start_time, model.end_time,
-                                               model.title, model.description, model.created_by, model.tags,
-                                               model.quest_type)
+class QuestOut(QuestBase):
+    created_by: UserOut
+    # objectives (out)
 
-        for objective in model.objectives:
-            await ObjectiveModel.create(db=db, model=objective, quest_id=quest_id['id'])
 
-        return quest_id['id']
+class QuestIn(BaseModel):
+    start_time: StartTime
+    end_time: EndTime
+    title: Title
+    description: Description
+    tags: Tags
+    quest_type: QuestType
+    created_by: CreatedBy
+    # objectives (in)
 
-    @classmethod
-    async def fetch(cls, db: Database, quest_id: int, *args) -> "QuestModel":
-        if not quest_id:
-            raise HTTPException(status_code=400, detail={'ids': ['quest_id']})
 
-        data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests_v3.quest
-                                       WHERE quest_id = $1
-                                       """,
-                                      quest_id)
-
-        if data:
-            objectives = await ObjectivesListModel.fetch(db, quest_id)
-
-            return cls(**data, objectives=objectives)
-        else:
-            raise HTTPException(status_code=404, detail={'resource': 'quest', 'id': quest_id})
-
-    async def update(self, db: Database, model: "QuestUpdateModel"):
-        for k, v in model.model_dump().items():
-            setattr(self, k, v) if v is not None else None
-
-        await db.pool.execute("""
-                              UPDATE quests_v3.quest
-                              SET start_time = $1,
-                                  end_time = $2,
-                                  title = $3,
-                                  description = $4,
-                                  created_by = $5,
-                                  tags = $6,
-                                  quest_type = $7
-                              WHERE quest_id = $8
-                              """,
-                              self.start_time, self.end_time,
-                              self.title, self.description, self.created_by,
-                              self.tags, self.quest_type, self.quest_id)
+class QuestUpdate(BaseModel):
+    start_time: StartTime
+    end_time: EndTime
+    title: Title
+    description: Description
+    tags: Tags
+    quest_type: QuestType
+    created_by: CreatedBy
+    # objectives (update)
 
 
 class QuestListModel(BaseList[QuestModel]):
@@ -183,13 +160,6 @@ class QuestListModel(BaseList[QuestModel]):
             quests.append(QuestModel(**quest, objectives=objectives))
 
         return cls(root=quests)
-
-
-QuestUpdateModel = optional_model('QuestUpdateModel', QuestBaseModel)
-
-
-class QuestCreateModel(QuestBaseModel):
-    objectives: list[ObjectiveCreateModel] = Field(description="A list of objectives for this quest")
 
 
 class QuestQuery(BaseModel):
