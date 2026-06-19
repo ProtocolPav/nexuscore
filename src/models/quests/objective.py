@@ -1,6 +1,6 @@
 import json
 
-from pydantic import Field, model_validator
+from pydantic import Field, model_validator, ValidationError
 from typing import Annotated, Literal, Optional
 
 from src.models.quests.objective_customization.customization import Customizations
@@ -10,9 +10,6 @@ from src.utils.base import BaseModel, BaseList, optional_model
 from src.dependencies.database import Database
 
 from src.models.quests.reward import RewardCreateModel, RewardModel, RewardsListModel
-
-
-from fastapi import HTTPException
 
 
 QuestID = Annotated[int, Field(
@@ -70,21 +67,6 @@ class ObjectiveDB(BaseModel):
 
         return data
 
-    @model_validator(mode='after')
-    def check_targets(self) -> "ObjectiveDB":
-        if len(self.targets) == 0:
-            raise HTTPException(status_code=400, detail="Objectives must have at least one target")
-
-        for target in self.targets:
-            if target.target_type != self.objective_type:
-                raise HTTPException(status_code=400, detail=f"All targets must be of the same type. "
-                                                            f"Offending target: {target.target_type} != {self.objective_type}")
-
-            if target.count < 1:
-                raise HTTPException(status_code=400, detail=f"A target's count must be at least 1.")
-
-        return self
-
 
 class ObjectiveOut(ObjectiveDB):
     objective_id: ObjectiveID
@@ -108,6 +90,21 @@ class ObjectiveIn(BaseModel):
     target_count: TargetCount
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
+
+    @model_validator(mode='after')
+    def check_targets(self) -> "ObjectiveIn":
+        if len(self.targets) == 0:
+            raise ValidationError("Objectives must have at least one target")
+
+        for target in self.targets:
+            if target.target_type != self.objective_type:
+                raise ValidationError(f"All targets must be of the same type. "
+                                      f"Offending target: {target.target_type} != {self.objective_type}")
+
+            if target.count < 1:
+                raise ValidationError(f"A target's count must be at least 1.")
+
+        return self
 
 
 class ObjectiveUpdate(BaseModel):
