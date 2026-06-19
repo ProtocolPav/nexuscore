@@ -51,7 +51,6 @@ Owner = Annotated[user.UserOut, Field(
 
 class ProjectBase(BaseModel):
     project_id: ProjectID
-    guild_id: GuildID
     name: ProjectName
     thread_id: Optional[ThreadID]
     coordinates: ProjectCoordinates
@@ -63,6 +62,7 @@ class ProjectBase(BaseModel):
 
 class ProjectDB(ProjectBase):
     owner_id: ProjectOwnerID
+    guild_id: GuildID
 
 class ProjectOut(ProjectBase):
     status: Status
@@ -71,7 +71,6 @@ class ProjectOut(ProjectBase):
 
 class ProjectIn(BaseModel):
     owner_id: ProjectOwnerID
-    guild_id: GuildID
     coordinates: ProjectCoordinates
     description: ProjectDescription
     dimension: ProjectDimension
@@ -79,7 +78,6 @@ class ProjectIn(BaseModel):
     pin_id: Optional[ProjectPinID]
 
 class ProjectUpdate(BaseModel):
-    guild_id: Optional[GuildID] = None
     name: Optional[ProjectName] = None
     thread_id: Optional[ThreadID] = None
     coordinates: Optional[ProjectCoordinates] = None
