@@ -1,24 +1,26 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Security, Query
+from fastapi import APIRouter, Depends, HTTPException, Security, Query
 from starlette import status
 
 from src.dependencies.auth import Scope, get_current_client, get_guild_client
-from src.dependencies.database import db
+from src.dependencies.repositories import get_guild_repo
+
 from src.models import guilds
 from src.models.auth import TokenPayload
 from src.models.guilds.interaction import InteractionQuery
 from src.models.users import playtime
+
 from src.repositories.guild import GuildRepository
 
 guilds_router = APIRouter(prefix='/guilds', tags=['Guilds'])
-repo = GuildRepository(db)
 
 
 @guilds_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_guild(
         body: guilds.GuildIn,
-        auth: TokenPayload = Security(get_current_client, scopes=[Scope.ADMIN_GUILDS])
+        auth: TokenPayload = Security(get_current_client, scopes=[Scope.ADMIN_GUILDS]),
+        repo: GuildRepository = Depends(get_guild_repo)
 ) -> guilds.GuildOut:
     """
     Creates a new guild. If a guild with this ID already exists, it returns a 400.
@@ -36,7 +38,8 @@ async def create_guild(
 
 @guilds_router.get('/me')
 async def get_guild(
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ])
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        repo: GuildRepository = Depends(get_guild_repo)
 ) -> guilds.GuildOut:
     """
     Fetch your guild information
@@ -57,6 +60,7 @@ async def get_guild(
 async def partial_update_guild(
         body: guilds.GuildUpdate,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
+        repo: GuildRepository = Depends(get_guild_repo)
 ) -> guilds.GuildOut:
     """
     Partially updates guild information. Both `PATCH` and `PUT` work the same way.
@@ -75,6 +79,7 @@ async def partial_update_guild(
 @guilds_router.get('/me/features', deprecated=True)
 async def get_features(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        repo: GuildRepository = Depends(get_guild_repo)
 ) -> list[guilds.FeatureOut]:
     """Returns a list of features enabled for the authenticated guild."""
     features = await repo.fetch_features(auth.guild_id)
@@ -85,6 +90,7 @@ async def get_features(
 @guilds_router.get('/me/channels', deprecated=True)
 async def get_channels(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        repo: GuildRepository = Depends(get_guild_repo)
 ) -> list[guilds.ChannelOut]:
     """
     This returns a list of the guild's channels
@@ -97,6 +103,7 @@ async def get_channels(
 @guilds_router.get('/me/playtime')
 async def get_guild_playtime(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        repo: GuildRepository = Depends(get_guild_repo)
 ) -> guilds.GuildPlaytimeAnalysis:
     """
     This returns the guild's playtime summary. Playtime is in seconds.
@@ -113,6 +120,7 @@ async def get_guild_playtime(
 @guilds_router.get('/me/online')
 async def get_online_members(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        repo: GuildRepository = Depends(get_guild_repo)
 ) -> list[guilds.OnlineMember]:
     """
     Returns a list of all players currently connected to Geode.
@@ -126,6 +134,7 @@ async def get_online_members(
 async def create_connection(
         body: guilds.ConnectionIn,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),
+        repo: GuildRepository = Depends(get_guild_repo)
 ) -> guilds.ConnectionOut:
     """
     Creates a connection event.
@@ -150,6 +159,7 @@ async def create_connection(
 async def create_interaction(
         body: guilds.InteractionIn,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),
+        repo: GuildRepository = Depends(get_guild_repo)
 ) -> guilds.InteractionOut:
     """
     Creates an interaction event.
@@ -162,6 +172,7 @@ async def create_interaction(
 async def get_all_interactions(
         filter_query: Annotated[InteractionQuery, Query()],
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        repo: GuildRepository = Depends(get_guild_repo)
 ) -> list[guilds.InteractionOut]:
     """
     Filter interactions by various criteria.

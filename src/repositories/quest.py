@@ -1,15 +1,6 @@
-import json
-
 import asyncpg
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
-from src.models.guilds import GuildPlaytimeAnalysis
-from src.models.guilds.channels import ChannelDB
-from src.models.guilds.connection import ConnectionDB, ConnectionIn
-from src.models.guilds.features import FeatureDB
-from src.models.guilds.guild import GuildDB, GuildIn, GuildUpdate
-from src.models.guilds.interaction import InteractionDB, InteractionIn, InteractionQuery
-from src.models.guilds.online_members import OnlineMember
 from src.models.quests.quest import QuestDB, QuestIn, QuestUpdate
 
 

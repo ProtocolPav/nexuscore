@@ -1,17 +1,19 @@
-from fastapi import APIRouter, Security, status
+from fastapi import APIRouter, Depends, Security, status
 
 from src.dependencies.auth import Scope, get_guild_client
-from src.dependencies.database import db
+from src.dependencies.repositories import get_pin_repo
+
 from src.models.auth import TokenPayload
 from src.models.projects.pin import PinOut, PinIn, PinUpdate
+
 from src.repositories.pin import PinRepository
 
 pins_router = APIRouter(prefix='/pins', tags=['Pins'])
-repo = PinRepository(db)
 
 @pins_router.get('')
 async def list_pins(
-        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_READ])
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_READ]),
+        repo: PinRepository = Depends(get_pin_repo)
 ) -> list[PinOut]:
     """
     Get a list of Pins
@@ -24,7 +26,8 @@ async def list_pins(
 @pins_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_pin(
         body: PinIn,
-        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_WRITE])
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_WRITE]),
+        repo: PinRepository = Depends(get_pin_repo)
 ) -> PinOut:
     """
     Creates a new pin
@@ -37,7 +40,8 @@ async def create_pin(
 @pins_router.get('/{pin_id}')
 async def get_pin(
         pin_id: int,
-        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_READ])
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_READ]),
+        repo: PinRepository = Depends(get_pin_repo)
 ) -> PinOut:
     """
     Returns the pin specified
@@ -52,7 +56,8 @@ async def get_pin(
 async def update_pin(
         pin_id: int,
         body: PinUpdate,
-        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_WRITE])
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_WRITE]),
+        repo: PinRepository = Depends(get_pin_repo)
 ) -> PinOut:
     """
     Update Pin

@@ -32,3 +32,6 @@ class Database:
             yield connection
 
 db = Database()
+
+def get_db() -> Database:
+    return db

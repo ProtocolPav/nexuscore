@@ -1,19 +1,23 @@
-from fastapi import APIRouter, HTTPException, Security, Query
+from fastapi import APIRouter, Depends, HTTPException, Security, Query
 from starlette import status
 
 from src.dependencies.auth import Scope, get_guild_client
+from src.dependencies.repositories import get_world_repo
 from src.dependencies.database import db
+
 from src.models.auth import TokenPayload
 from src.models.worlds import world
 from src.models.server import items
+
 from src.repositories.world import WorldRepository
 
 world_router = APIRouter(prefix='/guilds/me/worlds', tags=['Worlds'])
-repo = WorldRepository(db)
+
 
 @world_router.get('')
 async def get_world(
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ])
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        repo: WorldRepository = Depends(get_world_repo),
 ) -> world.WorldOut:
     wrld = await repo.fetch(auth.guild_id)
 
@@ -24,7 +28,8 @@ async def get_world(
 @world_router.put('')
 async def partial_update_world(
         body: world.WorldUpdate,
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE])
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
+        repo: WorldRepository = Depends(get_world_repo),
 ) -> world.WorldOut:
     wrld = await repo.update(auth.guild_id, body)
 
