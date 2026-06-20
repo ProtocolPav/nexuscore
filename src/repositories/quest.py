@@ -1,7 +1,7 @@
 import asyncpg
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
-from src.models.quests.quest import QuestDB, QuestIn, QuestUpdate
+from src.models.quests.quest import QuestDB, QuestIn, QuestQuery, QuestUpdate
 
 
 class QuestRepository:
@@ -63,3 +63,80 @@ class QuestRepository:
                                    updated.tags, updated.quest_type, updated.quest_id)
 
         return updated
+
+    async def fetch_all(self, query: QuestQuery) -> list[QuestDB]:
+        # Build the query dynamically
+        query_parts = ["SELECT * FROM quests_v3.quest q"]
+        conditions = []
+        params = []
+
+        # Handle thorny_ids (OR condition using ANY)
+        if query.creator_thorny_ids is not None and len(query.creator_thorny_ids) > 0:
+            param_idx = len(params)
+            conditions.append(f"q.created_by = ANY(${param_idx + 1}::int[])")
+
+            thorny_ids_int = [int(x) for x in query.creator_thorny_ids]
+            params.append(thorny_ids_int)
+
+        # Handle interaction_types (OR condition using ANY)
+        if query.quest_types is not None and len(query.quest_types) > 0:
+            param_idx = len(params)
+            conditions.append(f"q.quest_type = ANY(${param_idx + 1})")
+
+            params.append(query.quest_types)
+
+        # Handle time filtering
+        if query.time_start is not None and query.time_end is not None:
+            # Both start and end provided - filter between range
+            param_idx = len(params)
+            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamptz AND q.end_time <= ${param_idx + 2}::timestamptz")
+            params.extend([
+                query.time_start,
+                query.time_end
+            ])
+
+        elif query.time_start is not None:
+            # Only start time provided - filter after this time
+            param_idx = len(params)
+            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamptz")
+            params.append(query.time_start)
+
+        elif query.time_end is not None:
+            # Only end time provided - filter before this time
+            param_idx = len(params)
+            conditions.append(f"q.end_time <= ${param_idx + 1}::timestamptz")
+            params.append(query.time_end)
+
+        # Handle "active", "future" and "past" quests
+        if query.active:
+            conditions.append(f"NOW() BETWEEN q.start_time AND q.end_time")
+
+        if query.future:
+            conditions.append(f"q.start_time > NOW()")
+
+        if query.past:
+            conditions.append(f"q.end_time < NOW()")
+
+        # Add a WHERE clause if we have conditions
+        if conditions:
+            query_parts.append("WHERE")
+            query_parts.append(" AND ".join(conditions))
+
+        # Add ORDER BY clause
+        query_parts.append("ORDER BY q.quest_id DESC")
+
+        # Handle pagination with OFFSET and LIMIT
+        if query.page is not None and query.page_size is not None:
+            # Calculate offset: (page - 1) * page_size
+            offset = (query.page - 1) * query.page_size
+            param_idx = len(params)
+
+            query_parts.append(f"LIMIT ${param_idx + 1}::int OFFSET ${param_idx + 2}::int")
+            params.extend([query.page_size, offset])
+
+        query = " ".join(query_parts)
+
+        # Execute the query
+        data = await self.db.pool.fetch(query, *params)
+
+        return [QuestDB.model_validate(dict(q)) for q in data]
