@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Security, Query
 from starlette import status
 
 from src.dependencies.auth import Scope, get_guild_client
-from src.dependencies.repositories import get_world_repo
+from src.dependencies.services import get_world_service
 from src.dependencies.database import db
 
 from src.models.auth import TokenPayload
 from src.models.worlds import world
 from src.models.server import items
 
-from src.repositories.world import WorldRepository
+from src.services.world import WorldService
 
 world_router = APIRouter(prefix='/guilds/me/worlds', tags=['Worlds'])
 
@@ -17,11 +17,9 @@ world_router = APIRouter(prefix='/guilds/me/worlds', tags=['Worlds'])
 @world_router.get('')
 async def get_world(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
-        repo: WorldRepository = Depends(get_world_repo),
+        service: WorldService = Depends(get_world_service),
 ) -> world.WorldOut:
-    wrld = await repo.fetch(auth.guild_id)
-
-    return world.WorldOut(**wrld.model_dump())
+    return await service.get(auth.guild_id)
 
 
 @world_router.patch('')
@@ -29,11 +27,9 @@ async def get_world(
 async def partial_update_world(
         body: world.WorldUpdate,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
-        repo: WorldRepository = Depends(get_world_repo),
+        service: WorldService = Depends(get_world_service),
 ) -> world.WorldOut:
-    wrld = await repo.update(auth.guild_id, body)
-
-    return world.WorldOut(**wrld.model_dump())
+    return await service.update(auth.guild_id, body)
 
 
 @world_router.post('/items', status_code=status.HTTP_201_CREATED)
