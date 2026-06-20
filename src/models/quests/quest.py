@@ -76,7 +76,7 @@ class QuestUpdate(BaseModel):
     tags: Optional[Tags] = None
     quest_type: Optional[QuestType] = None
     created_by: Optional[CreatedBy] = None
-    objectives: Optional[list[ObjectiveUpdate]] = None
+    objectives: Optional[list[ObjectiveUpdate]] = []
 
 
 class QuestQuery(BaseModel):

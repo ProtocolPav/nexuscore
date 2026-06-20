@@ -6,7 +6,7 @@ from src.dependencies.auth import Scope, get_guild_client
 from src.dependencies.services import get_quest_service
 from src.models.auth import TokenPayload
 
-from src.models.quests.quest import QuestIn, QuestOut, QuestQuery
+from src.models.quests.quest import QuestIn, QuestOut, QuestQuery, QuestUpdate
 from src.services.quest import QuestService
 
 quests = APIRouter(prefix='/quests', tags=['Quests'])
@@ -90,18 +90,20 @@ async def get_quest(
 #     return rewards_model
 #
 #
-# @quests.patch('/{quest_id}')
-# @quests.put('/{quest_id}')
-# async def update_quest(quest_id: int, body: quest.QuestUpdateModel) -> quest.QuestModel:
-#     """
-#     Update Quest
-#
-#     Update a quest
-#     """
-#     model = await quest.QuestModel.fetch(db, quest_id)
-#     await model.update(db, body)
-#
-#     return model
+@quests.patch('/{quest_id}')
+@quests.put('/{quest_id}')
+async def update_quest(
+        quest_id: int,
+        body: QuestUpdate,
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
+        service: QuestService = Depends(get_quest_service),
+) -> QuestOut:
+    """
+    Updates quest details and/or objectives. Objectives and rewards are additive-only:
+    include an `objective_id`/`reward_id` to update an existing entry, or omit it to create a new one.
+    Existing objectives and rewards not present in the payload are left untouched.
+    """
+    return await service.update(auth.guild_id, quest_id, body)
 #
 #
 # @quests.patch('/reward/{reward_id}')

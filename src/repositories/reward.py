@@ -50,12 +50,12 @@ class RewardRepository:
 
         return RewardDB.model_validate(dict(data))
 
-    async def update(self, reward_id: int, model: RewardUpdate) -> RewardDB:
+    async def update(self, objective_id: int, reward_id: int, model: RewardUpdate, conn: PoolConnectionProxy) -> RewardDB:
         reward = await self.fetch(reward_id)
 
         updated = reward.model_copy(update=model.model_dump(exclude_none=True))
 
-        await self.db.pool.execute("""
+        await conn.execute("""
             UPDATE quests_v3.reward
             SET objective_id = $1,
                 balance = $2,
@@ -64,8 +64,9 @@ class RewardRepository:
                 display_name = $5,
                 item_metadata = $6
             WHERE reward_id = $7
+            AND objective_id = $8
         """, updated.objective_id, updated.balance, updated.item, updated.count, updated.display_name,
-            json.dumps([m.model_dump() for m in updated.item_metadata], default=str), updated.reward_id)
+            json.dumps(updated.item_metadata, default=str), updated.reward_id, objective_id)
 
         return updated
 

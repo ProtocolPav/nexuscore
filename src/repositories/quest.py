@@ -50,12 +50,12 @@ class QuestRepository:
 
         return QuestDB.model_validate(dict(data))
 
-    async def update(self, quest_id: int, guild_id: int, model: QuestUpdate) -> QuestDB:
+    async def update(self, quest_id: int, guild_id: int, model: QuestUpdate, conn: PoolConnectionProxy) -> QuestDB:
         quest = await self.fetch(quest_id, guild_id)
 
         updated = quest.model_copy(update=model.model_dump(exclude_none=True))
 
-        await self.db.pool.execute("""
+        await conn.execute("""
             UPDATE quests_v3.quest
             SET start_time = $1,
                 end_time = $2,
@@ -65,7 +65,7 @@ class QuestRepository:
                 tags = $6,
                 quest_type = $7
             WHERE quest_id = $8
-        """,updated.start_time, updated.end_time, updated.title, updated.description, updated.created_by,
+        """, updated.start_time, updated.end_time, updated.title, updated.description, updated.created_by,
                                    updated.tags, updated.quest_type, updated.quest_id)
 
         return updated

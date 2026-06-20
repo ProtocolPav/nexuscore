@@ -5,7 +5,7 @@ from typing import Annotated, Literal, Optional
 
 from src.models.quests.objective_customization.customization import Customizations
 from src.models.quests.objective_targets.target import Targets
-from src.models.quests.reward import RewardIn, RewardOut
+from src.models.quests.reward import RewardIn, RewardOut, RewardUpdate
 
 QuestID = Annotated[int, Field(
     description="The ID of the quest this objective belongs to",
@@ -104,6 +104,7 @@ class ObjectiveIn(BaseModel):
 
 
 class ObjectiveUpdate(BaseModel):
+    objective_id: Optional[ObjectiveID] = None
     description: Optional[Description] = None
     display: Optional[Display] = None
     order_index: Optional[OrderIndex] = None
@@ -112,4 +113,4 @@ class ObjectiveUpdate(BaseModel):
     target_count: Optional[TargetCount] = None
     targets: Optional[ObjectiveTargets] = None
     customizations: Optional[ObjectiveCustomizations] = None
-    rewards: Optional[list[RewardIn]] = None
+    rewards: Optional[list[RewardUpdate]] = []

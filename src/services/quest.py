@@ -1,7 +1,7 @@
 import asyncio
 
 from src.models.quests.objective import ObjectiveOut
-from src.models.quests.quest import QuestDB, QuestIn, QuestOut, QuestQuery
+from src.models.quests.quest import QuestDB, QuestIn, QuestOut, QuestQuery, QuestUpdate
 from src.models.quests.reward import RewardOut
 from src.models.users.profile import ProfileOut
 from src.models.users.user import UserOut
@@ -71,5 +71,23 @@ class QuestService:
 
                 for r in o.rewards:
                     await self.reward_repo.create(objective_db.quest_id, objective_db.objective_id, r, conn)
+
+        return await self._to_out(quest_db)
+
+    async def update(self, guild_id: int, quest_id: int, model: QuestUpdate) -> QuestOut:
+        async with self.quest_repo.db.get_transaction() as conn:
+            quest_db = await self.quest_repo.update(quest_id, guild_id, model, conn)
+
+            for o in model.objectives:
+                if o.objective_id:
+                    objective_db = await self.objective_repo.update(quest_db.quest_id, o.objective_id, o, conn)
+                else:
+                    objective_db = await self.objective_repo.create(quest_id, o, conn)
+
+                for r in o.rewards:
+                    if r.reward_id:
+                        await self.reward_repo.update(objective_db.objective_id, r.reward_id, r, conn)
+                    else:
+                        await self.reward_repo.create(quest_db.quest_id, objective_db.objective_id, r, conn)
 
         return await self._to_out(quest_db)

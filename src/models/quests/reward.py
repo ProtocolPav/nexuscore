@@ -85,6 +85,7 @@ class RewardIn(BaseModel):
 
 
 class RewardUpdate(BaseModel):
+    reward_id: Optional[RewardID] = None
     balance: Optional[Balance] = None
     item: Optional[ItemID] = None
     count: Optional[Count] = None
