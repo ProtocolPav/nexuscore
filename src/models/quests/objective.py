@@ -1,15 +1,10 @@
 import json
 
-from pydantic import Field, model_validator, ValidationError
+from pydantic import Field, model_validator, ValidationError, BaseModel
 from typing import Annotated, Literal, Optional
 
 from src.models.quests.objective_customization.customization import Customizations
 from src.models.quests.objective_targets.target import Targets
-from src.utils.base import BaseModel, BaseList, optional_model
-
-from src.dependencies.database import Database
-
-from src.models.quests.reward import RewardCreateModel, RewardModel, RewardsListModel
 
 
 QuestID = Annotated[int, Field(
@@ -78,7 +73,7 @@ class ObjectiveOut(ObjectiveDB):
     target_count: TargetCount
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
-    # rewards
+    # rewards (out)
 
 
 class ObjectiveIn(BaseModel):
@@ -90,6 +85,7 @@ class ObjectiveIn(BaseModel):
     target_count: TargetCount
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
+    # rewards (in)
 
     @model_validator(mode='after')
     def check_targets(self) -> "ObjectiveIn":
@@ -116,63 +112,4 @@ class ObjectiveUpdate(BaseModel):
     target_count: Optional[TargetCount] = None
     targets: Optional[ObjectiveTargets] = None
     customizations: Optional[ObjectiveCustomizations] = None
-
-
-class ObjectiveModel(ObjectiveBaseModel):
-    quest_id: int = Field(description="The ID of the quest this objective belongs to",
-                          json_schema_extra={"example": 732})
-    objective_id: int = Field(description="The ID of this objective",
-                              json_schema_extra={"example": 43})
-    rewards: RewardsListModel = Field(description="The rewards for this objective, if any")
-
-    async def update(self, db: Database, model: "ObjectiveUpdateModel"):
-        for k in model.model_dump().keys():
-            v = getattr(model, k)
-            setattr(self, k, v) if v is not None else None
-
-        targets = list(map(lambda x: x.model_dump(), self.targets))
-
-        await db.pool.execute("""
-                              UPDATE quests_v3.objective
-                              SET objective_type = $1,
-                                  order_index = $2,
-                                  description = $3,
-                                  display = $4,
-                                  logic = $5,
-                                  target_count = $6,
-                                  targets = $7,
-                                  customizations = $8
-                                  
-                              WHERE objective_id = $9
-                              """,
-                              self.objective_type, self.order_index, self.description, self.display,
-                              self.logic, self.target_count, json.dumps(targets, default=str),
-                              self.customizations.model_dump_json(), self.objective_id)
-
-
-class ObjectivesListModel(BaseList[ObjectiveModel]):
-    @classmethod
-    async def fetch(cls, db: Database, quest_id: int = None, *args) -> "ObjectivesListModel":
-        if not quest_id:
-            raise HTTPException(status_code=400, detail="Missing required parameters")
-
-        data = await db.pool.fetch("""
-                                 SELECT * FROM quests_v3.objective
-                                 WHERE quest_id = $1
-                                 ORDER BY order_index
-                                 """,
-                                 quest_id)
-
-        objectives: list[ObjectiveModel] = []
-        for objective in data:
-            rewards = await RewardsListModel.fetch(db, objective['objective_id'])
-            objectives.append(ObjectiveModel(**objective, rewards=rewards))
-
-        return cls(root=objectives)
-
-
-class ObjectiveCreateModel(ObjectiveBaseModel):
-    rewards: list[RewardCreateModel] = Field(description="The rewards for this objective, if any")
-
-
-ObjectiveUpdateModel = optional_model('ObjectiveUpdateModel', ObjectiveBaseModel)
+    # rewards (update)

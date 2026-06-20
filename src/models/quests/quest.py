@@ -3,6 +3,7 @@ from typing import Annotated, Optional
 
 from pydantic import Field, BaseModel
 
+from src.models.quests.objective import ObjectiveIn, ObjectiveOut, ObjectiveUpdate
 from src.models.users.user import UserOut
 
 QuestID = Annotated[int, Field(
@@ -49,7 +50,7 @@ class QuestDB(QuestBase):
 
 class QuestOut(QuestBase):
     created_by: UserOut
-    # objectives (out)
+    objectives: list[ObjectiveOut]
 
 
 class QuestIn(BaseModel):
@@ -60,7 +61,7 @@ class QuestIn(BaseModel):
     tags: Tags
     quest_type: QuestType
     created_by: CreatedBy
-    # objectives (in)
+    objectives: list[ObjectiveIn]
 
 
 class QuestUpdate(BaseModel):
@@ -71,7 +72,7 @@ class QuestUpdate(BaseModel):
     tags: Optional[Tags] = None
     quest_type: Optional[QuestType] = None
     created_by: Optional[CreatedBy] = None
-    # objectives (update)
+    objectives: Optional[list[ObjectiveUpdate]] = None
 
 
 class QuestQuery(BaseModel):
