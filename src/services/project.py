@@ -1,13 +1,7 @@
 import asyncio
-import re
-import unicodedata
-import asyncpg
-
-from src.dependencies.database import Database
-from src.errors import AlreadyExists, NotFound
 
 from src.models.projects.project import ProjectDB, ProjectIn, ProjectOut, ProjectUpdate
-from src.models.projects.status import StatusDB, StatusEnum, StatusIn, StatusOut
+from src.models.projects.status import StatusIn, StatusOut
 
 from src.models.users.user import UserOut
 from src.models.users.profile import ProfileOut
