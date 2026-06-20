@@ -47,7 +47,7 @@ class QuestProgressRepository:
                         thorny_id,
                         status
                     )
-                    VALUES($1, $2, "active")
+                    VALUES($1, $2, 'active')
 
                     RETURNING *
                 )
