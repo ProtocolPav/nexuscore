@@ -146,6 +146,6 @@ class QuestProgressService:
                         conn
                     )
                 else:
-                    await self.objective_repo.create(quest_progress_db.quest_id, o, conn)
+                    await self.objective_progress_repo.create(quest_progress_db.quest_id, o.objective_id, o, conn)
 
         return await self._to_out(quest_progress_db)
