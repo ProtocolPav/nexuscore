@@ -1,9 +1,6 @@
-# Skill: `new-model` — Bootstrapping a New Nexuscore Resource
-
-Use this guide whenever you need to add a completely new domain resource to Nexuscore.
-It covers every layer you must touch, in the correct order, grounded in the patterns
-already used throughout the codebase. Follow each section top-to-bottom; do not skip layers.
-
+---
+name: new-model
+description: Use this guide whenever you need to add a completely new domain resource to Nexuscore. It covers every layer you must touch, in the correct order, grounded in the patterns already used throughout the codebase. Follow each section top-to-bottom; do not skip layers.
 ---
 
 ## Architecture Reminder
