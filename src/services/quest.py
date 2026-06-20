@@ -1,7 +1,7 @@
 import asyncio
 
 from src.models.quests.objective import ObjectiveOut
-from src.models.quests.quest import QuestDB, QuestOut
+from src.models.quests.quest import QuestDB, QuestOut, QuestQuery
 from src.models.users.profile import ProfileOut
 from src.models.users.user import UserOut
 from src.repositories.objective import ObjectiveRepository
@@ -34,3 +34,11 @@ class QuestService:
     async def get(self, guild_id: int, quest_id: int) -> QuestOut:
         quest_db = await self.quest_repo.fetch(quest_id, guild_id)
         return await self._to_out(quest_db)
+
+    async def get_all(self, guild_id: int, query: QuestQuery) -> list[QuestOut]:
+        quests_db = await self.quest_repo.fetch_all(guild_id, query)
+
+        async with asyncio.TaskGroup() as tg:
+            tasks = [tg.create_task(self._to_out(q)) for q in quests_db]
+
+        return [t.result() for t in tasks]

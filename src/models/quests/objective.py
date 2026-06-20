@@ -43,11 +43,11 @@ class ObjectiveDB(BaseModel):
     quest_id: QuestID
     objective_id: ObjectiveID
     description: Description
-    display: Display
+    display: Optional[Display]
     order_index: OrderIndex
     objective_type: ObjectiveType
     logic: Logic
-    target_count: TargetCount
+    target_count: Optional[TargetCount]
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
 
@@ -66,11 +66,11 @@ class ObjectiveDB(BaseModel):
 class ObjectiveOut(ObjectiveDB):
     objective_id: ObjectiveID
     description: Description
-    display: Display
+    display: Optional[Display]
     order_index: OrderIndex
     objective_type: ObjectiveType
     logic: Logic
-    target_count: TargetCount
+    target_count: Optional[TargetCount]
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
     # rewards (out)
@@ -78,11 +78,11 @@ class ObjectiveOut(ObjectiveDB):
 
 class ObjectiveIn(BaseModel):
     description: Description
-    display: Display
+    display: Optional[Display]
     order_index: OrderIndex
     objective_type: ObjectiveType
     logic: Logic
-    target_count: TargetCount
+    target_count: Optional[TargetCount]
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
     # rewards (in)

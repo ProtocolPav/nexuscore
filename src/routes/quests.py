@@ -1,9 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status, Security, Depends
+from fastapi import APIRouter, Query, Security, Depends
 
 from src.dependencies.auth import Scope, get_guild_client
-from src.dependencies.database import db
 from src.dependencies.services import get_quest_service
 from src.models.auth import TokenPayload
 
@@ -28,25 +27,16 @@ quests = APIRouter(prefix='/quests', tags=['Quests'])
 #     return quest_model
 #
 #
-# @quests.get('')
-# async def get_all_quests(filter_query: Annotated[QuestQuery, Query()]) -> quest.QuestListModel:
-#     """
-#     Get All Quests
-#
-#     Returns all quests ordered by start date, recent first
-#     """
-#     quests_model = await quest.QuestListModel.fetch(
-#         db,
-#         filter_query.time_start.isoformat() if filter_query.time_start else None,
-#         filter_query.time_end.isoformat() if filter_query.time_end else None,
-#         [str(x) for x in filter_query.creator_thorny_ids] if filter_query.creator_thorny_ids else None,
-#         filter_query.quest_types,
-#         filter_query.active,
-#         filter_query.future,
-#         filter_query.past,
-#     )
-#
-#     return quests_model
+@quests.get('')
+async def list_quests(
+        filter_query: Annotated[QuestQuery, Query()],
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        service: QuestService = Depends(get_quest_service),
+) -> list[QuestOut]:
+    """
+    Get a list of Quests
+    """
+    return await service.get_all(auth.guild_id, filter_query)
 
 
 @quests.get('/{quest_id}')
