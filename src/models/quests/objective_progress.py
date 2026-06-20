@@ -69,6 +69,7 @@ class ObjectiveProgressIn(BaseModel):
 
 
 class ObjectiveProgressUpdate(BaseModel):
+    objective_id: Optional[ObjectiveID] = None
     start_time: Optional[StartTime] = None
     end_time: Optional[EndTime] = None
     status: Optional[ProgressStatus] = None

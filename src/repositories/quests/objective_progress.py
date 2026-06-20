@@ -60,7 +60,7 @@ class ObjectiveProgressRepository:
             model: ObjectiveProgressUpdate,
             conn: PoolConnectionProxy
     ) -> ObjectiveProgressDB:
-        objective = await self.fetch(objective_id)
+        objective = await self.fetch(objective_id, progress_id)
 
         updated = objective.model_copy(update=model.model_dump(exclude_none=True))
 
