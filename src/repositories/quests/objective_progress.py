@@ -73,7 +73,7 @@ class ObjectiveProgressRepository:
                 status = $5
             WHERE progress_id = $6
             AND objective_id = $7
-        """, updated.start_time, updated.end_time, json.dumps([t.model_dump() for t in updated.target_progress], default=str),
+        """, updated.start_time, updated.end_time, json.dumps([t.model_dump() for t in model.target_progress], default=str),
              updated.customization_progress.model_dump_json(), updated.status, progress_id, objective_id)
 
         return updated

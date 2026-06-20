@@ -4,10 +4,8 @@ from typing import Annotated, Literal, Optional
 
 from pydantic import Field, model_validator, BaseModel
 
-from src.models.quests.objective_customization.customization import Customizations
-from src.models.quests.objective_customization.progress import CUSTOMIZATION_TYPE_MAP, CustomizationProgress
-from src.models.quests.objective_targets.progress import TARGET_TYPE_MAP, TargetProgress
-from src.models.quests.objective_targets.target import Targets
+from src.models.quests.objective_customization.progress import CustomizationProgress
+from src.models.quests.objective_targets.progress import TargetProgress
 
 
 ProgressID = Annotated[int, Field(
