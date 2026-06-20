@@ -51,7 +51,7 @@ async def get_project(
 
 @projects_router.put('/{project_id}')
 @projects_router.patch('/{project_id}')
-async def update_project(
+async def partial_update_project(
         project_id: str,
         body: ProjectUpdate,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_WRITE]),

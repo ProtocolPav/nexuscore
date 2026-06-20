@@ -47,7 +47,7 @@ async def get_pin(
 
 @pins_router.patch('/{pin_id}')
 @pins_router.put('/{pin_id}')
-async def update_pin(
+async def partial_update_pin(
         pin_id: int,
         body: PinUpdate,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_WRITE]),

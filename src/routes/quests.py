@@ -56,7 +56,7 @@ async def get_quest(
 
 @quests.patch('/{quest_id}')
 @quests.put('/{quest_id}')
-async def update_quest(
+async def partial_update_quest(
         quest_id: int,
         body: QuestUpdate,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
