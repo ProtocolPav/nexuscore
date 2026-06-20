@@ -24,9 +24,7 @@ async def create_guild(
     """
     Creates a new guild. If a guild with this ID already exists, it returns a 400.
     """
-    guild = await service.new(body)
-
-    return guild
+    return await service.new(body)
 
 
 @guilds_router.get('/me')
@@ -37,8 +35,7 @@ async def get_guild(
     """
     Fetch your guild information
     """
-    guild = await service.get(auth.guild_id)
-    return guild
+    return await service.get(auth.guild_id)
 
 
 @guilds_router.patch('/me')
@@ -51,8 +48,7 @@ async def partial_update_guild(
     """
     Partially updates guild information. Both `PATCH` and `PUT` work the same way.
     """
-    guild = await service.update(auth.guild_id, body)
-    return guild
+    return await service.update(auth.guild_id, body)
 
 
 @guilds_router.get('/me/features', deprecated=True)
@@ -61,9 +57,7 @@ async def get_features(
         service: GuildService = Depends(get_guild_service)
 ) -> list[guilds.FeatureOut]:
     """Returns a list of features enabled for the authenticated guild."""
-    features = await service.get_features(auth.guild_id)
-
-    return features
+    return await service.get_features(auth.guild_id)
 
 
 @guilds_router.get('/me/channels', deprecated=True)
@@ -74,9 +68,7 @@ async def get_channels(
     """
     This returns a list of the guild's channels
     """
-    channels = await service.get_channels(auth.guild_id)
-
-    return channels
+    return await service.get_channels(auth.guild_id)
 
 
 @guilds_router.get('/me/playtime')
@@ -91,9 +83,7 @@ async def get_guild_playtime(
     > The playtime analysis is currently a work in progress, and may not have all data.
     > Data shape might change in the future.
     """
-    guild_analysis = await service.get_playtime_analysis(auth.guild_id)
-
-    return guild_analysis
+    return await service.get_playtime_analysis(auth.guild_id)
 
 
 @guilds_router.get('/me/online')
@@ -104,9 +94,7 @@ async def get_online_members(
     """
     Returns a list of all players currently connected to Geode.
     """
-    players = await service.get_online_members(auth.guild_id)
-
-    return players
+    return await service.get_online_members(auth.guild_id)
 
 
 @guilds_router.post('/me/connection', status_code=status.HTTP_201_CREATED)
@@ -118,8 +106,7 @@ async def create_connection(
     """
     Creates a connection event.
     """
-    connection = await service.new_connection(body)
-    return connection
+    return await service.new_connection(body)
 
 
 @guilds_router.post('/me/interaction', status_code=status.HTTP_201_CREATED)
@@ -131,9 +118,7 @@ async def create_interaction(
     """
     Creates an interaction event.
     """
-    interaction = await service.new_interaction(body)
-
-    return interaction
+    return await service.new_interaction(body)
 
 @guilds_router.get('/me/interactions', name="Get Interactions")
 async def get_all_interactions(
@@ -144,6 +129,4 @@ async def get_all_interactions(
     """
     Filter interactions by various criteria.
     """
-    interactions = await service.get_interactions(filter_query)
-
-    return interactions
+    return await service.get_interactions(filter_query)

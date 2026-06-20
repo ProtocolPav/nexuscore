@@ -22,9 +22,7 @@ async def list_projects(
     Get a list of Projects
     """
     # TODO: add cursor pagination and filtering
-    projects = await service.get_all(auth.guild_id)
-
-    return projects
+    return await service.get_all(auth.guild_id)
 
 
 @projects_router.post('', status_code=status.HTTP_201_CREATED)
@@ -36,9 +34,7 @@ async def create_project(
     """
     Creates a new project with a status, members and content.
     """
-    proj = await service.new(auth.guild_id, body)
-
-    return proj
+    return await service.new(auth.guild_id, body)
 
 
 @projects_router.get('/{project_id}')
@@ -50,9 +46,7 @@ async def get_project(
     """
     Returns the project specified
     """
-    proj = await service.get(auth.guild_id, project_id)
-
-    return proj
+    return await service.get(auth.guild_id, project_id)
 
 
 @projects_router.put('/{project_id}')
@@ -66,9 +60,7 @@ async def update_project(
     """
     Update the project.
     """
-    proj = await service.update(auth.guild_id, project_id, body)
-
-    return proj
+    return await service.update(auth.guild_id, project_id, body)
 
 
 @projects_router.get('/{project_id}/status', deprecated=True)
@@ -80,9 +72,7 @@ async def get_project_status(
     """
     Returns the project's status
     """
-    stat = await service.get_status(project_id)
-
-    return stat
+    return await service.get_status(project_id)
 
 
 @projects_router.post('/{project_id}/status', status_code=status.HTTP_201_CREATED)
@@ -97,9 +87,7 @@ async def create_project_status(
 
     Insert a new project status.
     """
-    stat = await service.new_status(project_id, body)
-
-    return stat
+    return await service.new_status(project_id, body)
 
 
 # @projects.get('/{project_id}/members')
