@@ -1,15 +1,13 @@
-from pydantic import Field, StringConstraints
-from typing import Annotated, Literal, Optional, Union
+from pydantic import Field, BaseModel
+from typing import Optional
 
-from src.utils.base import BaseModel
-
-
-MinecraftID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
+from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
 
 class MainhandCustomization(BaseModel):
-    item: MinecraftID = Field(description="The item which is required to be held",
-                              json_schema_extra={"example": "minecraft:diamond_sword"})
+    item: str = Field(description="The item which is required to be held",
+                      json_schema_extra={"example": "minecraft:diamond_sword"},
+                      pattern=MINECRAFT_REGEX_PATTERN)
 
 
 class LocationCustomization(BaseModel):

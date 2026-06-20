@@ -1,34 +1,41 @@
 from datetime import datetime
 from typing import Annotated, Optional
 
-from fastapi import HTTPException
-
 from pydantic import Field, BaseModel
 
-from src.models.quests.objective import ObjectiveCreateModel, ObjectiveModel, ObjectivesListModel
+from src.models.quests.objective import ObjectiveIn, ObjectiveOut, ObjectiveUpdate
 from src.models.users.user import UserOut
 
 QuestID = Annotated[int, Field(
     description="The Quest ID",
     examples=[732]
 )]
+GuildID = Annotated[int, Field(
+    description="The Discord guild ID this quest is a part of",
+    examples=[123456789012345678]
+)]
 StartTime = Annotated[datetime, Field(
     description="The time that this quest begins to be able to be accepted",
+    examples=['2026-01-01 04:00:00+00:00']
 )]
 EndTime = Annotated[datetime, Field(
-    description="The time that this quest will no longer be available to be accepted"
+    description="The time that this quest will no longer be available to be accepted",
+    examples=['2026-02-01 04:00:00+00:00']
 )]
 Title = Annotated[str, Field(
     description="The quest title",
+    examples=["Re-Quest: Aha!"]
 )]
 Description = Annotated[str, Field(
     description="The quest description",
 )]
 CreatedBy = Annotated[int, Field(
     description="The Thorny ID that created this quest",
+    examples=[1]
 )]
 Tags = Annotated[list[str], Field(
     description="A list of tags describing this quest",
+    examples=[["challenge", "mining"]]
 )]
 QuestType = Annotated[str, Field(
     description="The quest type",
@@ -48,11 +55,12 @@ class QuestBase(BaseModel):
 
 class QuestDB(QuestBase):
     created_by: CreatedBy
+    guild_id: GuildID
 
 
 class QuestOut(QuestBase):
     created_by: UserOut
-    # objectives (out)
+    objectives: list[ObjectiveOut]
 
 
 class QuestIn(BaseModel):
@@ -63,7 +71,7 @@ class QuestIn(BaseModel):
     tags: Tags
     quest_type: QuestType
     created_by: CreatedBy
-    # objectives (in)
+    objectives: list[ObjectiveIn]
 
 
 class QuestUpdate(BaseModel):
@@ -74,92 +82,7 @@ class QuestUpdate(BaseModel):
     tags: Optional[Tags] = None
     quest_type: Optional[QuestType] = None
     created_by: Optional[CreatedBy] = None
-    # objectives (update)
-
-
-class QuestListModel(BaseList[QuestModel]):
-    @classmethod
-    async def fetch(cls,
-                    db: Database,
-                    time_start: str = None,
-                    time_end: str = None,
-                    creator_thorny_ids: list[str] = None,
-                    quest_types: list[str] = None,
-                    active: bool = None,
-                    future: bool = None,
-                    past: bool = None,
-                    *args) -> "QuestListModel":
-        # Build the query dynamically
-        query_parts = ["SELECT * FROM quests_v3.quest q"]
-        conditions = []
-        params = []
-
-        # Handle thorny_ids (OR condition using ANY)
-        if creator_thorny_ids is not None and len(creator_thorny_ids) > 0:
-            param_idx = len(params)
-            conditions.append(f"q.created_by = ANY(${param_idx + 1}::int[])")
-
-            thorny_ids_int = [int(x) for x in creator_thorny_ids]
-            params.append(thorny_ids_int)
-
-        # Handle interaction_types (OR condition using ANY)
-        if quest_types is not None and len(quest_types) > 0:
-            param_idx = len(params)
-            conditions.append(f"q.quest_type = ANY(${param_idx + 1})")
-
-            params.append(quest_types)
-
-        # Handle time filtering
-        if time_start is not None and time_end is not None:
-            # Both start and end provided - filter between range
-            param_idx = len(params)
-            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamptz AND q.end_time <= ${param_idx + 2}::timestamptz")
-            params.extend([
-                datetime.fromisoformat(time_start),
-                datetime.fromisoformat(time_end)
-            ])
-
-        elif time_start is not None:
-            # Only start time provided - filter after this time
-            param_idx = len(params)
-            conditions.append(f"q.start_time >= ${param_idx + 1}::timestamptz")
-            params.append(datetime.fromisoformat(time_start))
-
-        elif time_end is not None:
-            # Only end time provided - filter before this time
-            param_idx = len(params)
-            conditions.append(f"q.end_time <= ${param_idx + 1}::timestamptz")
-            params.append(datetime.fromisoformat(time_end))
-
-        # Handle "active", "future" and "past" quests
-        if active:
-            conditions.append(f"NOW() BETWEEN q.start_time AND q.end_time")
-
-        if future:
-            conditions.append(f"q.start_time > NOW()")
-
-        if past:
-            conditions.append(f"q.end_time < NOW()")
-
-        # Add WHERE clause if we have conditions
-        if conditions:
-            query_parts.append("WHERE")
-            query_parts.append(" AND ".join(conditions))
-
-        # Add ORDER BY clause
-        query_parts.append("ORDER BY q.quest_id DESC")
-
-        query = " ".join(query_parts)
-
-        # Execute the query
-        data = await db.pool.fetch(query, *params)
-
-        quests: list[QuestModel] = []
-        for quest in data:
-            objectives = await ObjectivesListModel.fetch(db, quest['quest_id'])
-            quests.append(QuestModel(**quest, objectives=objectives))
-
-        return cls(root=quests)
+    objectives: Optional[list[ObjectiveUpdate]] = []
 
 
 class QuestQuery(BaseModel):
@@ -184,17 +107,17 @@ class QuestQuery(BaseModel):
         default=None,
     )
     active: Optional[bool] = Field(
-        description="Filter by active quests",
+        description="Filter by active quests_router",
         examples=[True],
         default=None,
     )
     future: Optional[bool] = Field(
-        description="Filter by future quests",
+        description="Filter by future quests_router",
         examples=[True],
         default=None,
     )
     past: Optional[bool] = Field(
-        description="Filter by past quests",
+        description="Filter by past quests_router",
         examples=[True],
         default=None,
     )

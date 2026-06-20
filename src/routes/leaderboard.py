@@ -46,7 +46,7 @@ async def get_levels_leaderboard(
     return guild_leaderboard
 
 
-@leaderboard_router.get('/quests')
+@leaderboard_router.get('/quests_router')
 async def get_quests_leaderboard(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
 ) -> guilds.LeaderboardModel:

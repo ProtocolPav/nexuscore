@@ -1,29 +1,55 @@
 import json
 
-from pydantic import Field, StringConstraints, model_validator
+from pydantic import Field, model_validator, BaseModel
 from typing import Annotated, Optional
 
 from src.models.quests.reward_metadata import Metadata
-from src.utils.base import BaseModel, BaseList, optional_model
+from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
-from src.dependencies.database import Database
+QuestID = Annotated[int, Field(
+    description="The ID of the quest this reward belongs to",
+    examples=[732]
+)]
+ObjectiveID = Annotated[int, Field(
+    description="The ID of the objective this reward belongs to",
+    examples=[12345]
+)]
+RewardID = Annotated[int, Field(
+    description="The ID of this reward",
+    examples=[125]
+)]
+Balance = Annotated[int, Field(
+    description="The balance this reward will add"
+)]
+ItemID = Annotated[str, Field(
+    description="The item this reward will give",
+    pattern=MINECRAFT_REGEX_PATTERN,
+    examples=['minecraft:diamond']
+)]
+Count = Annotated[int, Field(
+    description="The amount of this item this reward will give",
+    examples=[1]
+)]
+DisplayName = Annotated[str, Field(
+    description="The optional text to display instead of the reward item name",
+    examples=["Diamond"]
+)]
+ItemMetadata = Annotated[list[Metadata], Field(
+    description="The metadata for the item reward, to add extra customization",
+)]
+
+class RewardBase(BaseModel):
+    reward_id: RewardID
+    balance: Optional[Balance]
+    item: Optional[ItemID]
+    count: Optional[Count]
+    display_name: Optional[DisplayName]
+    item_metadata: ItemMetadata
 
 
-from fastapi import HTTPException
-
-MinecraftID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
-
-
-class RewardBaseModel(BaseModel):
-    balance: Optional[int] = Field(description="The balance this reward will add",
-                                   json_schema_extra={"example": None})
-    item: Optional[MinecraftID] = Field(description="The item this reward will give",
-                                          json_schema_extra={"example": 'minecraft:gold_ingot'})
-    count: Optional[int] = Field(description="The amount of this item this reward will give",
-                                 json_schema_extra={"example": 43})
-    display_name: Optional[str] = Field(description="The optional text to display instead of the reward item name",
-                                       json_schema_extra={"example": 'Something Shiny'})
-    item_metadata: list[Metadata] = Field(description="The metadata for the item reward, to add extra customization")
+class RewardDB(RewardBase):
+    quest_id: QuestID
+    objective_id: ObjectiveID
 
     @model_validator(mode='before')
     @classmethod
@@ -34,96 +60,40 @@ class RewardBaseModel(BaseModel):
         return data
 
 
-class RewardModel(RewardBaseModel):
-    quest_id: int = Field(description="The ID of the quest this reward belongs to",
-                          json_schema_extra={"example": 732})
-    objective_id: int = Field(description="The ID of the objective this reward belongs to",
-                              json_schema_extra={"example": 43})
-    reward_id: int = Field(description="The ID of this reward",
-                           json_schema_extra={"example": 345})
+class RewardOut(BaseModel):
+    reward_id: RewardID
+    balance: Optional[Balance]
+    item: Optional[ItemID]
+    count: Optional[Count]
+    display_name: Optional[DisplayName]
+    item_metadata: ItemMetadata
 
 
-    @classmethod
-    async def create(cls, db: Database, model: "RewardCreateModel", quest_id: int = None, objective_id: int = None, *args) -> "RewardModel":
-        async with db.pool.acquire() as conn:
-            async with conn.transaction():
-                metadata = list(map(lambda x: x.model_dump(), model.item_metadata))
+class RewardIn(BaseModel):
+    balance: Optional[Balance]
+    item: Optional[ItemID]
+    count: Optional[Count]
+    display_name: Optional[DisplayName]
+    item_metadata: ItemMetadata
 
-                reward_id = await conn.fetchrow("""
-                                                WITH reward_table AS (
-                                                    INSERT INTO quests_v3.reward(
-                                                        quest_id, 
-                                                        objective_id,
-                                                        balance,
-                                                        item,
-                                                        count,
-                                                        display_name,
-                                                        item_metadata
-                                                        )
-                                                    VALUES($1, $2, $3, $4, $5, $6, $7)
-                                                    RETURNING reward_id
-                                                )
-                                                SELECT reward_id as id FROM reward_table
-                                                """,
-                                                quest_id, objective_id, model.balance, model.item, model.count,
-                                                model.display_name, json.dumps(metadata))
+    @model_validator(mode='after')
+    def check_targets(self) -> "RewardIn":
+        if self.balance is None and self.item is None:
+            raise ValueError("The reward must have either a balance or an item")
 
-        return cls(reward_id=reward_id['id'], quest_id=quest_id, objective_id=objective_id, **model.model_dump())
+        if self.balance is not None and self.item is not None:
+            raise ValueError("The reward cannot have both a balance and an item")
 
-    @classmethod
-    async def fetch(cls, db: Database, reward_id: int = None, *args):
-        if not reward_id:
-            raise HTTPException(status_code=400, detail="Missing required parameters")
+        if self.item is not None and self.count is None:
+            raise ValueError("The reward must have a count if it has an item")
 
-        data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests_v3.reward
-                                       WHERE reward_id = $1
-                                       """,
-                                      reward_id)
-
-        if data:
-            return cls(**data)
-        else:
-            raise HTTPException(status_code=404, detail="Reward not found")
-
-    async def update(self, db: Database, model: "RewardUpdateModel"):
-        for k, v in model.model_dump().items():
-            setattr(self, k, v) if v is not None else None
-
-        await db.pool.execute("""
-                              UPDATE quests_v3.reward
-                              SET objective_id = $1,
-                                  balance = $2,
-                                  item = $3,
-                                  count = $4,
-                                  display_name = $5
-                              WHERE reward_id = $6
-                              """,
-                              self.objective_id, self.balance, self.item, self.count, self.display_name, self.reward_id)
+        return self
 
 
-class RewardsListModel(BaseList[RewardModel]):
-    @classmethod
-    async def fetch(cls, db: Database, objective_id: int = None, *args) -> "RewardsListModel":
-        if not objective_id:
-            raise HTTPException(status_code=400, detail="Missing required parameters")
-
-        data = await db.pool.fetch("""
-                                  SELECT *
-                                  FROM quests_v3.reward
-                                  WHERE objective_id = $1
-                                  """,
-                                  objective_id)
-
-        rewards: list[RewardModel] = []
-        for reward in data:
-            rewards.append(RewardModel(**reward))
-
-        return cls(root=rewards)
-
-
-class RewardCreateModel(RewardBaseModel):
-    pass
-
-
-RewardUpdateModel = optional_model('RewardUpdateModel', RewardBaseModel)
+class RewardUpdate(BaseModel):
+    reward_id: Optional[RewardID] = None
+    balance: Optional[Balance] = None
+    item: Optional[ItemID] = None
+    count: Optional[Count] = None
+    display_name: Optional[DisplayName] = None
+    item_metadata: Optional[ItemMetadata] = None

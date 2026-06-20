@@ -1,0 +1,1 @@
+MINECRAFT_REGEX_PATTERN = r'^([a-z]+:[0-9a-z_*]+|[A-Za-z0-9_ \-\.]+)$'

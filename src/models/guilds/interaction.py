@@ -4,7 +4,7 @@ from typing import Literal, Optional
 from pydantic import Field, BaseModel
 from typing_extensions import Annotated
 
-MINECRAFT_REGEX_PATTERN = r'^([a-z]+:[0-9a-z_*]+|[A-Za-z0-9_ \-\.]+)$'
+from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
 InteractionID = Annotated[int, Field(
     description="The ID of the interaction",
@@ -34,6 +34,7 @@ Mainhand = Annotated[str, Field(
 )]
 Time = Annotated[datetime, Field(
     description="The time of the interaction",
+    examples=['2024-03-03 04:00:00+00:00']
 )]
 Dimension = Annotated[str, Field(
     description="The dimension of the interaction",
