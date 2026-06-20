@@ -10,12 +10,12 @@
 ## Architecture
 
 The application follows a Router -> Service -> Repository architecture:
-- **Router (src/routes)**: Handles HTTP requests, validates input via Pydantic models, and calls service layer.
-- **Service (src/services)**: Contains business logic, orchestrates multiple repositories, validates data, and transforms DB models to Out models.
+- **Router (src/routes)**: Handles HTTP requests, validates input via Pydantic models, and delegates to services.
+- **Service (src/services)**: Orchestrates multiple repositories, aggregates data, performs business logic and validation.
 - **Repository (src/repositories)**: Handles all database interactions using raw SQL with asyncpg, returns DB models.
 - **Models (src/models)**: 
   - DB models (suffix `DB`) represent actual database tables with all fields.
-  - Out models (suffix `Out`) exclude some fields and may include others for API responses.
+  - Out models (suffix `Out`) exclude some fields and include others for API responses.
   - Input models (suffix `In`) are used for request validation.
   - Update models (suffix `Update`) must have all fields as optional
 
@@ -83,27 +83,11 @@ from src.repositories.quest import QuestRepository
 - Use `Optional[T]` instead of `Union[T, None]`
 - Always include return types on functions
 
-Example:
-```python
-from typing import Optional, List
-
-async def get_connection(db: Database) -> PoolAcquireContext:
-    ...
-```
-
 ### Pydantic Models (v2)
 - Use `pydantic.BaseModel` as base class
 - Use `.model_json_schema()` not `.schema()` for schema generation
 - Use `model_validate()` not `.parse_obj()` for validation
 - Use `model_dump()` not `.dict()` for serialization
-
-Example:
-```python
-class TokenResponse(BaseModel):
-    access_token: str
-    expires_in: int
-    scope: List[str]
-```
 
 ### Async/Await
 - All database operations use `asyncpg` and must be async
@@ -111,20 +95,9 @@ class TokenResponse(BaseModel):
 - Use `await` for all async calls
 
 ### Error Handling
-- Use `HTTPException` from FastAPI for HTTP errors
-- Include meaningful error messages
-- Use appropriate HTTP status codes
-
-Example:
-```python
-from fastapi import HTTPException, status
-
-if not client:
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid client credentials"
-    )
-```
+- Use exceptions from `src.errors` only (e.g., `NotFound`, `BadRequest`, `AlreadyExists`)
+- Never use `HTTPException` or `SecurityException` directly
+- Add new exception classes to `src/errors.py` if needed
 
 ### SQL Queries
 - Use parameterized queries with `$1`, `$2`, etc.
@@ -151,57 +124,62 @@ if not client:
 ## Project Structure
 
 ```
-nexuscore/
-├── src/
-│   ├── main.py           # FastAPI app entry point
-│   ├── config.py         # Settings configuration
-│   ├── dependencies/    # Dependency injection (auth, database, services, repositories)
-│   │   ├── auth/        # Authentication dependencies
-│   │   ├── database.py  # Database connection
-│   │   ├── services.py  # Service dependency providers
-│   │   └── repositories.py # Repository dependency providers
-│   ├── models/          # Pydantic models (DB, Out, In)
-│   │   ├── auth/        # Authentication models
-│   │   ├── quests/      # Quest-related models
-│   │   ├── users/       # User-related models
-│   │   ├── guilds/      # Guild-related models
-│   │   ├── projects/    # Project-related models
-│   │   └── worlds/      # World-related models
-│   ├── repositories/    # Database interaction layer (returns DB models)
-│   │   ├── auth/        # Authentication repositories
-│   │   ├── quests/      # Quest-related repositories
-│   │   ├── users/       # User-related repositories
-│   │   ├── guilds/      # Guild-related repositories
-│   │   ├── projects/    # Project-related repositories
-│   │   └── worlds/      # World-related repositories
-│   ├── services/        # Business logic layer (returns Out models)
-│   │   ├── auth/        # Authentication services
-│   │   ├── quests/      # Quest-related services
-│   │   ├── users/       # User-related services
-│   │   ├── guilds/      # Guild-related services
-│   │   ├── projects/    # Project-related services
-│   │   └── worlds/      # World-related services
-│   ├── routes/          # API route handlers (Router layer)
-│   │   ├── auth.py      # Authentication routes
-│   │   ├── quests.py    # Quest-related routes
-│   │   ├── users.py     # User-related routes
-│   │   ├── guilds.py    # Guild-related routes
-│   │   ├── projects.py  # Project-related routes
-│   │   ├── worlds.py    # World-related routes
-│   │   └── ...          # Other route files
-│   ├── utils/           # Utility classes and functions
-│   └── errors.py        # Custom exception classes
-├── migrations/          # Database migrations (Alembic)
-│   ├── env.py
-│   └── versions/
-├── config.json          # Application configuration
-├── requirements.txt     # Python dependencies
-└── Dockerfile           # Docker configuration
+src/
+├── main.py              # FastAPI app entry point
+├── config.py            # Settings configuration
+├── dependencies/        # Dependency injection (auth, database, services, repositories)
+├── models/              # Pydantic models (DB, Out, In)
+├── repositories/        # Database interaction layer (returns DB models)
+├── services/            # Business logic layer (returns Out models)
+├── routes/              # API route handlers (Router layer)
+├── utils/               # Utility classes and functions
+└── errors.py            # Custom exception classes
 ```
 
 ## Common Patterns
 
-### Creating a New Route
+### Creating a Model
+```python
+from pydantic import BaseModel
+from typing import Optional
+
+class QuestDB(BaseModel):
+    quest_id: int
+    name: str
+    description: Optional[str] = None
+```
+
+### Creating a Repository
+```python
+from src.dependencies.database import Database
+from src.models.quests.quest import QuestDB, QuestIn
+
+class QuestRepository:
+    def __init__(self, db: Database):
+        self.db = db
+
+    async def fetch(self, quest_id: int) -> QuestDB:
+        data = await self.db.pool.fetchrow(
+            "SELECT * FROM quests_v3.quests WHERE quest_id = $1", quest_id
+        )
+        return QuestDB.model_validate(dict(data))
+```
+
+### Creating a Service
+```python
+from src.repositories.quests.quest import QuestRepository
+from src.models.quests.quest import QuestIn, QuestOut
+
+class QuestService:
+    def __init__(self, quest_repo: QuestRepository):
+        self.quest_repo = quest_repo
+
+    async def create(self, model: QuestIn) -> QuestOut:
+        quest_db = await self.quest_repo.create(model)
+        return QuestOut(**quest_db.model_dump())
+```
+
+### Creating a Route
 ```python
 from fastapi import APIRouter, status, Security, Depends
 from src.dependencies.auth import Scope, get_guild_client
@@ -213,55 +191,11 @@ router = APIRouter(prefix="/quests", tags=["Quests"])
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_quest(
-        body: QuestIn,
-        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
-        service: QuestService = Depends(get_quest_service)
+    body: QuestIn,
+    _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
+    service: QuestService = Depends(get_quest_service)
 ) -> QuestOut:
-    """
-    Create New Quest
-    """
     return await service.create(body)
-```
-
-### Adding a Service
-```python
-from src.repositories.quests.quest import QuestRepository
-from src.models.quests.quest import QuestIn, QuestOut, QuestDB
-
-class QuestService:
-    def __init__(self, quest_repo: QuestRepository):
-        self.quest_repo = quest_repo
-
-    async def create(self, model: QuestIn) -> QuestOut:
-        quest_db = await self.quest_repo.create(model)
-        return QuestOut(**quest_db.model_dump())
-```
-
-### Adding a Repository
-```python
-import asyncpg
-from asyncpg.pool import PoolConnectionProxy
-from src.dependencies.database import Database
-from src.errors import AlreadyExists, NotFound
-from src.models.quests.quest import QuestDB, QuestIn
-
-class QuestRepository:
-    def __init__(self, db: Database):
-        self.db = db
-
-    async def create(self, model: QuestIn) -> QuestDB:
-        try:
-            data = await self.db.pool.fetchrow("""
-                INSERT INTO quests_v3.quests(
-                    name,
-                    description
-                )
-                VALUES($1, $2)
-                RETURNING *
-            """, model.name, model.description)
-        except asyncpg.UniqueViolationError:
-            raise AlreadyExists("Quest")
-        return QuestDB.model_validate(dict(data))
 ```
 
 ## Testing
