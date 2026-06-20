@@ -4,9 +4,7 @@ from pydantic import Field, model_validator, BaseModel
 from typing import Annotated, Optional
 
 from src.models.quests.reward_metadata import Metadata
-
-
-MINECRAFT_REGEX_PATTERN = r'^([a-z]+:[0-9a-z_*]+|[A-Za-z0-9_ \-\.]+)$'
+from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
 QuestID = Annotated[int, Field(
     description="The ID of the quest this reward belongs to",

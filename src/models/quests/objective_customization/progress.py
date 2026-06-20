@@ -1,8 +1,5 @@
-from pydantic import Field, StringConstraints
-from typing import Annotated, Literal, Optional, Union
-
-from src.utils.base import BaseModel
-
+from pydantic import Field, BaseModel
+from typing import Optional
 
 
 class DeathCustomizationProgress(BaseModel):
