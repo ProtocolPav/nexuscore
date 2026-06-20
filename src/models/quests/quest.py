@@ -10,6 +10,9 @@ QuestID = Annotated[int, Field(
     description="The Quest ID",
     examples=[732]
 )]
+GuildID = Annotated[int, Field(
+    description="The Discord guild ID this quest is a part of",
+)]
 StartTime = Annotated[datetime, Field(
     description="The time that this quest begins to be able to be accepted",
 )]
@@ -46,6 +49,7 @@ class QuestBase(BaseModel):
 
 class QuestDB(QuestBase):
     created_by: CreatedBy
+    guild_id: GuildID
 
 
 class QuestOut(QuestBase):

@@ -8,18 +8,19 @@ class QuestRepository:
     def __init__(self, db: Database):
         self.db = db
 
-    async def fetch(self, quest_id: int) -> QuestDB:
+    async def fetch(self, quest_id: int, guild_id: int) -> QuestDB:
         data = await self.db.pool.fetchrow("""
             SELECT * FROM quests_v3.quest
             WHERE quest_id = $1
-        """,quest_id)
+            AND guild_id = $2
+        """,quest_id, guild_id)
 
         if not data:
             raise NotFound("Quest")
 
         return QuestDB.model_validate(dict(data))
 
-    async def create(self, model: QuestIn) -> QuestDB:
+    async def create(self, guild_id: int, model: QuestIn) -> QuestDB:
         try:
             data = await self.db.pool.fetchrow("""
                 WITH quest_table AS (
@@ -30,22 +31,23 @@ class QuestRepository:
                         description,
                         created_by,
                         tags,
-                        quest_type
+                        quest_type,
+                        guild_id
                     )
-                    VALUES($1, $2, $3, $4, $5, $6, $7)
+                    VALUES($1, $2, $3, $4, $5, $6, $7, $8)
 
                     RETURNING *
                 )
                 SELECT * from quest_table
             """, model.start_time, model.end_time, model.title, model.description, model.created_by,
-                                               model.tags, model.quest_type)
+                                               model.tags, model.quest_type, guild_id)
         except asyncpg.UniqueViolationError:
             raise AlreadyExists("Quest")
 
         return QuestDB.model_validate(dict(data))
 
-    async def update(self, quest_id: int, model: QuestUpdate) -> QuestDB:
-        quest = await self.fetch(quest_id)
+    async def update(self, quest_id: int, guild_id: int, model: QuestUpdate) -> QuestDB:
+        quest = await self.fetch(quest_id, guild_id)
 
         updated = quest.model_copy(update=model.model_dump(exclude_none=True))
 
@@ -64,11 +66,11 @@ class QuestRepository:
 
         return updated
 
-    async def fetch_all(self, query: QuestQuery) -> list[QuestDB]:
+    async def fetch_all(self, guild_id: int, query: QuestQuery) -> list[QuestDB]:
         # Build the query dynamically
         query_parts = ["SELECT * FROM quests_v3.quest q"]
-        conditions = []
-        params = []
+        conditions = ["q.guild_id = $1"]
+        params: list = [guild_id]
 
         # Handle thorny_ids (OR condition using ANY)
         if query.creator_thorny_ids is not None and len(query.creator_thorny_ids) > 0:
