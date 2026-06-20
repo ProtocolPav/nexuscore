@@ -9,7 +9,7 @@ from src.models.auth import TokenPayload
 from src.models.quests.quest import QuestIn, QuestOut, QuestQuery, QuestUpdate
 from src.services.quest import QuestService
 
-quests = APIRouter(prefix='/quests', tags=['Quests'])
+quests = APIRouter(prefix='/guilds/me/quests', tags=['Quests'])
 
 
 @quests.post('', status_code=status.HTTP_201_CREATED)
