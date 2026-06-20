@@ -65,9 +65,9 @@ class QuestProgressService:
         quest_db = await self.quest_progress_repo.fetch(progress_id)
         return await self._to_out(quest_db)
 
-    async def get_active(self, thorny_id: int) -> QuestProgressOut | None:
+    async def get_active(self, thorny_id: int) -> QuestProgressOut:
         quest_db = await self.quest_progress_repo.fetch_active(thorny_id)
-        return await self._to_out(quest_db) if quest_db else None
+        return await self._to_out(quest_db)
 
     async def get_all_users_progress(self, thorny_id: int) -> list[QuestProgressOut]:
         quests_db = await self.quest_progress_repo.fetch_all_users_progress(thorny_id)

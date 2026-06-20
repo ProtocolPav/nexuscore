@@ -44,7 +44,7 @@ async def get_active_quest_progress(
         thorny_id: int,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: QuestProgressService = Depends(get_quest_progress_service)
-) -> QuestProgressOut | None:
+) -> QuestProgressOut:
     """
     Get User's Active Quest
 
