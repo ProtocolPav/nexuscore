@@ -2,11 +2,11 @@ from fastapi import Depends
 
 from src.dependencies.database import Database, get_db
 from src.repositories.guild import GuildRepository
-from src.repositories.objective import ObjectiveRepository
+from src.repositories.quests.objective import ObjectiveRepository
 from src.repositories.pin import PinRepository
 from src.repositories.project import ProjectRepository
-from src.repositories.quest import QuestRepository
-from src.repositories.reward import RewardRepository
+from src.repositories.quests.quest import QuestRepository
+from src.repositories.quests.reward import RewardRepository
 from src.repositories.user import UserRepository
 from src.repositories.world import WorldRepository
 

@@ -5,9 +5,9 @@ from src.models.quests.quest import QuestDB, QuestIn, QuestOut, QuestQuery, Ques
 from src.models.quests.reward import RewardOut
 from src.models.users.profile import ProfileOut
 from src.models.users.user import UserOut
-from src.repositories.objective import ObjectiveRepository
-from src.repositories.quest import QuestRepository
-from src.repositories.reward import RewardRepository
+from src.repositories.quests.objective import ObjectiveRepository
+from src.repositories.quests.quest import QuestRepository
+from src.repositories.quests.reward import RewardRepository
 from src.repositories.user import UserRepository
 
 
