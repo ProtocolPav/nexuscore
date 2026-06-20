@@ -39,7 +39,7 @@ TargetCount = Annotated[int, Field(
 ObjectiveTargets = Annotated[list[Targets], Field(
     description="The targets of the objective. Target types must be equal to `objective_type`",
 )]
-ObjectiveCustomizations = Annotated[list[Customizations], Field(
+ObjectiveCustomizations = Annotated[Customizations, Field(
     description="The customizations of the objective",
 )]
 
@@ -124,58 +124,6 @@ class ObjectiveModel(ObjectiveBaseModel):
     objective_id: int = Field(description="The ID of this objective",
                               json_schema_extra={"example": 43})
     rewards: RewardsListModel = Field(description="The rewards for this objective, if any")
-
-    @classmethod
-    async def create(cls, db: Database, model: "ObjectiveCreateModel", quest_id: int = None, *args) -> int:
-        async with db.pool.acquire() as conn:
-            async with conn.transaction():
-                targets = list(map(lambda x: x.model_dump(), model.targets))
-
-                objective_id = await conn.fetchrow("""
-                                                    with objective_table as (
-                                                        insert into quests_v3.objective (
-                                                            quest_id, 
-                                                            objective_type, 
-                                                            order_index, 
-                                                            description, 
-                                                            display, 
-                                                            logic, 
-                                                            target_count, 
-                                                            targets, 
-                                                            customizations
-                                                            )
-                                                        values($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        
-                                                        returning objective_id
-                                                    )
-                                                    select objective_id as id from objective_table
-                                                   """,
-                                                   quest_id, model.objective_type, model.order_index, model.description,
-                                                   model.display, model.logic, model.target_count,
-                                                   json.dumps(targets, default=str), model.customizations.model_dump_json())
-
-        for reward in model.rewards:
-            await RewardModel.create(db=db, model=reward, quest_id=quest_id, objective_id=objective_id['id'])
-
-        return objective_id['id']
-
-    @classmethod
-    async def fetch(cls, db: Database, objective_id: int = None, *args) -> "ObjectiveModel":
-        if not objective_id:
-            raise HTTPException(status_code=400, detail="Missing required parameters")
-
-        data = await db.pool.fetchrow("""
-                                       SELECT * FROM quests_v3.objective
-                                       WHERE objective_id = $1
-                                       """,
-                                      objective_id)
-
-        if data:
-            rewards = await RewardsListModel.fetch(db, objective_id)
-
-            return cls(**data, rewards=rewards)
-        else:
-            raise HTTPException(status_code=404, detail="Objective not found")
 
     async def update(self, db: Database, model: "ObjectiveUpdateModel"):
         for k in model.model_dump().keys():
