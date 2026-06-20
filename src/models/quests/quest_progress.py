@@ -4,7 +4,7 @@ from typing import Annotated, Literal, Optional
 from pydantic import Field, BaseModel
 
 from src.dependencies.database import Database
-from src.models.quests.objective_progress import ObjectiveProgressOut
+from src.models.quests.objective_progress import ObjectiveProgressOut, ObjectiveProgressUpdate
 
 ProgressID = Annotated[int, Field(
     description="The ID of the progress instance of the quest",
@@ -59,4 +59,4 @@ class QuestProgressUpdate(BaseModel):
     start_time: Optional[StartTime] = None
     end_time: Optional[EndTime] = None
     status: Optional[Status] = None
-    objectives: Optional[list[ObjectiveProgressOut]] = []
+    objectives: Optional[list[ObjectiveProgressUpdate]] = []
