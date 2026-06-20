@@ -65,7 +65,7 @@ class RewardRepository:
                 item_metadata = $6
             WHERE reward_id = $7
         """, updated.objective_id, updated.balance, updated.item, updated.count, updated.display_name,
-           json.dumps(updated.item_metadata, default=str), updated.reward_id)
+            json.dumps([m.model_dump() for m in updated.item_metadata], default=str), updated.reward_id)
 
         return updated
 

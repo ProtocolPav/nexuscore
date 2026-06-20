@@ -70,7 +70,7 @@ class ObjectiveRepository:
               
             WHERE objective_id = $9
         """,updated.objective_type, updated.order_index, updated.description, updated.display,
-                                   updated.logic, updated.target_count, json.dumps(updated.targets, default=str),
+                                   updated.logic, updated.target_count, json.dumps([t.model_dump() for t in updated.targets], default=str),
                                    updated.customizations.model_dump_json(), updated.objective_id)
 
         return updated
