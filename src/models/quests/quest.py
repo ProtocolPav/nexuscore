@@ -107,17 +107,17 @@ class QuestQuery(BaseModel):
         default=None,
     )
     active: Optional[bool] = Field(
-        description="Filter by active quests",
+        description="Filter by active quests_router",
         examples=[True],
         default=None,
     )
     future: Optional[bool] = Field(
-        description="Filter by future quests",
+        description="Filter by future quests_router",
         examples=[True],
         default=None,
     )
     past: Optional[bool] = Field(
-        description="Filter by past quests",
+        description="Filter by past quests_router",
         examples=[True],
         default=None,
     )

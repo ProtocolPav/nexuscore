@@ -74,34 +74,3 @@ class ObjectiveProgressUpdate(BaseModel):
     status: Optional[ProgressStatus] = None
     target_progress: Optional[TargetProgressList] = None
     customization_progress: Optional[CustomizationProgressDict] = None
-
-
-class ObjectiveProgressCreateModel(BaseModel):
-    progress_id: int = Field(description="The quest progress ID",
-                             json_schema_extra={"example": 453})
-    objective_id: int = Field(description="The objective ID",
-                              json_schema_extra={"example": 22})
-    target_progress: list[TargetProgress] = Field(description="List of each objective target's progress")
-    customization_progress: CustomizationProgress = Field(description="Specific customization info to track")
-
-    @classmethod
-    def generate_target_progress(cls, targets: list[Targets]) -> list[TargetProgress]:
-        target_progress = []
-        for target in targets:
-            target_model = TARGET_TYPE_MAP.get(target.target_type, None)
-
-            if target_model:
-                target_progress.append(target_model(target_uuid=target.target_uuid, target_type=target.target_type))
-
-        return target_progress
-
-    @classmethod
-    def generate_customization_progress(cls, customizations: Customizations) -> CustomizationProgress:
-        customization_progress = {}
-        for customization in customizations.model_dump().keys():
-            customization_model = CUSTOMIZATION_TYPE_MAP.get(customization, None)
-
-            if customizations.model_dump()[customization] is not None and customization_model:
-                customization_progress[customization] = customization_model()
-
-        return CustomizationProgress(**customization_progress)

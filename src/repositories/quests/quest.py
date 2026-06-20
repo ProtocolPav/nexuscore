@@ -113,7 +113,7 @@ class QuestRepository:
             conditions.append(f"q.end_time <= ${param_idx + 1}::timestamptz")
             params.append(query.time_end)
 
-        # Handle "active", "future" and "past" quests
+        # Handle "active", "future" and "past" quests_router
         if query.active:
             conditions.append(f"NOW() BETWEEN q.start_time AND q.end_time")
 

@@ -9,10 +9,10 @@ from src.models.auth import TokenPayload
 from src.models.quests.quest import QuestIn, QuestOut, QuestQuery, QuestUpdate
 from src.services.quest import QuestService
 
-quests = APIRouter(prefix='/guilds/me/quests', tags=['Quests'])
+quests_router = APIRouter(prefix='/guilds/me/quests_router', tags=['Quests'])
 
 
-@quests.post('', status_code=status.HTTP_201_CREATED)
+@quests_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_quest(
         body: QuestIn,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
@@ -28,7 +28,7 @@ async def create_quest(
     return await service.new(auth.guild_id, body)
 
 
-@quests.get('')
+@quests_router.get('')
 async def list_quests(
         filter_query: Annotated[QuestQuery, Query()],
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
@@ -40,7 +40,7 @@ async def list_quests(
     return await service.get_all(auth.guild_id, filter_query)
 
 
-@quests.get('/{quest_id}')
+@quests_router.get('/{quest_id}')
 async def get_quest(
         quest_id: int,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
@@ -54,8 +54,8 @@ async def get_quest(
     return await service.get(auth.guild_id, quest_id)
 
 
-@quests.patch('/{quest_id}')
-@quests.put('/{quest_id}')
+@quests_router.patch('/{quest_id}')
+@quests_router.put('/{quest_id}')
 async def partial_update_quest(
         quest_id: int,
         body: QuestUpdate,
