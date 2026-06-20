@@ -38,9 +38,7 @@ ObjectiveCustomizations = Annotated[Customizations, Field(
     description="The customizations of the objective",
 )]
 
-
-class ObjectiveDB(BaseModel):
-    quest_id: QuestID
+class ObjectiveBase(BaseModel):
     objective_id: ObjectiveID
     description: Description
     display: Optional[Display]
@@ -50,6 +48,10 @@ class ObjectiveDB(BaseModel):
     target_count: Optional[TargetCount]
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
+
+
+class ObjectiveDB(ObjectiveBase):
+    quest_id: QuestID
 
     @model_validator(mode='before')
     @classmethod
@@ -63,16 +65,7 @@ class ObjectiveDB(BaseModel):
         return data
 
 
-class ObjectiveOut(ObjectiveDB):
-    objective_id: ObjectiveID
-    description: Description
-    display: Optional[Display]
-    order_index: OrderIndex
-    objective_type: ObjectiveType
-    logic: Logic
-    target_count: Optional[TargetCount]
-    targets: ObjectiveTargets
-    customizations: ObjectiveCustomizations
+class ObjectiveOut(ObjectiveBase):
     rewards: list[RewardOut]
 
 

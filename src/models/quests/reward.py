@@ -34,16 +34,18 @@ ItemMetadata = Annotated[list[Metadata], Field(
     description="The metadata for the item reward, to add extra customization",
 )]
 
-
-class RewardDB(BaseModel):
-    quest_id: QuestID
-    objective_id: ObjectiveID
+class RewardBase(BaseModel):
     reward_id: RewardID
     balance: Optional[Balance]
     item: Optional[ItemID]
     count: Optional[Count]
     display_name: Optional[DisplayName]
     item_metadata: ItemMetadata
+
+
+class RewardDB(RewardBase):
+    quest_id: QuestID
+    objective_id: ObjectiveID
 
     @model_validator(mode='before')
     @classmethod
