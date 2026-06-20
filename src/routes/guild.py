@@ -1,17 +1,16 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Security, Query
+from fastapi import APIRouter, Depends, Security, Query
 from starlette import status
 
 from src.dependencies.auth import Scope, get_current_client, get_guild_client
-from src.dependencies.repositories import get_guild_repo
+from src.dependencies.services import get_guild_service
 
 from src.models import guilds
 from src.models.auth import TokenPayload
 from src.models.guilds.interaction import InteractionQuery
-from src.models.users import playtime
 
-from src.repositories.guild import GuildRepository
+from src.services.guild import GuildService
 
 guilds_router = APIRouter(prefix='/guilds', tags=['Guilds'])
 
@@ -19,40 +18,27 @@ guilds_router = APIRouter(prefix='/guilds', tags=['Guilds'])
 @guilds_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_guild(
         body: guilds.GuildIn,
-        auth: TokenPayload = Security(get_current_client, scopes=[Scope.ADMIN_GUILDS]),
-        repo: GuildRepository = Depends(get_guild_repo)
+        _: TokenPayload = Security(get_current_client, scopes=[Scope.ADMIN_GUILDS]),
+        service: GuildService = Depends(get_guild_service)
 ) -> guilds.GuildOut:
     """
     Creates a new guild. If a guild with this ID already exists, it returns a 400.
     """
-    guild = await repo.create(body)
-    features = await repo.fetch_features(auth.guild_id)
-    channels = await repo.fetch_channels(auth.guild_id)
+    guild = await service.new(body)
 
-    return guilds.GuildOut(
-        **guild.model_dump(),
-        features=[guilds.FeatureOut(**f.model_dump()) for f in features ],
-        channels=[guilds.ChannelOut(**c.model_dump()) for c in channels],
-    )
+    return guild
 
 
 @guilds_router.get('/me')
 async def get_guild(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
-        repo: GuildRepository = Depends(get_guild_repo)
+        service: GuildService = Depends(get_guild_service)
 ) -> guilds.GuildOut:
     """
     Fetch your guild information
     """
-    guild = await repo.fetch(auth.guild_id)
-    features = await repo.fetch_features(auth.guild_id)
-    channels = await repo.fetch_channels(auth.guild_id)
-
-    return guilds.GuildOut(
-        **guild.model_dump(),
-        features=[guilds.FeatureOut(**f.model_dump()) for f in features ],
-        channels=[guilds.ChannelOut(**c.model_dump()) for c in channels],
-    )
+    guild = await service.get(auth.guild_id)
+    return guild
 
 
 @guilds_router.patch('/me')
@@ -60,50 +46,43 @@ async def get_guild(
 async def partial_update_guild(
         body: guilds.GuildUpdate,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
-        repo: GuildRepository = Depends(get_guild_repo)
+        service: GuildService = Depends(get_guild_service)
 ) -> guilds.GuildOut:
     """
     Partially updates guild information. Both `PATCH` and `PUT` work the same way.
     """
-    guild = await repo.update(auth.guild_id, body)
-    features = await repo.fetch_features(auth.guild_id)
-    channels = await repo.fetch_channels(auth.guild_id)
-
-    return guilds.GuildOut(
-        **guild.model_dump(),
-        features=[guilds.FeatureOut(**f.model_dump()) for f in features ],
-        channels=[guilds.ChannelOut(**c.model_dump()) for c in channels],
-    )
+    guild = await service.update(auth.guild_id, body)
+    return guild
 
 
 @guilds_router.get('/me/features', deprecated=True)
 async def get_features(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
-        repo: GuildRepository = Depends(get_guild_repo)
+        service: GuildService = Depends(get_guild_service)
 ) -> list[guilds.FeatureOut]:
     """Returns a list of features enabled for the authenticated guild."""
-    features = await repo.fetch_features(auth.guild_id)
+    features = await service.get_features(auth.guild_id)
 
-    return [guilds.FeatureOut(**f.model_dump()) for f in features]
+    return features
 
 
 @guilds_router.get('/me/channels', deprecated=True)
 async def get_channels(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
-        repo: GuildRepository = Depends(get_guild_repo)
+        service: GuildService = Depends(get_guild_service)
 ) -> list[guilds.ChannelOut]:
     """
     This returns a list of the guild's channels
     """
-    channels = await repo.fetch_channels(auth.guild_id)
+    channels = await service.get_channels(auth.guild_id)
 
-    return [guilds.ChannelOut(**c.model_dump()) for c in channels]
+    return channels
 
 
 @guilds_router.get('/me/playtime')
 async def get_guild_playtime(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
-        repo: GuildRepository = Depends(get_guild_repo)
+        service: GuildService = Depends(get_guild_service)
 ) -> guilds.GuildPlaytimeAnalysis:
     """
     This returns the guild's playtime summary. Playtime is in seconds.
@@ -112,7 +91,7 @@ async def get_guild_playtime(
     > The playtime analysis is currently a work in progress, and may not have all data.
     > Data shape might change in the future.
     """
-    guild_analysis = await repo.fetch_playtime_analysis(auth.guild_id)
+    guild_analysis = await service.get_playtime_analysis(auth.guild_id)
 
     return guild_analysis
 
@@ -120,63 +99,51 @@ async def get_guild_playtime(
 @guilds_router.get('/me/online')
 async def get_online_members(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
-        repo: GuildRepository = Depends(get_guild_repo)
+        service: GuildService = Depends(get_guild_service)
 ) -> list[guilds.OnlineMember]:
     """
     Returns a list of all players currently connected to Geode.
     """
-    players = await repo.fetch_online_members(auth.guild_id)
+    players = await service.get_online_members(auth.guild_id)
 
-    return [guilds.OnlineMember(**p.model_dump()) for p in players]
+    return players
 
 
 @guilds_router.post('/me/connection', status_code=status.HTTP_201_CREATED)
 async def create_connection(
         body: guilds.ConnectionIn,
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),
-        repo: GuildRepository = Depends(get_guild_repo)
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),
+        service: GuildService = Depends(get_guild_service)
 ) -> guilds.ConnectionOut:
     """
     Creates a connection event.
     """
-    ignored = False
-
-    try:
-        user_playtime = await playtime.PlaytimeSummary.fetch(db, body.thorny_id)
-
-        if (body.type == 'connect' and user_playtime.session) or (body.type == 'disconnect' and not user_playtime.session):
-            ignored = True
-    except HTTPException:
-        # In case the playtime summary fetch fails, we still want to create the connection
-        pass
-
-    conn = await repo.create_connection(body, ignored)
-
-    return guilds.ConnectionOut(**conn.model_dump())
+    connection = await service.new_connection(body)
+    return connection
 
 
 @guilds_router.post('/me/interaction', status_code=status.HTTP_201_CREATED)
 async def create_interaction(
         body: guilds.InteractionIn,
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),
-        repo: GuildRepository = Depends(get_guild_repo)
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),
+        service: GuildService = Depends(get_guild_service)
 ) -> guilds.InteractionOut:
     """
     Creates an interaction event.
     """
-    itr = await repo.create_interaction(body)
+    interaction = await service.new_interaction(body)
 
-    return guilds.InteractionOut(**itr.model_dump())
+    return interaction
 
 @guilds_router.get('/me/interactions', name="Get Interactions")
 async def get_all_interactions(
         filter_query: Annotated[InteractionQuery, Query()],
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
-        repo: GuildRepository = Depends(get_guild_repo)
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        service: GuildService = Depends(get_guild_service)
 ) -> list[guilds.InteractionOut]:
     """
     Filter interactions by various criteria.
     """
-    interactions = await repo.fetch_interactions(filter_query)
+    interactions = await service.get_interactions(filter_query)
 
-    return [guilds.InteractionOut(**itr.model_dump()) for itr in interactions]
+    return interactions
