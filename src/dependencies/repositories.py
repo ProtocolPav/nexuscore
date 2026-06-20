@@ -6,7 +6,7 @@ from src.repositories.objective import ObjectiveRepository
 from src.repositories.pin import PinRepository
 from src.repositories.project import ProjectRepository
 from src.repositories.quest import QuestRepository
-# from src.repositories.quest import QuestRepository
+from src.repositories.reward import RewardRepository
 from src.repositories.user import UserRepository
 from src.repositories.world import WorldRepository
 
@@ -45,3 +45,9 @@ def get_objective_repo(
         database: Database = Depends(get_db),
 ) -> ObjectiveRepository:
     return ObjectiveRepository(database)
+
+
+def get_reward_repo(
+        database: Database = Depends(get_db),
+) -> RewardRepository:
+    return RewardRepository(database)

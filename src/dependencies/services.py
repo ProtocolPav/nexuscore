@@ -2,11 +2,12 @@ from fastapi import Depends
 
 from src.dependencies.repositories import get_guild_repo, get_objective_repo, get_project_repo, get_quest_repo, get_user_repo, \
     get_pin_repo, \
-    get_world_repo
+    get_world_repo, get_reward_repo
 from src.repositories.guild import GuildRepository
 from src.repositories.objective import ObjectiveRepository
 from src.repositories.project import ProjectRepository
 from src.repositories.quest import QuestRepository
+from src.repositories.reward import RewardRepository
 from src.repositories.user import UserRepository
 from src.repositories.pin import PinRepository
 from src.repositories.world import WorldRepository
@@ -47,6 +48,7 @@ def get_world_service(
 def get_quest_service(
         quest_repo: QuestRepository = Depends(get_quest_repo),
         objective_repo: ObjectiveRepository = Depends(get_objective_repo),
+        reward_repo: RewardRepository = Depends(get_reward_repo),
         user_repo: UserRepository = Depends(get_user_repo),
 ) -> QuestService:
-    return QuestService(quest_repo, objective_repo, user_repo)
+    return QuestService(quest_repo, objective_repo, reward_repo, user_repo)

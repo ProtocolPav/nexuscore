@@ -1,11 +1,11 @@
 import json
 
-from pydantic import Field, model_validator, ValidationError, BaseModel
+from pydantic import Field, model_validator, BaseModel
 from typing import Annotated, Literal, Optional
 
 from src.models.quests.objective_customization.customization import Customizations
 from src.models.quests.objective_targets.target import Targets
-
+from src.models.quests.reward import RewardIn, RewardOut
 
 QuestID = Annotated[int, Field(
     description="The ID of the quest this objective belongs to",
@@ -73,7 +73,7 @@ class ObjectiveOut(ObjectiveDB):
     target_count: Optional[TargetCount]
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
-    # rewards (out)
+    rewards: list[RewardOut]
 
 
 class ObjectiveIn(BaseModel):
@@ -85,20 +85,20 @@ class ObjectiveIn(BaseModel):
     target_count: Optional[TargetCount]
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
-    # rewards (in)
+    rewards: list[RewardIn]
 
     @model_validator(mode='after')
     def check_targets(self) -> "ObjectiveIn":
         if len(self.targets) == 0:
-            raise ValidationError("Objectives must have at least one target")
+            raise ValueError("Objectives must have at least one target")
 
         for target in self.targets:
             if target.target_type != self.objective_type:
-                raise ValidationError(f"All targets must be of the same type. "
+                raise ValueError(f"All targets must be of the same type. "
                                       f"Offending target: {target.target_type} != {self.objective_type}")
 
             if target.count < 1:
-                raise ValidationError(f"A target's count must be at least 1.")
+                raise ValueError(f"A target's count must be at least 1.")
 
         return self
 
@@ -112,4 +112,4 @@ class ObjectiveUpdate(BaseModel):
     target_count: Optional[TargetCount] = None
     targets: Optional[ObjectiveTargets] = None
     customizations: Optional[ObjectiveCustomizations] = None
-    # rewards (update)
+    rewards: Optional[list[RewardIn]] = None
