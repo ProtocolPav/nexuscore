@@ -1,4 +1,3 @@
-import asyncio
 import re
 import unicodedata
 import asyncpg
@@ -6,37 +5,15 @@ import asyncpg
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
 
-from src.models.projects.project import ProjectDB, ProjectIn, ProjectOut, ProjectUpdate
+from src.models.projects.project import ProjectDB, ProjectIn, ProjectUpdate
 from src.models.projects.status import StatusDB, StatusEnum, StatusIn
-
-from src.models.users.user import UserOut
-from src.models.users.profile import ProfileOut
-from src.repositories.user import UserRepository
 
 
 class ProjectRepository:
-    def __init__(self, db: Database, user_repo: UserRepository):
+    def __init__(self, db: Database):
         self.db = db
-        self.user_repo = user_repo
 
-    async def _to_out(self, project: ProjectDB) -> ProjectOut:
-        owner, profile, stat = await asyncio.gather(
-            self.user_repo.fetch(project.guild_id, project.owner_id),
-            self.user_repo.fetch_profile(project.guild_id, project.owner_id),
-            self.fetch_status(project.project_id)
-        )
-
-        return ProjectOut(
-            **project.model_dump(),
-            owner=UserOut(
-                **owner.model_dump(),
-                profile=ProfileOut(**profile.model_dump())
-            ),
-            status=stat.status,
-            status_since=stat.since
-        )
-
-    async def _fetch_db(self, guild_id: int, project_id: str) -> ProjectDB:
+    async def fetch(self, guild_id: int, project_id: str) -> ProjectDB:
         data = await self.db.pool.fetchrow("""
             SELECT * FROM projects.project p
             WHERE p.project_id = $1
@@ -48,7 +25,7 @@ class ProjectRepository:
 
         return ProjectDB.model_validate(dict(data))
 
-    async def _fetch_all_db(self, guild_id: int) -> list[ProjectDB]:
+    async def fetch_all(self, guild_id: int) -> list[ProjectDB]:
         data = await self.db.pool.fetch("""
             SELECT * FROM projects.project p
             WHERE p.guild_id = $1
@@ -59,7 +36,7 @@ class ProjectRepository:
 
         return [ProjectDB.model_validate(dict(row)) for row in data]
 
-    async def _create_db(self, guild_id: int, model: ProjectIn) -> ProjectDB:
+    async def create(self, guild_id: int, model: ProjectIn) -> ProjectDB:
         normalized = unicodedata.normalize('NFKD', model.name)
         ascii_str = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
         project_id = re.sub(r'[^a-z0-9_]', '', ascii_str.lower().replace(' ', '_'))
@@ -95,7 +72,7 @@ class ProjectRepository:
 
         return ProjectDB.model_validate(dict(data))
 
-    async def _update_db(self, guild_id: int, project_id: str, model: ProjectUpdate) -> ProjectDB:
+    async def update(self, guild_id: int, project_id: str, model: ProjectUpdate) -> ProjectDB:
         project = await self._fetch_db(guild_id, project_id)
 
         updated = project.model_copy(update=model.model_dump(exclude_none=True))
@@ -116,22 +93,6 @@ class ProjectRepository:
                                    updated.dimension, updated.project_id)
 
         return updated
-
-    async def fetch(self, guild_id: int, project_id: str) -> ProjectOut:
-        project_db = await self._fetch_db(guild_id, project_id)
-        return await self._to_out(project_db)
-
-    async def fetch_all(self, guild_id: int) -> list[ProjectOut]:
-        projects_db = await self._fetch_all_db(guild_id)
-        return [await self._to_out(p) for p in projects_db]
-
-    async def create(self, guild_id: int, model: ProjectIn) -> ProjectOut:
-        project_db = await self._create_db(guild_id, model)
-        return await self._to_out(project_db)
-
-    async def update(self, guild_id: int, project_id: str, model: ProjectUpdate) -> ProjectOut:
-        project_db = await self._update_db(guild_id, project_id, model)
-        return await self._to_out(project_db)
 
     async def fetch_status(self, project_id: str) -> StatusDB:
         data = await self.db.pool.fetchrow("""

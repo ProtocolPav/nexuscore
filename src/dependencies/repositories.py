@@ -26,9 +26,8 @@ def get_world_repo(
 
 def get_project_repo(
         database: Database = Depends(get_db),
-        user_repo: UserRepository = Depends(get_user_repo),
 ) -> ProjectRepository:
-    return ProjectRepository(database, user_repo)
+    return ProjectRepository(database)
 
 def get_pin_repo(
         database: Database = Depends(get_db),

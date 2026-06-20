@@ -2,25 +2,27 @@ from fastapi import APIRouter, Depends, Security, status
 
 from src.dependencies.auth import Scope, get_guild_client
 from src.dependencies.repositories import get_project_repo
+from src.dependencies.services import get_project_service
 from src.models.auth import TokenPayload
 
 from src.models.projects.project import ProjectOut, ProjectIn, ProjectUpdate
 from src.models.projects.status import StatusIn, StatusOut
 
 from src.repositories.project import ProjectRepository
+from src.services.project import ProjectService
 
 projects_router = APIRouter(prefix='/guilds/me/projects', tags=['Projects'])
 
 @projects_router.get('')
 async def list_projects(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_READ]),
-        repo: ProjectRepository = Depends(get_project_repo),
+        service: ProjectService = Depends(get_project_service),
 ) -> list[ProjectOut]:
     """
     Get a list of Projects
     """
     # TODO: add cursor pagination and filtering
-    projects = await repo.fetch_all(auth.guild_id)
+    projects = await service.get_all(auth.guild_id)
 
     return projects
 
@@ -29,12 +31,12 @@ async def list_projects(
 async def create_project(
         body: ProjectIn,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_WRITE]),
-        repo: ProjectRepository = Depends(get_project_repo),
+        service: ProjectService = Depends(get_project_service),
 ) -> ProjectOut:
     """
     Creates a new project with a status, members and content.
     """
-    proj = await repo.create(auth.guild_id, body)
+    proj = await service.new(auth.guild_id, body)
 
     return proj
 
@@ -43,12 +45,12 @@ async def create_project(
 async def get_project(
         project_id: str,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_READ]),
-        repo: ProjectRepository = Depends(get_project_repo),
+        service: ProjectService = Depends(get_project_service),
 ) -> ProjectOut:
     """
     Returns the project specified
     """
-    proj = await repo.fetch(auth.guild_id, project_id)
+    proj = await service.get(auth.guild_id, project_id)
 
     return proj
 
@@ -59,12 +61,12 @@ async def update_project(
         project_id: str,
         body: ProjectUpdate,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_WRITE]),
-        repo: ProjectRepository = Depends(get_project_repo),
+        service: ProjectService = Depends(get_project_service),
 ) -> ProjectOut:
     """
     Update the project.
     """
-    proj = await repo.update(auth.guild_id, project_id, body)
+    proj = await service.update(auth.guild_id, project_id, body)
 
     return proj
 
@@ -73,14 +75,14 @@ async def update_project(
 async def get_project_status(
         project_id: str,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_READ]),
-        repo: ProjectRepository = Depends(get_project_repo),
+        service: ProjectService = Depends(get_project_service),
 ) -> StatusOut:
     """
     Returns the project's status
     """
-    stat = await repo.fetch_status(project_id)
+    stat = await service.get_status(project_id)
 
-    return StatusOut(**stat.model_dump())
+    return stat
 
 
 @projects_router.post('/{project_id}/status', status_code=status.HTTP_201_CREATED)
@@ -88,16 +90,16 @@ async def create_project_status(
         project_id: str,
         body: StatusIn,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PROJECTS_WRITE]),
-        repo: ProjectRepository = Depends(get_project_repo),
+        service: ProjectService = Depends(get_project_service),
 ) -> StatusOut:
     """
     New Project Status
 
     Insert a new project status.
     """
-    stat = await repo.create_status(project_id, body)
+    stat = await service.new_status(project_id, body)
 
-    return StatusOut(**stat.model_dump())
+    return stat
 
 
 # @projects.get('/{project_id}/members')
