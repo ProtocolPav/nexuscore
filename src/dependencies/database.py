@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from typing import Optional
 
 from asyncpg import Pool, create_pool
@@ -22,13 +23,18 @@ class Database:
         if self.pool:
             await self.pool.close()
 
+    @asynccontextmanager
     async def get_transaction(self):
         async with self.pool.acquire() as connection:
             async with connection.transaction():
                 yield connection
 
+    @asynccontextmanager
     async def get_connection(self):
         async with self.pool.acquire() as connection:
             yield connection
 
 db = Database()
+
+def get_db() -> Database:
+    return db

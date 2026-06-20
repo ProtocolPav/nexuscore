@@ -1,7 +1,7 @@
 import re
 import unicodedata
-
 import asyncpg
+
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
 
@@ -13,11 +13,12 @@ class ProjectRepository:
     def __init__(self, db: Database):
         self.db = db
 
-    async def fetch(self, project_id: str) -> ProjectDB:
+    async def fetch(self, guild_id: int, project_id: str) -> ProjectDB:
         data = await self.db.pool.fetchrow("""
             SELECT * FROM projects.project p
             WHERE p.project_id = $1
-        """,project_id)
+            AND p.guild_id = $2
+        """,project_id, guild_id)
 
         if not data:
             raise NotFound("Project")
@@ -27,8 +28,7 @@ class ProjectRepository:
     async def fetch_all(self, guild_id: int) -> list[ProjectDB]:
         data = await self.db.pool.fetch("""
             SELECT * FROM projects.project p
-            INNER JOIN users.user u ON p.owner_id = u.thorny_id
-            WHERE u.guild_id = $1
+            WHERE p.guild_id = $1
         """, guild_id)
 
         if not data:
@@ -36,7 +36,7 @@ class ProjectRepository:
 
         return [ProjectDB.model_validate(dict(row)) for row in data]
 
-    async def create(self, model: ProjectIn) -> ProjectDB:
+    async def create(self, guild_id: int, model: ProjectIn) -> ProjectDB:
         normalized = unicodedata.normalize('NFKD', model.name)
         ascii_str = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
         project_id = re.sub(r'[^a-z0-9_]', '', ascii_str.lower().replace(' ', '_'))
@@ -46,13 +46,14 @@ class ProjectRepository:
                 WITH project_table AS (
                     INSERT INTO projects.project(
                         project_id,
+                        guild_id,
                         name, 
                         description, 
                         coordinates,
                         owner_id,
                         dimension
                     )
-                    VALUES($1, $2, $3, $4, $5, $6)
+                    VALUES($1, $2, $3, $4, $5, $6, $7)
                     RETURNING *
                 ),
                 members_table AS (
@@ -61,18 +62,18 @@ class ProjectRepository:
                 ),
                 status_table AS (
                     INSERT INTO projects.status(project_id, status)
-                    VALUES ($1, $7)
+                    VALUES ($1, $8)
                 )
                 SELECT * FROM project_table
-            """, project_id, model.name, model.description, model.coordinates, model.owner_id, model.dimension,
+            """, project_id, guild_id, model.name, model.description, model.coordinates, model.owner_id, model.dimension,
                 StatusEnum.pending.value)
         except asyncpg.UniqueViolationError:
             raise AlreadyExists("Project")
 
         return ProjectDB.model_validate(dict(data))
 
-    async def update(self, project_id: str, model: ProjectUpdate) -> ProjectDB:
-        project = await self.fetch(project_id)
+    async def update(self, guild_id: int, project_id: str, model: ProjectUpdate) -> ProjectDB:
+        project = await self._fetch_db(guild_id, project_id)
 
         updated = project.model_copy(update=model.model_dump(exclude_none=True))
 

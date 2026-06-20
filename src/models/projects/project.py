@@ -14,6 +14,9 @@ ProjectID = Annotated[str, Field(
 ThreadID = Annotated[int, Field(
     description="The discord thread ID of the project",
 )]
+GuildID = Annotated[int, Field(
+    description="The discord guild ID this project is a part of",
+)]
 ProjectName = Annotated[str, Field(
     description="The name of the project",
     examples=['My Project']
@@ -59,6 +62,7 @@ class ProjectBase(BaseModel):
 
 class ProjectDB(ProjectBase):
     owner_id: ProjectOwnerID
+    guild_id: GuildID
 
 class ProjectOut(ProjectBase):
     status: Status
