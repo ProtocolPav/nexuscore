@@ -54,42 +54,6 @@ async def get_quest(
     return await service.get(auth.guild_id, quest_id)
 
 
-# @quests.get('/{quest_id}/objectives')
-# async def get_objectives(quest_id: int) -> objective.ObjectivesListModel:
-#     """
-#     Get All Objectives
-#
-#     Returns a list of all the objectives a quest has
-#     """
-#     objectives_model = await objective.ObjectivesListModel.fetch(db, quest_id)
-#
-#     return objectives_model
-#
-#
-# @quests.get('/{quest_id}/objectives/{objective_id}')
-# async def get_objective(quest_id: int, objective_id: int) -> objective.ObjectiveModel:
-#     """
-#     Get Objective
-#
-#     Returns the specified objective
-#     """
-#     objective_model = await objective.ObjectiveModel.fetch(db, quest_id, objective_id)
-#
-#     return objective_model
-#
-#
-# @quests.get('/{quest_id}/objectives/{objective_id}/rewards')
-# async def get_rewards(quest_id: int, objective_id: int) -> reward.RewardsListModel:
-#     """
-#     Get All Rewards
-#
-#     Returns all the rewards of the specified objective
-#     """
-#     rewards_model = await reward.RewardsListModel.fetch(db, quest_id, objective_id)
-#
-#     return rewards_model
-#
-#
 @quests.patch('/{quest_id}')
 @quests.put('/{quest_id}')
 async def update_quest(
@@ -104,31 +68,3 @@ async def update_quest(
     Existing objectives and rewards not present in the payload are left untouched.
     """
     return await service.update(auth.guild_id, quest_id, body)
-#
-#
-# @quests.patch('/reward/{reward_id}')
-# @quests.put('/reward/{reward_id}')
-# async def update_reward(reward_id: int, body: reward.RewardUpdateModel) -> reward.RewardModel:
-#     """
-#     Update Reward
-#
-#     Update an objective's reward
-#     """
-#     model = await reward.RewardModel.fetch(db, reward_id)
-#     await model.update(db, body)
-#
-#     return model
-#
-#
-# @quests.patch('/objective/{objective_id}')
-# @quests.put('/objective/{objective_id}')
-# async def update_objective(objective_id: int, body: objective.ObjectiveUpdateModel) -> objective.ObjectiveModel:
-#     """
-#     Update Objective
-#
-#     Update a quest's objective
-#     """
-#     model = await objective.ObjectiveModel.fetch(db, objective_id)
-#     await model.update(db, body)
-#
-#     return model
