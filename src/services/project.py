@@ -43,7 +43,11 @@ class ProjectService:
 
     async def get_all(self, guild_id: int) -> list[ProjectOut]:
         projects_db = await self.project_repo.fetch_all(guild_id)
-        return [await self._to_out(p) for p in projects_db]
+
+        async with asyncio.TaskGroup() as tg:
+            tasks = [tg.create_task(self._to_out(p)) for p in projects_db]
+
+        return [t.result() for t in tasks]
 
     async def new(self, guild_id: int, model: ProjectIn) -> ProjectOut:
         project_db = await self.project_repo.create(guild_id, model)
