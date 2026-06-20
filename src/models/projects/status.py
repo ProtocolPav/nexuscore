@@ -14,9 +14,11 @@ class StatusEnum(str, Enum):
 
 Status = Annotated[StatusEnum, Field(
     description="The project status",
+    examples=['ongoing']
 )]
 StatusSince = Annotated[datetime, Field(
     description="When the status was last updated",
+    examples=['2024-01-01']
 )]
 
 class StatusDB(BaseModel):

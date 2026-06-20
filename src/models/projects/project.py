@@ -31,18 +31,23 @@ ProjectCoordinates = Annotated[list[int], Field(
 )]
 ProjectOwnerID = Annotated[int, Field(
     description="The project owner ID",
+    examples=[1]
 )]
 ProjectDimension = Annotated[str, Field(
     description="The dimension of the project",
+    examples=['minecraft:overworld']
 )]
 ProjectPinID = Annotated[int, Field(
     description="If set, the project will not show up as a project but rather as a pin.",
+    examples=[1]
 )]
 StartedOn = Annotated[date, Field(
     description="The date the project was started on",
+    examples=['2024-01-01']
 )]
 CompletedOn = Annotated[date, Field(
     description="The date the project was completed on",
+    examples=['2024-01-01']
 )]
 Owner = Annotated[user.UserOut, Field(
     description="The owner of the project, in the form of a User object",

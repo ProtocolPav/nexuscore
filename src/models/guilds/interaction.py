@@ -34,6 +34,7 @@ Mainhand = Annotated[str, Field(
 )]
 Time = Annotated[datetime, Field(
     description="The time of the interaction",
+    examples=['2024-03-03 04:00:00+00:00']
 )]
 Dimension = Annotated[str, Field(
     description="The dimension of the interaction",

@@ -12,24 +12,30 @@ QuestID = Annotated[int, Field(
 )]
 GuildID = Annotated[int, Field(
     description="The Discord guild ID this quest is a part of",
+    examples=[123456789012345678]
 )]
 StartTime = Annotated[datetime, Field(
     description="The time that this quest begins to be able to be accepted",
+    examples=['2026-01-01 04:00:00+00:00']
 )]
 EndTime = Annotated[datetime, Field(
-    description="The time that this quest will no longer be available to be accepted"
+    description="The time that this quest will no longer be available to be accepted",
+    examples=['2026-02-01 04:00:00+00:00']
 )]
 Title = Annotated[str, Field(
     description="The quest title",
+    examples=["Re-Quest: Aha!"]
 )]
 Description = Annotated[str, Field(
     description="The quest description",
 )]
 CreatedBy = Annotated[int, Field(
     description="The Thorny ID that created this quest",
+    examples=[1]
 )]
 Tags = Annotated[list[str], Field(
     description="A list of tags describing this quest",
+    examples=[["challenge", "mining"]]
 )]
 QuestType = Annotated[str, Field(
     description="The quest type",

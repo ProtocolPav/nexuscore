@@ -8,25 +8,31 @@ from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
 QuestID = Annotated[int, Field(
     description="The ID of the quest this reward belongs to",
+    examples=[732]
 )]
 ObjectiveID = Annotated[int, Field(
     description="The ID of the objective this reward belongs to",
+    examples=[12345]
 )]
 RewardID = Annotated[int, Field(
     description="The ID of this reward",
+    examples=[125]
 )]
 Balance = Annotated[int, Field(
-    description="The balance this reward will add",
+    description="The balance this reward will add"
 )]
 ItemID = Annotated[str, Field(
     description="The item this reward will give",
-    pattern=MINECRAFT_REGEX_PATTERN
+    pattern=MINECRAFT_REGEX_PATTERN,
+    examples=['minecraft:diamond']
 )]
 Count = Annotated[int, Field(
     description="The amount of this item this reward will give",
+    examples=[1]
 )]
 DisplayName = Annotated[str, Field(
     description="The optional text to display instead of the reward item name",
+    examples=["Diamond"]
 )]
 ItemMetadata = Annotated[list[Metadata], Field(
     description="The metadata for the item reward, to add extra customization",
