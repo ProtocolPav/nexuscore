@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, Security
 from starlette import status
 
-from src.errors import BadRequest
-
 from src.dependencies.auth import Scope, get_guild_client
 from src.dependencies.services import get_user_service
 from src.dependencies.database import db
@@ -40,8 +38,6 @@ async def lookup_user(
     Looks up a guild member by gamertag, whitelisted gamertag, or Discord ID.
     Exactly one parameter must be provided.
     """
-    if not any([gamertag, whitelist, discord_id]):
-        raise BadRequest('Must provide one of: gamertag, whitelist, discord_id')
     return await service.lookup(auth.guild_id, gamertag, whitelist, discord_id)
 
 
