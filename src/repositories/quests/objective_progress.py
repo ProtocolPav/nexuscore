@@ -62,7 +62,9 @@ class ObjectiveProgressRepository:
     ) -> ObjectiveProgressDB:
         objective = await self.fetch(objective_id, progress_id)
 
-        updated = objective.model_copy(update=model.model_dump(exclude_none=True))
+        updated = objective.model_validate(
+            {**objective.model_dump(), **model.model_dump(exclude_none=True)}
+        )
 
         await conn.execute("""
             UPDATE quests_v3.objective_progress

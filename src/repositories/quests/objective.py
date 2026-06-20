@@ -55,7 +55,9 @@ class ObjectiveRepository:
     async def update(self, quest_id: int, objective_id: int, model: ObjectiveUpdate, conn: PoolConnectionProxy) -> ObjectiveDB:
         objective = await self.fetch(objective_id)
 
-        updated = objective.model_copy(update=model.model_dump(exclude_none=True))
+        updated = objective.model_validate(
+            {**objective.model_dump(), **model.model_dump(exclude_none=True)}
+        )
 
         await conn.execute("""
             UPDATE quests_v3.objective
@@ -70,9 +72,9 @@ class ObjectiveRepository:
               
             WHERE objective_id = $9
             AND quest_id = $10
-        """,updated.objective_type, updated.order_index, updated.description, updated.display,
-                                   updated.logic, updated.target_count, json.dumps(updated.targets, default=str),
-                                   json.dumps(updated.customizations, default=str), updated.objective_id, quest_id)
+        """, updated.objective_type, updated.order_index, updated.description, updated.display,
+             updated.logic, updated.target_count, json.dumps([t.model_dump() for t in updated.targets], default=str),
+             updated.customizations.model_dump_json(), updated.objective_id, quest_id)
 
         return updated
 
