@@ -1,6 +1,8 @@
 import json
 
 import asyncpg
+from asyncpg.pool import PoolConnectionProxy
+
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
 from src.models.quests.objective import ObjectiveDB, ObjectiveIn, ObjectiveUpdate
@@ -21,9 +23,10 @@ class ObjectiveRepository:
 
         return ObjectiveDB.model_validate(dict(data))
 
-    async def create(self, quest_id: int, model: ObjectiveIn) -> ObjectiveDB:
+    @staticmethod
+    async def create(quest_id: int, model: ObjectiveIn, conn: PoolConnectionProxy) -> ObjectiveDB:
         try:
-            data = await self.db.pool.fetchrow("""
+            data = await conn.fetchrow("""
                 WITH objective_table AS (
                     INSERT INTO quests_v3.objective (
                         quest_id, 
@@ -43,7 +46,7 @@ class ObjectiveRepository:
                 )
                 SELECT * FROM objective_table
             """, quest_id, model.objective_type, model.order_index, model.description, model.display, model.logic,
-                       model.target_count, json.dumps(model.targets, default=str), model.customizations.model_dump_json())
+                       model.target_count, json.dumps([t.model_dump() for t in model.targets], default=str), model.customizations.model_dump_json())
         except asyncpg.UniqueViolationError:
             raise AlreadyExists("Objective")
 

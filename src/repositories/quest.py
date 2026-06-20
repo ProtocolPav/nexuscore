@@ -1,4 +1,7 @@
 import asyncpg
+
+from asyncpg.pool import PoolConnectionProxy
+
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
 from src.models.quests.quest import QuestDB, QuestIn, QuestQuery, QuestUpdate
@@ -20,9 +23,10 @@ class QuestRepository:
 
         return QuestDB.model_validate(dict(data))
 
-    async def create(self, guild_id: int, model: QuestIn) -> QuestDB:
+    @staticmethod
+    async def create(guild_id: int, model: QuestIn, conn: PoolConnectionProxy) -> QuestDB:
         try:
-            data = await self.db.pool.fetchrow("""
+            data = await conn.fetchrow("""
                 WITH quest_table AS (
                     INSERT INTO quests_v3.quest(
                         start_time, 

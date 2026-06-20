@@ -1,7 +1,7 @@
 import asyncio
 
 from src.models.quests.objective import ObjectiveOut
-from src.models.quests.quest import QuestDB, QuestOut, QuestQuery
+from src.models.quests.quest import QuestDB, QuestIn, QuestOut, QuestQuery
 from src.models.users.profile import ProfileOut
 from src.models.users.user import UserOut
 from src.repositories.objective import ObjectiveRepository
@@ -42,3 +42,9 @@ class QuestService:
             tasks = [tg.create_task(self._to_out(q)) for q in quests_db]
 
         return [t.result() for t in tasks]
+
+    async def new(self, guild_id: int, model: QuestIn) -> QuestOut:
+        async with self.quest_repo.db.get_transaction() as conn:
+            quest_db = await self.quest_repo.create(guild_id, model, conn)
+            [await self.objective_repo.create(quest_db.quest_id, o, conn) for o in model.objectives]
+            return await self._to_out(quest_db)
