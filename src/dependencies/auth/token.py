@@ -2,7 +2,7 @@ from typing import Optional
 
 import jwt
 from datetime import datetime, timedelta, timezone
-from src.config import settings
+from src.settings import settings
 
 def create_token(
         client_id: str,

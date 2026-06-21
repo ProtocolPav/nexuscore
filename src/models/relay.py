@@ -7,7 +7,7 @@ from pydantic import Field
 from src.dependencies.database import db
 from src.repositories.user import UserRepository
 from src.utils.base import LegacyBaseModel
-from src.config import settings
+from src.settings import settings
 
 user_repo = UserRepository(db)
 
