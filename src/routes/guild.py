@@ -86,7 +86,7 @@ async def get_guild_playtime(
     return await service.get_playtime_analysis(auth.guild_id)
 
 
-@guilds_router.get('/me/online')
+@guilds_router.get('/me/online', deprecated=True, description="Use /me/sessions instead for more accurate sessions data")
 async def get_online_members(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: GuildService = Depends(get_guild_service)
@@ -95,6 +95,17 @@ async def get_online_members(
     Returns a list of all players currently connected to Geode.
     """
     return await service.get_online_members(auth.guild_id)
+
+
+@guilds_router.get('/me/sessions')
+async def get_all_sessions(
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        service: GuildService = Depends(get_guild_service)
+) -> list[guilds.SessionOut]:
+    """
+    Returns a list of all sessions for the guild.
+    """
+    return await service.get_sessions(auth.guild_id)
 
 
 @guilds_router.post('/me/connection', status_code=status.HTTP_201_CREATED)

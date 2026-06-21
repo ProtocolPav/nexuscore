@@ -10,6 +10,7 @@ from src.models.guilds.features import FeatureDB
 from src.models.guilds.guild import GuildDB, GuildIn, GuildUpdate
 from src.models.guilds.interaction import InteractionDB, InteractionIn, InteractionQuery
 from src.models.guilds.online_members import OnlineMember
+from src.models.guilds.session import SessionDB
 
 
 class GuildRepository:
@@ -103,6 +104,16 @@ class GuildRepository:
         """, guild_id)
 
         return [OnlineMember.model_validate(dict(row)) for row in data]
+
+    async def fetch_sessions(self, guild_id: int) -> list[SessionDB]:
+        data = await self.db.pool.fetch("""
+            SELECT * FROM events.sessions_view sv
+            INNER JOIN users."user" u ON sv.thorny_id = u.thorny_id
+            WHERE guild_id = $1
+            ORDER BY disconnect_time DESC
+        """, guild_id)
+
+        return [SessionDB.model_validate(dict(row)) for row in data]
 
     async def fetch_playtime_analysis(self, guild_id: int) -> GuildPlaytimeAnalysis:
         data = await self.db.pool.fetchrow("""

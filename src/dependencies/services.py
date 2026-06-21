@@ -31,8 +31,9 @@ from src.services.world import WorldService
 
 def get_guild_service(
         guild_repo: GuildRepository = Depends(get_guild_repo),
+        user_repo: UserRepository = Depends(get_user_repo),
 ) -> GuildService:
-    return GuildService(guild_repo)
+    return GuildService(guild_repo, user_repo)
 
 def get_project_service(
         project_repo: ProjectRepository = Depends(get_project_repo),
