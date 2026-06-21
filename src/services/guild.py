@@ -1,21 +1,37 @@
 import asyncio
 
 from src.dependencies.database import db
-from src.models.guilds import ChannelOut, ConnectionIn, ConnectionOut, FeatureOut, GuildIn, GuildOut, GuildPlaytimeAnalysis, \
-    GuildUpdate, \
-    InteractionIn, InteractionOut, OnlineMember
+from src.models.guilds import (
+    ChannelOut,
+    ConnectionIn,
+    ConnectionOut,
+    FeatureOut,
+    GuildIn,
+    GuildOut,
+    GuildPlaytimeAnalysis,
+    GuildUpdate,
+    InteractionIn,
+    InteractionOut,
+    OnlineMember
+)
 from src.models.guilds.guild import GuildDB
 from src.models.guilds.interaction import InteractionQuery
+from src.models.guilds.session import SessionDB, SessionOut, SessionQuery
 from src.models.users import playtime
+from src.models.users.profile import ProfileOut
+from src.models.users.user import UserOut
 
 from src.repositories.guild import GuildRepository
 
 from fastapi import HTTPException
 
+from src.repositories.user import UserRepository
+
 
 class GuildService:
-    def __init__(self, guild_repo: GuildRepository):
+    def __init__(self, guild_repo: GuildRepository, user_repo: UserRepository):
         self.guild_repo = guild_repo
+        self.user_repo = user_repo
 
     async def _to_out(self, guild: GuildDB) -> GuildOut:
         features = await self.get_features(guild.guild_id)
@@ -25,6 +41,20 @@ class GuildService:
             **guild.model_dump(),
             features=features,
             channels=channels
+        )
+
+    async def _session_to_out(self, guild_id: int, session: SessionDB) -> SessionOut:
+        user = await self.user_repo.fetch(guild_id, session.thorny_id)
+        profile = await self.user_repo.fetch_profile(guild_id, session.thorny_id)
+
+        return SessionOut(
+            start=session.connect_time,
+            end=session.disconnect_time,
+            duration=session.playtime.total_seconds(),
+            user=UserOut(
+                **user.model_dump(),
+                profile=ProfileOut(**profile.model_dump())
+            )
         )
 
     async def get(self, guild_id: int) -> GuildOut:
@@ -49,6 +79,14 @@ class GuildService:
 
     async def get_online_members(self, guild_id: int) -> list[OnlineMember]:
         return await self.guild_repo.fetch_online_members(guild_id)
+
+    async def get_sessions(self, guild_id: int, query: SessionQuery) -> list[SessionOut]:
+        sessions_db = await self.guild_repo.fetch_sessions(guild_id, query)
+
+        async with asyncio.TaskGroup() as tg:
+            tasks = [tg.create_task(self._session_to_out(guild_id, s)) for s in sessions_db]
+
+        return [t.result() for t in tasks]
 
     async def get_playtime_analysis(self, guild_id: int) -> GuildPlaytimeAnalysis:
         return await self.guild_repo.fetch_playtime_analysis(guild_id)
