@@ -4,12 +4,12 @@ from typing import Optional
 from argon2 import PasswordHasher
 from fastapi import APIRouter, Form, Security, status
 
-from src.dependencies.auth import Scope, get_current_client
+from src.dependencies.auth import get_current_client
 from src.dependencies.auth.keys import verify_api_key
 from src.dependencies.auth.token import create_token
 from src.dependencies.database import db
 from src.errors import InvalidCredentials
-from src.models.auth import ClientCreateRequest, ClientCreateResponse, TokenPayload, TokenResponse
+from src.models.auth import ClientCreateRequest, ClientCreateResponse, TokenPayload, TokenResponse, Scope
 
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 ph = PasswordHasher()

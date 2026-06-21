@@ -8,48 +8,8 @@ from pydantic import ValidationError
 
 from src.dependencies.auth.token import decode_token
 from src.errors import GuildScopedTokenRequired, InvalidCredentials, MissingScope, TokenExpired
-from src.models.auth import TokenPayload
+from src.models.auth import SCOPE_DESCRIPTIONS, TokenPayload
 from fastapi.security import SecurityScopes
-
-
-class Scope(str, Enum):
-    GUILDS_READ = "guilds:read"
-    GUILDS_WRITE = "guilds:write"
-
-    GUILDS_MEMBERS_READ = "guilds.members:read"
-    GUILDS_MEMBERS_WRITE = "guilds.members:write"
-    GUILDS_PROJECTS_READ = "guilds.projects:read"
-    GUILDS_PROJECTS_WRITE = "guilds.projects:write"
-    GUILDS_PINS_READ = "guilds.pins:read"
-    GUILDS_PINS_WRITE = "guilds.pins:write"
-
-    QUESTS_READ = "quests_router:read"
-    QUESTS_WRITE = "quests_router:write"
-    EVENTS_READ = "events:read"
-    EVENTS_WRITE = "events:write"
-    SERVER_READ = "server:read"
-
-    ADMIN_CLIENTS = "admin:clients"
-    ADMIN_GUILDS = "admin:guilds"
-
-
-SCOPE_DESCRIPTIONS: dict[Scope, str] = {
-    Scope.GUILDS_READ: "Read guild configuration",
-    Scope.GUILDS_WRITE: "Update guild settings",
-    Scope.GUILDS_MEMBERS_READ: "Read user profiles",
-    Scope.GUILDS_MEMBERS_WRITE: "Create and update users",
-    Scope.GUILDS_PROJECTS_READ: "Read project data",
-    Scope.GUILDS_PROJECTS_WRITE: "Create and update projects",
-    Scope.GUILDS_PINS_READ: "Read map pin data",
-    Scope.GUILDS_PINS_WRITE: "Create and update map pins",
-    Scope.QUESTS_READ: "Read quests_router and progress",
-    Scope.QUESTS_WRITE: "Create and update quests_router",
-    Scope.EVENTS_READ: "Read server events",
-    Scope.EVENTS_WRITE: "Create server events",
-    Scope.SERVER_READ: "Read Minecraft server data",
-    Scope.ADMIN_CLIENTS: "Register new guild clients",
-    Scope.ADMIN_GUILDS: "Create new Guilds",
-}
 
 
 class OAuth2ClientCredentials(OAuth2):

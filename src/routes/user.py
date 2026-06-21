@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, Security
 from starlette import status
 
-from src.dependencies.auth import Scope, get_guild_client
+from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_user_service
 from src.dependencies.database import db
 
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 from src.models.users import user, playtime, interactions
 from src.models.users.profile import ProfileOut, ProfileUpdate
 

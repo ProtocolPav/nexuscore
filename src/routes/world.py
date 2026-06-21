@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Security
 from starlette import status
 
-from src.dependencies.auth import Scope, get_guild_client
+from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_world_service
 from src.dependencies.database import db
 
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 from src.models.worlds import world
 from src.models import items
 

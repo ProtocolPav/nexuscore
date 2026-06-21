@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Security, status
 
-from src.dependencies.auth import Scope, get_guild_client
+from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_pin_service
 
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 from src.models.projects.pin import PinOut, PinIn, PinUpdate
 
 from src.services.pin import PinService

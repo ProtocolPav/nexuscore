@@ -3,11 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Security, Query
 from starlette import status
 
-from src.dependencies.auth import Scope, get_current_client, get_guild_client
+from src.dependencies.auth import get_current_client, get_guild_client
 from src.dependencies.services import get_guild_service
 
 from src.models import guilds
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 from src.models.guilds.interaction import InteractionQuery
 
 from src.services.guild import GuildService

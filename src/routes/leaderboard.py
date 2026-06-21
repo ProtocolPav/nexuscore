@@ -2,10 +2,10 @@ from datetime import date
 
 from fastapi import APIRouter, Security
 
-from src.dependencies.auth import Scope, get_guild_client
+from src.dependencies.auth import get_guild_client
 from src.dependencies.database import db
 from src.models import guilds
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 
 leaderboard_router = APIRouter(prefix='/guilds/me/leaderboard', tags=['Leaderboards'])
 
