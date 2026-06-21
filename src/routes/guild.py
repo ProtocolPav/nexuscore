@@ -99,7 +99,7 @@ async def get_online_members(
 
 
 @guilds_router.get('/me/sessions')
-async def get_all_sessions(
+async def list_sessions(
         filter_query: Annotated[SessionQuery, Query()],
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: GuildService = Depends(get_guild_service)
