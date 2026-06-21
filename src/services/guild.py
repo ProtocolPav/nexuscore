@@ -16,7 +16,7 @@ from src.models.guilds import (
 )
 from src.models.guilds.guild import GuildDB
 from src.models.guilds.interaction import InteractionQuery
-from src.models.guilds.session import SessionDB, SessionOut
+from src.models.guilds.session import SessionDB, SessionOut, SessionQuery
 from src.models.users import playtime
 from src.models.users.profile import ProfileOut
 from src.models.users.user import UserOut
@@ -80,8 +80,8 @@ class GuildService:
     async def get_online_members(self, guild_id: int) -> list[OnlineMember]:
         return await self.guild_repo.fetch_online_members(guild_id)
 
-    async def get_sessions(self, guild_id: int) -> list[SessionOut]:
-        sessions_db = await self.guild_repo.fetch_sessions(guild_id)
+    async def get_sessions(self, guild_id: int, query: SessionQuery) -> list[SessionOut]:
+        sessions_db = await self.guild_repo.fetch_sessions(guild_id, query)
 
         async with asyncio.TaskGroup() as tg:
             tasks = [tg.create_task(self._session_to_out(guild_id, s)) for s in sessions_db]

@@ -9,6 +9,7 @@ from src.dependencies.services import get_guild_service
 from src.models import guilds
 from src.models.auth import TokenPayload
 from src.models.guilds.interaction import InteractionQuery
+from src.models.guilds.session import SessionQuery
 
 from src.services.guild import GuildService
 
@@ -99,13 +100,14 @@ async def get_online_members(
 
 @guilds_router.get('/me/sessions')
 async def get_all_sessions(
+        filter_query: Annotated[SessionQuery, Query()],
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: GuildService = Depends(get_guild_service)
 ) -> list[guilds.SessionOut]:
     """
     Returns a list of all sessions for the guild.
     """
-    return await service.get_sessions(auth.guild_id)
+    return await service.get_sessions(auth.guild_id, filter_query)
 
 
 @guilds_router.post('/me/connection', status_code=status.HTTP_201_CREATED)

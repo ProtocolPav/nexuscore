@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional
 
 from pydantic import Field, BaseModel
 from typing_extensions import Annotated
@@ -42,8 +43,37 @@ class SessionDB(BaseModel):
     playtime: Playtime
     thorny_id: ThornyID
 
+
 class SessionOut(BaseModel):
     start: ConnectTime
     end: DisconnectTime
     duration: SessionDuration
     user: UserOut
+
+
+class SessionQuery(BaseModel):
+    active: Optional[bool] = Field(
+        description="Filter by active sessions",
+        examples=[True],
+        default=None
+    )
+    time_start: Optional[datetime] = Field(
+        description="Start time to filter by",
+        examples=["2025-01-01 04:00:00+00:00"],
+        default=None
+    )
+    time_end: Optional[datetime] = Field(
+        description="End time to filter by",
+        examples=["2025-01-01 05:00:00+00:00"],
+        default=None
+    )
+    page: Optional[int] = Field(
+        description="The page number of the results. Defaults to 1",
+        examples=[1],
+        default=1
+    )
+    page_size: Optional[int] = Field(
+        description="The number of results per page. Defaults to 100",
+        examples=[10],
+        default=100
+    )
