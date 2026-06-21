@@ -1,5 +1,6 @@
 import json
 from datetime import date
+from typing import Optional
 
 from pydantic import Field, BaseModel
 
@@ -7,35 +8,35 @@ from pydantic import Field, BaseModel
 class DailyPlaytime(BaseModel):
     day: date = Field(description="The day this data is about",
                       examples=['2024-05-05'])
-    total: float = Field(description="The total playtime that day in seconds",
+    total: Optional[float] = Field(description="The total playtime that day in seconds",
                          examples=[44544.4322])
     unique_players: int = Field(description="How many unique players played that day",
                                 examples=[43])
     total_sessions: int = Field(description="The total amount of sessions that day. "
                                             "(A session is when a user connects and disconnects)",
                                 examples=[443])
-    average_playtime_per_session: float = Field(description="The average playtime per session today in seconds",
+    average_playtime_per_session: Optional[float] = Field(description="The average playtime per session today in seconds",
                                                 examples=[405.325])
 
 
 class WeeklyPlaytime(BaseModel):
     week: int = Field(description="The week of the year this data is about",
                       examples=[23])
-    total: float = Field(description="The total playtime that week in seconds",
+    total: Optional[float] = Field(description="The total playtime that week in seconds",
                          examples=[44544.4322])
     unique_players: int = Field(description="How many unique players played that week",
                                 examples=[43])
     total_sessions: int = Field(description="The total amount of sessions that week. "
                                             "(A session is when a user connects and disconnects)",
                                 examples=[443])
-    average_playtime_per_session: float = Field(description="The average playtime per session this week in seconds",
+    average_playtime_per_session: Optional[float] = Field(description="The average playtime per session this week in seconds",
                                                 examples=[405.325])
 
 
 class MonthlyPlaytime(BaseModel):
     month: date = Field(description="The month this data is about. Always the first day of that month",
                         examples=['2024-05-01'])
-    total: float = Field(description="The total playtime that month in seconds",
+    total: Optional[float] = Field(description="The total playtime that month in seconds",
                          examples=[4554544.4322])
     unique_players: int = Field(description="How many unique players played that month",
                                 examples=[432])
