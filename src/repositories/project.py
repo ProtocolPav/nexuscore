@@ -73,7 +73,7 @@ class ProjectRepository:
         return ProjectDB.model_validate(dict(data))
 
     async def update(self, guild_id: int, project_id: str, model: ProjectUpdate) -> ProjectDB:
-        project = await self._fetch_db(guild_id, project_id)
+        project = await self.fetch(guild_id, project_id)
 
         updated = project.model_copy(update=model.model_dump(exclude_none=True))
 
