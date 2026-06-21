@@ -4,10 +4,10 @@ from pydantic import Field
 from fastapi import HTTPException
 
 from src.dependencies.database import Database
-from src.utils.base import BaseModel, BaseList
+from src.utils.base import LegacyBaseModel, LegacyBaseList
 
 
-class InteractionStatistic(BaseModel):
+class InteractionStatistic(LegacyBaseModel):
     reference: str = Field(description="The interaction reference",
                            json_schema_extra={"example": 'minecraft:zombie'})
     type: str = Field(description="The interaction type",
@@ -16,7 +16,7 @@ class InteractionStatistic(BaseModel):
                        json_schema_extra={"example": 24})
 
 
-class InteractionStatisticsList(BaseList[InteractionStatistic]):
+class InteractionStatisticsList(LegacyBaseList[InteractionStatistic]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, interaction_type: str = None, *args) -> "InteractionStatisticsList":
         if not thorny_id or not interaction_type:
@@ -40,7 +40,7 @@ class InteractionStatisticsList(BaseList[InteractionStatistic]):
             raise HTTPException(status_code=404, detail="No interactions found")
 
 
-class InteractionTotals(BaseModel):
+class InteractionTotals(LegacyBaseModel):
     mine: int
     kill: int
     place: int
@@ -69,7 +69,7 @@ class InteractionTotals(BaseModel):
 
 
 
-class InteractionSummary(BaseModel):
+class InteractionSummary(LegacyBaseModel):
     blocks_mined: InteractionStatisticsList
     blocks_placed: InteractionStatisticsList
     kills: InteractionStatisticsList

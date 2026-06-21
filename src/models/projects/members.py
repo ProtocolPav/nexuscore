@@ -1,9 +1,9 @@
 from src.dependencies.database import Database
 from src.models.users import user
-from src.utils.base import BaseList
+from src.utils.base import LegacyBaseList
 
 
-class MembersListModel(BaseList[user.UserOut]):
+class MembersListModel(LegacyBaseList[user.UserOut]):
     @classmethod
     async def fetch(cls, db: Database, project_id: str = None, *args) -> "MembersListModel":
         data = await db.pool.fetch("""
