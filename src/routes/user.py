@@ -86,7 +86,7 @@ async def get_profile(
 
 @members_router.put('/{thorny_id}/profile')
 @members_router.patch('/{thorny_id}/profile')
-async def update_profile(
+async def partial_update_profile(
         thorny_id: int,
         body: ProfileUpdate,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),

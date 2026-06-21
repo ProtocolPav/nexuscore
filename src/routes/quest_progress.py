@@ -26,7 +26,7 @@ async def create_quest_progress(
 
 
 @quest_progress_router.get('/user/{thorny_id}')
-async def get_all_quest_progress(
+async def list_quest_progress(
         thorny_id: int,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: QuestProgressService = Depends(get_quest_progress_service)

@@ -52,7 +52,7 @@ async def partial_update_guild(
 
 
 @guilds_router.get('/me/features', deprecated=True)
-async def get_features(
+async def list_features(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: GuildService = Depends(get_guild_service)
 ) -> list[guilds.FeatureOut]:
@@ -61,7 +61,7 @@ async def get_features(
 
 
 @guilds_router.get('/me/channels', deprecated=True)
-async def get_channels(
+async def list_channels(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: GuildService = Depends(get_guild_service)
 ) -> list[guilds.ChannelOut]:
@@ -120,8 +120,8 @@ async def create_interaction(
     """
     return await service.new_interaction(body)
 
-@guilds_router.get('/me/interactions', name="Get Interactions")
-async def get_all_interactions(
+@guilds_router.get('/me/interactions')
+async def list_interactions(
         filter_query: Annotated[InteractionQuery, Query()],
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: GuildService = Depends(get_guild_service)
