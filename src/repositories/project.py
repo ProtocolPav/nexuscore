@@ -58,7 +58,7 @@ class ProjectRepository:
                 ),
                 members_table AS (
                     INSERT INTO projects.members(project_id, user_id)
-                    VALUES ($1, $5)
+                    VALUES ($1, $6)
                 ),
                 status_table AS (
                     INSERT INTO projects.status(project_id, status)
