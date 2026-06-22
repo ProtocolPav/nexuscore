@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Response
 
-from src.models.server import relay
+from src.models import relay
 
 relay_router = APIRouter(prefix='/relay', tags=['Webhook Relay'])
 

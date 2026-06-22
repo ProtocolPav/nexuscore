@@ -2,20 +2,20 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, Security, Depends, status
 
-from src.dependencies.auth import Scope, get_guild_client
+from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_quest_service
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 
 from src.models.quests.quest import QuestIn, QuestOut, QuestQuery, QuestUpdate
 from src.services.quest import QuestService
 
-quests_router = APIRouter(prefix='/guilds/me/quests_router', tags=['Quests'])
+quests_router = APIRouter(prefix='/guilds/me/quests', tags=['Quests'])
 
 
 @quests_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_quest(
         body: QuestIn,
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
         service: QuestService = Depends(get_quest_service),
 ) -> QuestOut:
     """
@@ -31,7 +31,7 @@ async def create_quest(
 @quests_router.get('')
 async def list_quests(
         filter_query: Annotated[QuestQuery, Query()],
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
         service: QuestService = Depends(get_quest_service),
 ) -> list[QuestOut]:
     """
@@ -43,7 +43,7 @@ async def list_quests(
 @quests_router.get('/{quest_id}')
 async def get_quest(
         quest_id: int,
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
         service: QuestService = Depends(get_quest_service)
 ) -> QuestOut:
     """
@@ -59,7 +59,7 @@ async def get_quest(
 async def partial_update_quest(
         quest_id: int,
         body: QuestUpdate,
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
         service: QuestService = Depends(get_quest_service),
 ) -> QuestOut:
     """

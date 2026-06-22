@@ -1,15 +1,16 @@
+import base64
 import secrets
 from typing import Optional
 
 from argon2 import PasswordHasher
-from fastapi import APIRouter, Form, Security, status
+from fastapi import APIRouter, Form, Header, Security, status
 
-from src.dependencies.auth import Scope, get_current_client
+from src.dependencies.auth import get_current_client
 from src.dependencies.auth.keys import verify_api_key
 from src.dependencies.auth.token import create_token
 from src.dependencies.database import db
 from src.errors import InvalidCredentials
-from src.models.auth import ClientCreateRequest, ClientCreateResponse, TokenPayload, TokenResponse
+from src.models.auth import ClientCreateRequest, ClientCreateResponse, TokenPayload, TokenResponse, Scope
 
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 ph = PasswordHasher()
@@ -18,16 +19,36 @@ ph = PasswordHasher()
 async def get_token(
         grant_type: str = Form(description="The grant type, always `client_credentials`",
                                default="client_credentials"),
-        client_id: str = Form(description="The client ID"),
-        client_secret: str = Form(description="The raw client secret"),
         scope: str = Form(description="The scopes to request. Leave empty for all available scopes.",
                           default=""),
         guild_id: Optional[int] = Form(description="The guild ID to request a token for.\n"
                                                    "> [!warning]\n"
                                                    "> Used only for master clients looking to perform guild-scoped actions.",
                                        default=None),
+        client_id: Optional[str] = Form(description="The client ID",
+                                        default=None),
+        client_secret: Optional[str] = Form(description="The raw client secret",
+                                            default=None),
+        authorization: Optional[str] = Header(alias="Authorization",
+                                              description="Basic Auth credentials as `Basic base64(client_id:client_secret)`. Takes priority over body if both are provided.",
+                                              default=None),
 ) -> TokenResponse:
-    client = await verify_api_key(str(client_id), client_secret)
+    basic_id, basic_secret = None, None
+    if authorization and authorization.startswith("Basic "):
+        try:
+            decoded = base64.b64decode(authorization[6:]).decode("utf-8")
+            basic_id, basic_secret = decoded.split(":", 1)
+        except Exception:
+            raise InvalidCredentials()
+
+    # Basic Auth takes priority over body
+    resolved_id = basic_id or client_id
+    resolved_secret = basic_secret or client_secret
+
+    if not resolved_id or not resolved_secret:
+        raise InvalidCredentials()
+
+    client = await verify_api_key(str(resolved_id), resolved_secret)
     if not client:
         raise InvalidCredentials()
 

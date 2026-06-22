@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Security, Query
+from fastapi import APIRouter, Depends, HTTPException, Security
 from starlette import status
 
-from src.dependencies.auth import Scope, get_guild_client
+from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_world_service
 from src.dependencies.database import db
 
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 from src.models.worlds import world
-from src.models.server import items
+from src.models import items
 
 from src.services.world import WorldService
 
@@ -55,7 +55,7 @@ async def create_item(body: items.ItemCreateModel) -> items.ItemModel:
 
 
 @world_router.get('/items')
-async def get_all_items() -> items.ItemListModel:
+async def list_items() -> items.ItemListModel:
     """
     Get All Item
 
@@ -80,7 +80,7 @@ async def get_item(item_id: str) -> items.ItemModel:
 
 @world_router.patch('/items/{item_id}')
 @world_router.put('/items/{item_id}')
-async def update_item(item_id: str, body: items.ItemUpdateModel) -> items.ItemModel:
+async def partial_update_item(item_id: str, body: items.ItemUpdateModel) -> items.ItemModel:
     """
     Update Item
 

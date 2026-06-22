@@ -6,12 +6,12 @@ from pydantic import Field
 
 from src.dependencies.database import db
 from src.repositories.user import UserRepository
-from src.utils.base import BaseModel
-from src.config import settings
+from src.utils.base import LegacyBaseModel
+from src.settings import settings
 
 user_repo = UserRepository(db)
 
-class RelayModel(BaseModel):
+class RelayModel(LegacyBaseModel):
     type: Literal["message", "start", "stop", "crash", "join", "leave", "other"] = Field(description="The type of relay",
                                                                                          json_schema_extra={"example": "message"})
     content: str = Field(description="The content of the message",

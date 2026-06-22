@@ -2,10 +2,10 @@ from datetime import date
 
 from fastapi import APIRouter, Security
 
-from src.dependencies.auth import Scope, get_guild_client
+from src.dependencies.auth import get_guild_client
 from src.dependencies.database import db
 from src.models import guilds
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 
 leaderboard_router = APIRouter(prefix='/guilds/me/leaderboard', tags=['Leaderboards'])
 
@@ -46,7 +46,7 @@ async def get_levels_leaderboard(
     return guild_leaderboard
 
 
-@leaderboard_router.get('/quests_router')
+@leaderboard_router.get('/quests')
 async def get_quests_leaderboard(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
 ) -> guilds.LeaderboardModel:

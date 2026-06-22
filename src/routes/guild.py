@@ -3,12 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Security, Query
 from starlette import status
 
-from src.dependencies.auth import Scope, get_current_client, get_guild_client
+from src.dependencies.auth import get_current_client, get_guild_client
 from src.dependencies.services import get_guild_service
 
 from src.models import guilds
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 from src.models.guilds.interaction import InteractionQuery
+from src.models.guilds.session import SessionQuery
 
 from src.services.guild import GuildService
 
@@ -52,7 +53,7 @@ async def partial_update_guild(
 
 
 @guilds_router.get('/me/features', deprecated=True)
-async def get_features(
+async def list_features(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: GuildService = Depends(get_guild_service)
 ) -> list[guilds.FeatureOut]:
@@ -61,7 +62,7 @@ async def get_features(
 
 
 @guilds_router.get('/me/channels', deprecated=True)
-async def get_channels(
+async def list_channels(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: GuildService = Depends(get_guild_service)
 ) -> list[guilds.ChannelOut]:
@@ -86,7 +87,7 @@ async def get_guild_playtime(
     return await service.get_playtime_analysis(auth.guild_id)
 
 
-@guilds_router.get('/me/online')
+@guilds_router.get('/me/online', deprecated=True, description="Use /me/sessions instead for more accurate sessions data")
 async def get_online_members(
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: GuildService = Depends(get_guild_service)
@@ -95,6 +96,18 @@ async def get_online_members(
     Returns a list of all players currently connected to Geode.
     """
     return await service.get_online_members(auth.guild_id)
+
+
+@guilds_router.get('/me/sessions')
+async def list_sessions(
+        filter_query: Annotated[SessionQuery, Query()],
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
+        service: GuildService = Depends(get_guild_service)
+) -> list[guilds.SessionOut]:
+    """
+    Returns a list of all sessions for the guild.
+    """
+    return await service.get_sessions(auth.guild_id, filter_query)
 
 
 @guilds_router.post('/me/connection', status_code=status.HTTP_201_CREATED)
@@ -120,8 +133,8 @@ async def create_interaction(
     """
     return await service.new_interaction(body)
 
-@guilds_router.get('/me/interactions', name="Get Interactions")
-async def get_all_interactions(
+@guilds_router.get('/me/interactions')
+async def list_interactions(
         filter_query: Annotated[InteractionQuery, Query()],
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_READ]),
         service: GuildService = Depends(get_guild_service)

@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Depends, Security, status
 
-from src.dependencies.auth import Scope, get_guild_client
-from src.dependencies.repositories import get_project_repo
+from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_project_service
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 
 from src.models.projects.project import ProjectOut, ProjectIn, ProjectUpdate
 from src.models.projects.status import StatusIn, StatusOut
 
-from src.repositories.project import ProjectRepository
 from src.services.project import ProjectService
 
 projects_router = APIRouter(prefix='/guilds/me/projects', tags=['Projects'])

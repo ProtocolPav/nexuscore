@@ -3,7 +3,7 @@ from typing import Optional
 
 from asyncpg import Pool, create_pool
 
-from src.config import settings
+from src.settings import settings
 
 class Database:
     def __init__(self):

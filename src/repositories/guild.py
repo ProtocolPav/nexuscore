@@ -10,6 +10,7 @@ from src.models.guilds.features import FeatureDB
 from src.models.guilds.guild import GuildDB, GuildIn, GuildUpdate
 from src.models.guilds.interaction import InteractionDB, InteractionIn, InteractionQuery
 from src.models.guilds.online_members import OnlineMember
+from src.models.guilds.session import SessionDB, SessionQuery
 
 
 class GuildRepository:
@@ -103,6 +104,61 @@ class GuildRepository:
         """, guild_id)
 
         return [OnlineMember.model_validate(dict(row)) for row in data]
+
+    async def fetch_sessions(self, guild_id: int, query: SessionQuery) -> list[SessionDB]:
+        query_parts = ["SELECT * FROM events.sessions_view sv", "INNER JOIN users.\"user\" u ON sv.thorny_id = u.thorny_id"]
+        conditions = ["guild_id = $1"]
+        params: list = [guild_id]
+
+        if query.active:
+            conditions.append(f"sv.disconnect_time IS NULL")
+
+        # Handle time filtering
+        if query.time_start is not None and query.time_end is not None:
+            param_idx = len(params)
+            conditions.append(
+                f"sv.connect_time < ${param_idx + 1}::timestamptz AND sv.disconnect_time >= ${param_idx + 2}::timestamptz")
+            params.extend([
+                query.time_end,
+                query.time_start
+            ])
+
+        elif query.time_start is not None:
+            param_idx = len(params)
+            conditions.append(f"(sv.disconnect_time >= ${param_idx + 1}::timestamptz OR sv.disconnect_time IS NULL)")
+            params.append(query.time_start)
+
+        elif query.time_end is not None:
+            param_idx = len(params)
+            conditions.append(f"sv.connect_time < ${param_idx + 1}::timestamptz")
+            params.append(query.time_end)
+
+        # Add WHERE clause if we have conditions
+        if conditions:
+            query_parts.append("WHERE")
+            query_parts.append(" AND ".join(conditions))
+
+        # Add ORDER BY clause
+        if query.active:
+            query_parts.append("ORDER BY connect_time DESC")
+        else:
+            query_parts.append("ORDER BY disconnect_time DESC")
+
+        # Handle pagination with OFFSET and LIMIT
+        if query.page is not None and query.page_size is not None:
+            # Calculate offset: (page - 1) * page_size
+            offset = (query.page - 1) * query.page_size
+            param_idx = len(params)
+
+            query_parts.append(f"LIMIT ${param_idx + 1}::int OFFSET ${param_idx + 2}::int")
+            params.extend([query.page_size, offset])
+
+        query = " ".join(query_parts)
+
+        # Execute the query
+        data = await self.db.pool.fetch(query, *params)
+
+        return [SessionDB.model_validate(dict(row)) for row in data]
 
     async def fetch_playtime_analysis(self, guild_id: int) -> GuildPlaytimeAnalysis:
         data = await self.db.pool.fetchrow("""

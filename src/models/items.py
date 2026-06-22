@@ -4,12 +4,12 @@ from fastapi import HTTPException
 from pydantic import Field, StringConstraints
 
 from src.dependencies.database import Database
-from src.utils.base import BaseModel, BaseList
+from src.utils.base import LegacyBaseModel, LegacyBaseList
 
 ItemID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
 
 
-class ItemBaseModel(BaseModel):
+class ItemBaseModel(LegacyBaseModel):
     item_id: ItemID = Field(description="The minecraft ID of the item",
                             json_schema_extra={"example": 'minecraft:diamond_sword'})
     value: float = Field(description="The initial block value of one of this item",
@@ -63,7 +63,7 @@ class ItemModel(ItemBaseModel):
                               self.value, self.max_uses, self.depreciation, self.current_uses, self.item_id)
 
 
-class ItemListModel(BaseList[ItemModel]):
+class ItemListModel(LegacyBaseList[ItemModel]):
     @classmethod
     async def fetch(cls, db: Database, *args) -> "ItemListModel":
         data = await db.pool.fetch("""
@@ -82,6 +82,6 @@ class ItemCreateModel(ItemBaseModel):
     pass
 
 
-class ItemUpdateModel(BaseModel):
+class ItemUpdateModel(LegacyBaseModel):
     current_uses: Optional[int] = Field(description="The current uses of this item",
                                         json_schema_extra={"example": 32})

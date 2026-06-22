@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, Security
 from starlette import status
 
-from src.dependencies.auth import Scope, get_guild_client
+from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_user_service
 from src.dependencies.database import db
 
-from src.models.auth import TokenPayload
+from src.models.auth import TokenPayload, Scope
 from src.models.users import user, playtime, interactions
 from src.models.users.profile import ProfileOut, ProfileUpdate
 
@@ -86,7 +86,7 @@ async def get_profile(
 
 @members_router.put('/{thorny_id}/profile')
 @members_router.patch('/{thorny_id}/profile')
-async def update_profile(
+async def partial_update_profile(
         thorny_id: int,
         body: ProfileUpdate,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_MEMBERS_WRITE]),
