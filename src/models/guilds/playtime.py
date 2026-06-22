@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import Field, BaseModel
 
 
-class DailyPlaytime(BaseModel):
+class GuildDailyPlaytime(BaseModel):
     day: date = Field(description="The day this data is about",
                       examples=['2024-05-05'])
     total: Optional[float] = Field(description="The total playtime that day in seconds",
@@ -19,7 +19,7 @@ class DailyPlaytime(BaseModel):
                                                 examples=[405.325])
 
 
-class WeeklyPlaytime(BaseModel):
+class GuildWeeklyPlaytime(BaseModel):
     week: int = Field(description="The week of the year this data is about",
                       examples=[23])
     total: Optional[float] = Field(description="The total playtime that week in seconds",
@@ -33,7 +33,7 @@ class WeeklyPlaytime(BaseModel):
                                                 examples=[405.325])
 
 
-class MonthlyPlaytime(BaseModel):
+class GuildMonthlyPlaytime(BaseModel):
     month: date = Field(description="The month this data is about. Always the first day of that month",
                         examples=['2024-05-01'])
     total: Optional[float] = Field(description="The total playtime that month in seconds",
@@ -47,9 +47,9 @@ class GuildPlaytimeAnalysis(BaseModel):
                                   examples=[1999432544.55433])
     total_unique_players: int = Field(description="The total unique players that have played on this guild",
                                       examples=[4433])
-    daily_playtime: list[DailyPlaytime] = Field(description="Data about the last 7 days of playtime")
-    weekly_playtime: list[WeeklyPlaytime] = Field(description="Data about the last 8 weeks of playtime")
-    monthly_playtime: list[MonthlyPlaytime] = Field(description="Data about the last 12 months of playtime")
+    daily_playtime: list[GuildDailyPlaytime] = Field(description="Data about the last 7 days of playtime")
+    weekly_playtime: list[GuildWeeklyPlaytime] = Field(description="Data about the last 8 weeks of playtime")
+    monthly_playtime: list[GuildMonthlyPlaytime] = Field(description="Data about the last 12 months of playtime")
     peak_playtime_periods: None = None
     peak_active_periods: None = None
     daily_playtime_distribution: None = None
