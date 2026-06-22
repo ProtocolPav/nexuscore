@@ -7,7 +7,7 @@ from src.models.auth import TokenPayload, Scope
 from src.models.quests.quest_progress import QuestProgressIn, QuestProgressOut, QuestProgressUpdate
 from src.services.quest_progress import QuestProgressService
 
-quest_progress_router = APIRouter(prefix='/guilds/me/quests_router/progress', tags=['Quests'])
+quest_progress_router = APIRouter(prefix='/guilds/me/quests/progress', tags=['Quests'])
 
 
 @quest_progress_router.post('', status_code=status.HTTP_201_CREATED)
