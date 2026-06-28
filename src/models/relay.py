@@ -5,6 +5,7 @@ import httpx
 from pydantic import Field
 
 from src.dependencies.database import db
+from src.errors import NotFound
 from src.repositories.user import UserRepository
 from src.utils.base import LegacyBaseModel
 from src.settings import settings
@@ -46,11 +47,13 @@ class RelayModel(LegacyBaseModel):
                            'attachments': [],
                            'allowed_mentions': {'parse': []}}
 
-        thorny_user = await user_repo.fetch_by_gamertag(guild_id=611008530077712395,
-                                                      gamertag=self.name)
+        try:
+            thorny_user = await user_repo.fetch_by_gamertag(guild_id=611008530077712395,
+                                                            gamertag=self.name)
 
-        webhook_content[
-            'avatar_url'] = f"https://persona-secondary.franchise.minecraft-services.net/api/v1.0/profile/xuid/{thorny_user.xuid}/image/head"
+            webhook_content['avatar_url'] = f"https://persona-secondary.franchise.minecraft-services.net/api/v1.0/profile/xuid/{thorny_user.xuid}/image/head"
+        except NotFound:
+            pass
 
         async with httpx.AsyncClient() as client:
             await client.request(method="POST", url=settings.WEBHOOK_URL, json=webhook_content)
