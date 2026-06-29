@@ -1,107 +1,120 @@
-from pydantic import StringConstraints, Field
+from pydantic import Field, BaseModel
 from typing_extensions import Annotated
-from fastapi import HTTPException
-
-from src.dependencies.database import Database
-from src.utils.base import BaseModel, optional_model
-
-ShortString = Annotated[str, StringConstraints(max_length=35)]
-LongString = Annotated[str, StringConstraints(max_length=300)]
 
 
-class ProfileBaseModel(BaseModel):
-    slogan: ShortString = Field(description="The slogan showed on the profile. Max. 35 characters",
-                                json_schema_extra={"example": "I HEART THORNY"})
-    aboutme: LongString = Field(description="The user's aboutme section. Max. 300 characters",
-                                json_schema_extra={"example": "Really cool about me..."})
-    lore: LongString = Field(description="Same as the aboutme, but for the user's character. Max. 300 characters.",
-                             json_schema_extra={"example": "Very long lore..."})
-    character_name: ShortString = Field(description="The character's name. Max. 35 characters",
-                                        json_schema_extra={"example": "Captain Easton"})
-    character_age: int = Field(description="The character's age",
-                               json_schema_extra={"example": 43})
-    character_race: ShortString = Field(description="The character's race. Max. 35 characters",
-                                        json_schema_extra={"example": "Human"})
-    character_role: ShortString = Field(description="The character's role. Max. 35 characters",
-                                        json_schema_extra={"example": "Farmer"})
-    character_origin: ShortString = Field(description="The character's origin. Max. 35 characters",
-                                          json_schema_extra={"example": "Yutakana Province"})
-    character_beliefs: ShortString = Field(description="The character's beliefs. Max. 35 characters",
-                                           json_schema_extra={"example": "Thornyism"})
-    agility: int = Field(description="The character's agility",
-                         json_schema_extra={"example": 3})
-    valor: int = Field(description="The character's valor",
-                       json_schema_extra={"example": 6})
-    strength: int = Field(description="The character's strength",
-                          json_schema_extra={"example": 1})
-    charisma: int = Field(description="The character's charisma",
-                          json_schema_extra={"example": 5})
-    creativity: int = Field(description="The character's creativity",
-                            json_schema_extra={"example": 3})
-    ingenuity: int = Field(description="The character's ingenuity",
-                           json_schema_extra={"example": 2})
+ThornyID = Annotated[int, Field(
+    description="The ThornyID of the profile",
+    examples=[34]
+)]
+Slogan = Annotated[str, Field(
+    description="The slogan of the profile",
+    examples=["I HEART THORNY"],
+    max_length=35
+)]
+AboutMe = Annotated[str, Field(
+    description="The aboutme of the profile",
+    examples=["Really cool about me..."],
+    max_length=300
+)]
+Lore = Annotated[str, Field(
+    description="The lore of the profile",
+    examples=["Very long lore..."],
+    max_length=300
+)]
+CharacterName = Annotated[str, Field(
+    description="The character name of the profile",
+    examples=["Captain Easton"],
+    max_length=35
+)]
+CharacterAge = Annotated[int, Field(
+    description="The character age of the profile",
+    examples=[43]
+)]
+CharacterRace = Annotated[str, Field(
+    description="The character race of the profile",
+    examples=["Human"],
+    max_length=35
+)]
+CharacterRole = Annotated[str, Field(
+    description="The character role of the profile",
+    examples=["Farmer"],
+    max_length=35
+)]
+CharacterOrigin = Annotated[str, Field(
+    description="The character origin of the profile",
+    examples=["Yutakana Province"],
+    max_length=35
+)]
+CharacterBeliefs = Annotated[str, Field(
+    description="The character beliefs of the profile",
+    examples=["Thornyism"],
+    max_length=35
+)]
+Agility = Annotated[int, Field(
+    description="The character agility of the profile",
+    le=6,
+    ge=0
+)]
+Valor = Annotated[int, Field(
+    description="The character valor of the profile",
+    le=6,
+    ge=0
+)]
+Strength = Annotated[int, Field(
+    description="The character strength of the profile",
+    le=6,
+    ge=0
+)]
+Charisma = Annotated[int, Field(
+    description="The character charisma of the profile",
+    le=6,
+    ge=0
+)]
+Creativity = Annotated[int, Field(
+    description="The character creativity of the profile",
+    le=6,
+    ge=0
+)]
+Ingenuity = Annotated[int, Field(
+    description="The character ingeniu of the profile",
+    le=6,
+    ge=0
+)]
 
+class ProfileDB(BaseModel):
+    thorny_id: ThornyID
+    slogan: Slogan
+    aboutme: AboutMe
+    lore: Lore
+    character_name: CharacterName
+    character_age: CharacterAge
+    character_race: CharacterRace
+    character_role: CharacterRole
+    character_origin: CharacterOrigin
+    character_beliefs: CharacterBeliefs
+    agility: Agility
+    valor: Valor
+    strength: Strength
+    charisma: Charisma
+    creativity: Creativity
+    ingenuity: Ingenuity
 
-class ProfileModel(ProfileBaseModel):
-    thorny_id: int = Field(description="The ThornyID of a user. This is a unique number.",
-                           json_schema_extra={"example": 34})
+class ProfileOut(ProfileDB):
+    thorny_id: ThornyID = Field(exclude=True)
 
-    @classmethod
-    async def create(cls, db: Database, model: "ProfileCreateModel", *args):
-        await db.pool.execute("""
-                              insert into users.profile(thorny_id)
-                              values($1)
-                              """,
-                              model.thorny_id)
-
-    @classmethod
-    async def fetch(cls, db: Database, thorny_id: int, *args) -> "ProfileModel":
-        if not thorny_id:
-            raise HTTPException(status_code=400, detail="Missing thorny_id")
-
-        data = await db.pool.fetchrow("""
-                                       SELECT * FROM users.profile
-                                       WHERE thorny_id = $1
-                                       """,
-                                      thorny_id)
-
-        if data:
-            return cls(**data)
-        else:
-            raise HTTPException(status_code=404, detail="Profile not found")
-
-    async def update(self, db: Database, model: "ProfileUpdateModel"):
-        for k, v in model.model_dump().items():
-            setattr(self, k, v) if v is not None else None
-
-        await db.pool.execute("""
-                               UPDATE users.profile
-                               SET slogan = $1,
-                                   aboutme = $2,
-                                   lore = $3,
-                                   character_name = $4,
-                                   character_age = $5,
-                                   character_race = $6,
-                                   character_role = $7,
-                                   character_origin = $8,
-                                   character_beliefs = $9,
-                                   agility = $10,
-                                   valor = $11,
-                                   strength = $12,
-                                   charisma = $13,
-                                   creativity = $14,
-                                   ingenuity = $15
-                               WHERE thorny_id = $16
-                               """,
-                              self.slogan, self.aboutme, self.lore, self.character_name,
-                              self.character_age, self.character_race, self.character_role, self.character_origin,
-                              self.character_beliefs, self.agility, self.valor, self.strength, self.charisma,
-                              self.creativity, self.ingenuity, self.thorny_id)
-
-
-class ProfileCreateModel(BaseModel):
-    thorny_id: int = Field(description="The ThornyID of a user. This is a unique number.",
-                           json_schema_extra={"example": 34})
-
-
-ProfileUpdateModel = optional_model("ProfileUpdateModel", ProfileBaseModel)
+class ProfileUpdate(BaseModel):
+    slogan: Slogan = None
+    aboutme: AboutMe = None
+    lore: Lore = None
+    character_name: CharacterName = None
+    character_age: CharacterAge = None
+    character_race: CharacterRace = None
+    character_role: CharacterRole = None
+    character_origin: CharacterOrigin = None
+    character_beliefs: CharacterBeliefs = None
+    agility: Agility = None
+    valor: Valor = None
+    strength: Strength = None
+    charisma: Charisma = None
+    creativity: Creativity = None
+    ingenuity: Ingenuity = None

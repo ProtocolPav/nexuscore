@@ -1,10 +1,7 @@
 import uuid
 
-from pydantic import Field, StringConstraints, UUID4
-from typing import Annotated, Literal, Optional, Union
-
-from src.utils.base import BaseModel, BaseList, optional_model
-
+from pydantic import Field, UUID4, BaseModel
+from typing import Annotated, Literal, Union
 
 
 class TargetProgressBaseModel(BaseModel):

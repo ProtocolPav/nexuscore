@@ -1,50 +1,61 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, Security, status
 
-from src.dependencies.database import Database, db
-from src.models.projects import pin
+from src.dependencies.auth import get_guild_client
+from src.dependencies.services import get_pin_service
 
-pins = APIRouter(prefix='/pins', tags=['Pins'])
+from src.models.auth import TokenPayload, Scope
+from src.models.projects.pin import PinOut, PinIn, PinUpdate
 
-@pins.get('')
-async def get_all_pins() -> pin.PinsListModel:
+from src.services.pin import PinService
+
+pins_router = APIRouter(prefix='/pins', tags=['Pins'])
+
+@pins_router.get('')
+async def list_pins(
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_READ]),
+        service: PinService = Depends(get_pin_service)
+) -> list[PinOut]:
     """
     Get a list of Pins
     """
-    pins_model = await pin.PinsListModel.fetch(db)
-
-    return pins_model
+    return await service.get_all()
 
 
-@pins.post('', status_code=201)
-async def create_pin(body: pin.PinCreateModel) -> pin.PinModel:
+@pins_router.post('', status_code=status.HTTP_201_CREATED)
+async def create_pin(
+        body: PinIn,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_WRITE]),
+        service: PinService = Depends(get_pin_service)
+) -> PinOut:
     """
-    Creates a new pin, inserts a status and content.
+    Creates a new pin
     """
-    pin_id = await pin.PinModel.create(db, body)
-    pin_model = await pin.PinModel.fetch(db, pin_id)
-
-    return pin_model
+    return await service.new(body)
 
 
-@pins.get('/{pin_id}')
-async def get_pin(pin_id: int) -> pin.PinModel:
+@pins_router.get('/{pin_id}')
+async def get_pin(
+        pin_id: int,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_READ]),
+        service: PinService = Depends(get_pin_service)
+) -> PinOut:
     """
     Returns the pin specified
     """
-    pin_model = await pin.PinModel.fetch(db, pin_id)
-
-    return pin_model
+    return await service.get(pin_id)
 
 
-@pins.patch('/{pin_id}')
-@pins.put('/{pin_id}')
-async def update_pin(pin_id: int, body: pin.PinUpdateModel) -> pin.PinModel:
+@pins_router.patch('/{pin_id}')
+@pins_router.put('/{pin_id}')
+async def partial_update_pin(
+        pin_id: int,
+        body: PinUpdate,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_WRITE]),
+        service: PinService = Depends(get_pin_service)
+) -> PinOut:
     """
     Update Pin
 
     Update the pin. Anything that you do not want to update can be left as `null`
     """
-    model = await pin.PinModel.fetch(db, pin_id)
-    await model.update(db, body)
-
-    return model
+    return await service.update(pin_id, body)

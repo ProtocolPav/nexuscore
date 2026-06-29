@@ -4,17 +4,17 @@ from typing_extensions import Optional
 from fastapi import HTTPException
 
 from src.dependencies.database import Database
-from src.utils.base import BaseModel, BaseList
+from src.utils.base import LegacyBaseModel, LegacyBaseList
 
 
-class DailyPlaytime(BaseModel):
+class DailyPlaytime(LegacyBaseModel):
     day: date = Field(description="Total playtime in seconds",
                      json_schema_extra={"example": '2024-05-05'})
     playtime: float = Field(description="The day's playtime in seconds",
                             json_schema_extra={"example": 125.54})
 
 
-class DailyPlaytimeList(BaseList[DailyPlaytime]):
+class DailyPlaytimeList(LegacyBaseList[DailyPlaytime]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "DailyPlaytimeList":
         if not thorny_id:
@@ -45,14 +45,14 @@ class DailyPlaytimeList(BaseList[DailyPlaytime]):
             raise HTTPException(status_code=404, detail="No playtime data found")
 
 
-class MonthlyPlaytime(BaseModel):
+class MonthlyPlaytime(LegacyBaseModel):
     month: date = Field(description="Total playtime in seconds",
                         json_schema_extra={"example": '2024-05-01'})
     playtime: float = Field(description="The month's playtime in seconds",
                             json_schema_extra={"example": 332.89})
 
 
-class MonthlyPlaytimeList(BaseList[MonthlyPlaytime]):
+class MonthlyPlaytimeList(LegacyBaseList[MonthlyPlaytime]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "MonthlyPlaytimeList":
         if not thorny_id:
@@ -83,7 +83,7 @@ class MonthlyPlaytimeList(BaseList[MonthlyPlaytime]):
             raise HTTPException(status_code=404, detail="No playtime data found")
 
 
-class PlaytimeSummary(BaseModel):
+class PlaytimeSummary(LegacyBaseModel):
     thorny_id: int = Field(description="The ThornyID of a user",
                            json_schema_extra={"example": 34})
     total: float = Field(description="Total playtime in seconds",
