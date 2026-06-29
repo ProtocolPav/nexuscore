@@ -46,6 +46,7 @@ origins = [
     "http://localhost:3000",
     "https://localhost:3000",
     "https://api.everthorn.net",
+    "https://everthorn.net",
 ]
 
 app.add_middleware(
