@@ -177,43 +177,49 @@ class GuildRepository:
                     and sv.connect_time >= '2022-07-29'
             ),
             daily_playtime as (
-                select 
-                    date(sv.connect_time) as day,
-                    sum(sv.playtime) as total,
-                    count(distinct sv.thorny_id) as unique_players,
-                    count(*) as total_sessions,
+                select
+                    gs.day::date as day,
+                    coalesce(sum(sv.playtime), interval '0') as total,
+                    coalesce(count(distinct sv.thorny_id), 0) as unique_players,
+                    coalesce(count(sv.*), 0) as total_sessions,
                     avg(sv.playtime) as avg_playtime
                 from
+                    generate_series(
+                        current_date - interval '13 days',
+                        current_date,
+                        interval '1 day'
+                    ) as gs(day)
+                left join
                     events.sessions_view sv
-                inner join
+                        on date(sv.connect_time) = gs.day::date
+                left join
                     users."user"
-                on
-                    users."user".thorny_id = sv.thorny_id
-                where
-                    users."user".guild_id = $1
-                group by day
-                order by day desc
-                limit 7
+                        on users."user".thorny_id = sv.thorny_id
+                        and users."user".guild_id = $1
+                group by gs.day
+                order by gs.day desc
             ),
             weekly_playtime as (
-                select 
-                    extract(week from sv.connect_time) as week,
-                    extract(year from sv.connect_time) as year,
-                    sum(sv.playtime) as total,
-                    count(distinct sv.thorny_id) as unique_players,
-                    count(*) as total_sessions,
-                    avg(sv.playtime) as avg_playtime
+                select
+                    extract(week from gs.week_start)::int                             as week,
+                    extract(year from gs.week_start)::int                             as year,
+                    coalesce(sum(sv.playtime), interval '0')                          as total,
+                    coalesce(count(distinct sv.thorny_id), 0)                         as unique_players,
+                    coalesce(count(sv.*), 0)                                          as total_sessions,
+                    avg(sv.playtime)                                                  as avg_playtime
                 from
-                    events.sessions_view sv
-                inner join
-                    users."user"
-                on
-                    users."user".thorny_id = sv.thorny_id
-                where
-                    users."user".guild_id = $1
-                group by year, week
-                order by year desc, week desc 
-                limit 8
+                    generate_series(
+                        current_date - interval '7 weeks',
+                        current_date,
+                        interval '1 week'
+                    ) as gs(week_start)
+                left join events.sessions_view sv
+                    on date_trunc('week', sv.connect_time) = date_trunc('week', gs.week_start)
+                left join users."user"
+                    on users."user".thorny_id = sv.thorny_id
+                    and users."user".guild_id = $1
+                group by gs.week_start
+                order by gs.week_start desc
             ),
             monthly_playtime as (
                 select 
@@ -230,16 +236,19 @@ class GuildRepository:
                     users."user".guild_id = $1
                 group by month
                 order by month desc 
-                limit 12
+                limit 13
             )
             select 
                 coalesce((select extract(epoch from total_playtime) from totals), 0) as total_playtime,
                 coalesce((select total_unique_players from totals), 0) as total_unique_players,
                 coalesce((
                     select json_agg(json_build_object(
-                        'week', w.week, 'total', extract(epoch from w.total),
-                        'unique_players', w.unique_players, 'total_sessions', w.total_sessions,
-                        'average_playtime_per_session', extract(epoch from w.avg_playtime)))
+                        'week', w.week,
+                        'year', w.year,
+                        'total', extract(epoch from w.total::interval),
+                        'unique_players', w.unique_players,
+                        'total_sessions', w.total_sessions,
+                        'average_playtime_per_session', extract(epoch from w.avg_playtime::interval)))
                     from weekly_playtime w
                 ), '[]'::json) as weekly_playtime,
                 coalesce((
