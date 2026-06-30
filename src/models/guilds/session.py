@@ -37,17 +37,17 @@ ThornyID = Annotated[int, Field(
 
 class SessionDB(BaseModel):
     connect_event_id: ConnectEventID
-    disconnect_event_id: DisconnectEventID
+    disconnect_event_id: Optional[DisconnectEventID]
     connect_time: ConnectTime
-    disconnect_time: DisconnectTime
-    playtime: Playtime
+    disconnect_time: Optional[DisconnectTime]
+    playtime: Optional[Playtime]
     thorny_id: ThornyID
 
 
 class SessionOut(BaseModel):
     start: ConnectTime
-    end: DisconnectTime
-    duration: SessionDuration
+    end: Optional[DisconnectTime]
+    duration: Optional[SessionDuration]
     user: UserOut
 
 
