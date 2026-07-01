@@ -222,21 +222,23 @@ class GuildRepository:
                 order by gs.week_start desc
             ),
             monthly_playtime as (
-                select 
-                    date_trunc('month', sv.connect_time)::date as month,
-                    sum(sv.playtime) as total,
-                    count(distinct sv.thorny_id) as unique_players
+                select
+                    gs.month::date                                                     as month,
+                    extract(epoch from coalesce(sum(sv.playtime), interval '0'))::int  as total,
+                    coalesce(count(distinct sv.thorny_id), 0)                          as unique_players
                 from
-                    events.sessions_view sv
-                inner join
-                    users."user"
-                on
-                    users."user".thorny_id = sv.thorny_id
-                where
-                    users."user".guild_id = $1
-                group by month
-                order by month desc 
-                limit 13
+                    generate_series(
+                        date_trunc('month', current_date) - interval '12 months',
+                        date_trunc('month', current_date),
+                        interval '1 month'
+                    ) as gs(month)
+                left join events.sessions_view sv
+                    on date_trunc('month', sv.connect_time) = gs.month
+                left join users."user"
+                    on users."user".thorny_id = sv.thorny_id
+                    and users."user".guild_id = $1
+                group by gs.month
+                order by gs.month desc
             )
             select 
                 coalesce((select extract(epoch from total_playtime) from totals), 0) as total_playtime,
@@ -260,7 +262,8 @@ class GuildRepository:
                 ), '[]'::json) as daily_playtime,
                 coalesce((
                     select json_agg(json_build_object(
-                        'month', m.month, 'total', extract(epoch from m.total),
+                        'month', m.month,
+                        'total', m.total,
                         'unique_players', m.unique_players))
                     from monthly_playtime m
                 ), '[]'::json) as monthly_playtime
