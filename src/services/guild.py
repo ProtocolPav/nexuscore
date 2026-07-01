@@ -50,7 +50,7 @@ class GuildService:
         return SessionOut(
             start=session.connect_time,
             end=session.disconnect_time,
-            duration=session.playtime.total_seconds(),
+            duration=session.playtime.total_seconds() if session.playtime else None,
             user=UserOut(
                 **user.model_dump(),
                 profile=ProfileOut(**profile.model_dump())
