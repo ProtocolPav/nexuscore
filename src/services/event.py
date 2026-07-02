@@ -9,8 +9,8 @@ class EventService:
     async def _to_out(self, event: EventDB) -> EventOut:
         return EventOut(**event.model_dump())
 
-    async def get(self, pin_id: int) -> EventOut:
-        event_db = await self.event_repo.fetch(pin_id)
+    async def get(self, event_id: int) -> EventOut:
+        event_db = await self.event_repo.fetch(event_id)
         return await self._to_out(event_db)
 
     async def get_all(self) -> list[EventOut]:
@@ -21,6 +21,6 @@ class EventService:
         event_db = await self.event_repo.create(guild_id, model)
         return await self._to_out(event_db)
 
-    async def update(self, pin_id: int, model: EventUpdate) -> EventOut:
-        event_db = await self.event_repo.update(pin_id, model)
+    async def update(self, event_id: int, model: EventUpdate) -> EventOut:
+        event_db = await self.event_repo.update(event_id, model)
         return await self._to_out(event_db)

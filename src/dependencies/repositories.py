@@ -1,6 +1,7 @@
 from fastapi import Depends
 
 from src.dependencies.database import Database, get_db
+from src.repositories.event import EventRepository
 from src.repositories.guild import GuildRepository
 from src.repositories.quests.objective import ObjectiveRepository
 from src.repositories.pin import PinRepository
@@ -62,3 +63,8 @@ def get_objective_progress_repo(
         database: Database = Depends(get_db),
 ) -> ObjectiveProgressRepository:
     return ObjectiveProgressRepository(database)
+
+def get_events_repo(
+        database: Database = Depends(get_db),
+) -> EventRepository:
+    return EventRepository(database)

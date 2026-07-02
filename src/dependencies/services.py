@@ -1,7 +1,7 @@
 from fastapi import Depends
 
 from src.dependencies.repositories import (
-    get_guild_repo,
+    get_events_repo, get_guild_repo,
     get_objective_progress_repo, get_objective_repo,
     get_project_repo,
     get_quest_progress_repo, get_quest_repo,
@@ -10,6 +10,7 @@ from src.dependencies.repositories import (
     get_world_repo,
     get_reward_repo
 )
+from src.repositories.event import EventRepository
 from src.repositories.guild import GuildRepository
 from src.repositories.quests.objective import ObjectiveRepository
 from src.repositories.project import ProjectRepository
@@ -20,6 +21,7 @@ from src.repositories.quests.reward import RewardRepository
 from src.repositories.user import UserRepository
 from src.repositories.pin import PinRepository
 from src.repositories.world import WorldRepository
+from src.services.event import EventService
 from src.services.guild import GuildService
 from src.services.project import ProjectService
 from src.services.pin import PinService
@@ -71,3 +73,8 @@ def get_quest_progress_service(
         objective_progress_repo: ObjectiveProgressRepository = Depends(get_objective_progress_repo),
 ) -> QuestProgressService:
     return QuestProgressService(quest_repo, objective_repo, quest_progress_repo, objective_progress_repo)
+
+def get_events_service(
+        event_repo: EventRepository = Depends(get_events_repo),
+) -> EventService:
+    return EventService(event_repo)
