@@ -1,4 +1,7 @@
-from pydantic import Field, BaseModel
+import json
+from datetime import datetime
+
+from pydantic import Field, BaseModel, model_validator
 from typing_extensions import Annotated, Literal, Optional
 
 from src.models.events.event_blocks import Blocks
@@ -26,11 +29,11 @@ Description = Annotated[str, Field(
 ImageURL = Annotated[Optional[str], Field(
     description="The URL of the card image",
 )]
-StartTime = Annotated[str, Field(
+StartTime = Annotated[datetime, Field(
     description="The start time of the event",
     examples=["2024-05-05 05:34:21.123456"]
 )]
-EndTime = Annotated[str, Field(
+EndTime = Annotated[datetime, Field(
     description="The end time of the event",
     examples=["2024-05-05 05:34:21.123456"]
 )]
@@ -41,11 +44,11 @@ Status = Annotated[Literal['draft', 'published', 'archived'], Field(
 EventBlocks = Annotated[list[Blocks], Field(
     description="The blocks used for the event page display"
 )]
-CreatedAt = Annotated[str, Field(
+CreatedAt = Annotated[datetime, Field(
     description="The time the event was created",
     examples=["2024-05-05 05:34:21.123456"]
 )]
-UpdatedAt = Annotated[str, Field(
+UpdatedAt = Annotated[datetime, Field(
     description="The time the event was last updated",
     examples=["2024-05-05 05:34:21.123456"]
 )]
@@ -67,6 +70,14 @@ class EventDB(EventBase):
     guild_id: GuildID
     created_at: CreatedAt
     updated_at: UpdatedAt
+
+    @model_validator(mode='before')
+    @classmethod
+    def pre_process_json(cls, data):
+        if isinstance(data.get('blocks'), str):
+            data['blocks'] = json.loads(data['blocks'])
+
+        return data
 
 
 class EventOut(EventBase):

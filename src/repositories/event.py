@@ -1,3 +1,5 @@
+import json
+
 import asyncpg
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
@@ -42,11 +44,12 @@ class EventRepository:
                                             )
                     VALUES($1, $2, $3, $4, $5, $6, $7, $8)
 
-                    RETURNING event_id
+                    RETURNING *
                 )
 
                 SELECT * FROM events_table
-            """, guild_id, model.slug, model.title, model.description, model.image_url, model.start_time, model.end_time, model.blocks)
+            """, guild_id, model.slug, model.title, model.description,
+                       model.image_url, model.start_time, model.end_time, json.dumps([t.model_dump() for t in model.blocks], default=str))
         except asyncpg.UniqueViolationError:
             raise AlreadyExists("Event")
 
