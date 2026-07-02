@@ -49,8 +49,8 @@ async def get_event(
 
 @events_router.patch('/{event_id}')
 @events_router.put('/{event_id}')
-async def partial_update_pin(
-        pin_id: int,
+async def partial_update_event(
+        event_id: int,
         body: EventUpdate,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_WRITE]),
         service: EventService = Depends(get_events_service)
@@ -58,4 +58,4 @@ async def partial_update_pin(
     """
     Update Event
     """
-    return await service.update(pin_id, body)
+    return await service.update(event_id, body)

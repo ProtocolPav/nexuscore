@@ -70,6 +70,6 @@ class EventRepository:
                blocks = $6,
                status = $7
            WHERE event_id = $8
-        """, updated.title, updated.description, updated.image_url, updated.start_time, updated.end_time, updated.blocks, updated.status, updated.event_id)
+        """, updated.title, updated.description, updated.image_url, updated.start_time, updated.end_time, json.dumps([t.model_dump() for t in updated.blocks], default=str), updated.status, updated.event_id)
 
         return updated

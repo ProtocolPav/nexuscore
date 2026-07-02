@@ -29,12 +29,12 @@ def upgrade() -> None:
             title        TEXT NOT NULL,
             description  TEXT NOT NULL,
             image_url    TEXT,
-            start_time   TIMESTAMP NOT NULL,
-            end_time     TIMESTAMP NOT NULL,
+            start_time   TIMESTAMPTZ NOT NULL,
+            end_time     TIMESTAMPTZ NOT NULL,
             status       TEXT NOT NULL DEFAULT 'draft',
             blocks       JSONB NOT NULL DEFAULT '[]'::jsonb,
-            created_at   TIMESTAMP NOT NULL DEFAULT now(),
-            updated_at   TIMESTAMP NOT NULL DEFAULT now()
+            created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+            updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
         );
     """)
 
