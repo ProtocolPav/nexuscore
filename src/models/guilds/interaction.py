@@ -64,23 +64,23 @@ class InteractionOut(InteractionDB):
     pass
 
 class InteractionQuery(BaseModel):
-    coordinates: Optional[list[int]] = Field(description="The coordinates where it happened",
+    coordinates: list[int] = Field(description="The coordinates where it happened",
                                              examples=[[-432, 74, 85]], default=None)
-    coordinates_end: Optional[list[int]] = Field(description="Optional End coordinates",
+    coordinates_end: list[int] = Field(description="Optional End coordinates",
                                                  examples=[[-432, 74, 85]], default=None)
-    thorny_ids: Optional[list[int]] = Field(description="The thorny IDs to filter by",
+    thorny_ids: list[int] = Field(description="The thorny IDs to filter by",
                                             examples=[1, 2021, 543], default=None)
-    interaction_types: Optional[list[InteractionType]] = Field(description="The interaction types to filter by",
+    interaction_types: list[InteractionType] = Field(description="The interaction types to filter by",
                                                                examples=["kill", "place"], default=None)
-    references: Optional[list[str]] = Field(description="The references to filter by",
+    references: list[str] = Field(description="The references to filter by",
                                                              examples=["minecraft:dirt", "minecraft:diamond_sword"], default=None)
-    dimensions: Optional[list[str]] = Field(description="The dimensions to filter by",
+    dimensions: list[str] = Field(description="The dimensions to filter by",
                                             examples=["minecraft:overworld", "minecraft:the_nether"], default=None)
-    time_start: Optional[datetime] = Field(description="The start time of the interaction events",
+    time_start: datetime = Field(description="The start time of the interaction events",
                                            examples=["2025-01-01 04:00:00+00:00"], default=None)
-    time_end: Optional[datetime] = Field(description="The end time of the interaction events",
+    time_end: datetime = Field(description="The end time of the interaction events",
                                          examples=["2025-01-01 04:00:00+00:00"], default=None)
-    page: Optional[int] = Field(description="The page number of the results. Defaults to 1",
+    page: int = Field(description="The page number of the results. Defaults to 1",
                                 examples=[1], default=1)
-    page_size: Optional[int] = Field(description="The number of results per page. Defaults to 100",
+    page_size: int = Field(description="The number of results per page. Defaults to 100",
                                      examples=[10], default=100)
