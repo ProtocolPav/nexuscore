@@ -58,7 +58,9 @@ class EventRepository:
     async def update(self, event_id: int, model: EventUpdate) -> EventDB:
         event = await self.fetch(event_id)
 
-        updated = event.model_copy(update=model.model_dump(exclude_none=True))
+        updated = event.model_validate(
+            {**event.model_dump(), **model.model_dump(exclude_none=True)}
+        )
 
         await self.db.pool.execute("""
            UPDATE events.event
