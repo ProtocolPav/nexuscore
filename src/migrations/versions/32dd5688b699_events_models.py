@@ -38,13 +38,14 @@ def upgrade() -> None:
         );
     """)
 
-    op.execute("""CREATE INDEX idx_events_guild_id ON events (guild_id);""")
-    op.execute("""CREATE INDEX idx_events_status ON events (status);""")
-    op.execute("""CREATE INDEX idx_events_blocks ON events USING GIN (blocks);""")
+    op.execute("""CREATE INDEX idx_events_guild_id ON events.event (guild_id);""")
+    op.execute("""CREATE INDEX idx_events_status ON events.event (status);""")
+    op.execute("""CREATE INDEX idx_events_blocks ON events.event USING GIN (blocks);""")
 
 
 def downgrade() -> None:
     op.execute("""DROP INDEX IF EXISTS idx_events_blocks;""")
     op.execute("""DROP INDEX IF EXISTS idx_events_status;""")
     op.execute("""DROP INDEX IF EXISTS idx_events_guild_id;""")
-    op.execute("""DROP TABLE IF EXISTS events;""")
+    op.execute("""DROP TABLE IF EXISTS events.event;""")
+    op.execute("DROP SCHEMA IF EXISTS events;")

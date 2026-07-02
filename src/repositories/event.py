@@ -24,9 +24,6 @@ class EventRepository:
             SELECT * FROM events.event
         """)
 
-        if not data:
-            raise NotFound("Events")
-
         return [EventDB.model_validate(dict(row)) for row in data]
 
     async def create(self, guild_id: int, model: EventIn) -> EventDB:

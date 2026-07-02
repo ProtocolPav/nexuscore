@@ -1,3 +1,4 @@
+from src.routes.events import events_router
 from src.routes.relay import relay_router
 from src.routes.guild import guilds_router
 from src.routes.leaderboard import leaderboard_router
@@ -21,3 +22,4 @@ api_router.include_router(projects_router)
 api_router.include_router(quests_router)
 api_router.include_router(quest_progress_router)
 api_router.include_router(world_router)
+api_router.include_router(events_router)
