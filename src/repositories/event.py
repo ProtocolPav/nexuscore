@@ -1,14 +1,7 @@
-import re
-import unicodedata
-
 import asyncpg
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
 from src.models.events.event import EventDB, EventIn, EventUpdate
-from src.models.projects.pin import PinDB, PinIn, PinUpdate
-
-from src.models.projects.project import ProjectDB, ProjectIn, ProjectUpdate
-from src.models.projects.status import StatusDB, StatusEnum, StatusIn
 
 
 class EventRepository:
