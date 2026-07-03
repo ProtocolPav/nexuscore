@@ -22,6 +22,7 @@ Description = Annotated[str, Field(
 Display = Annotated[str, Field(
     description="Override the task display with a custom text",
     examples=["Kill 100 Thorns"],
+    default=None
 )]
 OrderIndex = Annotated[int, Field(
     description="The order of the objective. Starts at 0.",
@@ -38,6 +39,7 @@ Logic = Annotated[Literal["and", "or", "sequential"], Field(
 TargetCount = Annotated[int, Field(
     description="The total count for `OR` logic",
     examples=[100],
+    default=None
 )]
 ObjectiveTargets = Annotated[list[Targets], Field(
     description="The targets of the objective. Target types must be equal to `objective_type`",
@@ -49,11 +51,11 @@ ObjectiveCustomizations = Annotated[Customizations, Field(
 class ObjectiveBase(BaseModel):
     objective_id: ObjectiveID
     description: Description
-    display: Optional[Display]
+    display: Optional[Display] = None
     order_index: OrderIndex
     objective_type: ObjectiveType
     logic: Logic
-    target_count: Optional[TargetCount]
+    target_count: Optional[TargetCount] = None
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
 
@@ -79,11 +81,11 @@ class ObjectiveOut(ObjectiveBase):
 
 class ObjectiveIn(BaseModel):
     description: Description
-    display: Optional[Display]
+    display: Optional[Display] = None
     order_index: OrderIndex
     objective_type: ObjectiveType
     logic: Logic
-    target_count: Optional[TargetCount]
+    target_count: Optional[TargetCount] = None
     targets: ObjectiveTargets
     customizations: ObjectiveCustomizations
     rewards: list[RewardIn]
