@@ -32,7 +32,7 @@ class UserRepository:
                 ),
                 profile_table AS (
                     INSERT INTO users.profile(thorny_id)
-                    VALUES (user_table.thorny_id)
+                    SELECT thorny_id FROM user_table
                 )
                 SELECT * FROM user_table
             """, guild_id, model.user_id, model.username)
