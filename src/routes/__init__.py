@@ -1,27 +1,23 @@
-from sanic import Blueprint
+from src.routes.relay import relay_router
+from src.routes.guild import guilds_router
+from src.routes.leaderboard import leaderboard_router
+from src.routes.pins import pins_router
+from src.routes.project import projects_router
+from src.routes.user import members_router
+from src.routes.quests import quests_router
+from src.routes.quest_progress import quest_progress_router
+from src.routes.world import world_router
 
-from src.routes.quest_progress import progress_blueprint
-from src.routes.users import user_blueprint
-from src.routes.events import events_blueprint
-from src.routes.quests import quest_blueprint
-from src.routes.projects import project_blueprint
-from src.routes.guilds import guild_blueprint
-from src.routes.server import server_blueprint
-from src.routes.pins import pin_blueprint
-from src.routes.wrapped import wrapped_blueprint
-from src.routes.wiki import wiki_blueprint
+from fastapi import APIRouter
 
-blueprints = [
-    user_blueprint,
-    project_blueprint,
-    pin_blueprint,
-    quest_blueprint,
-    progress_blueprint,
-    events_blueprint,
-    guild_blueprint,
-    server_blueprint,
-    wrapped_blueprint,
-    wiki_blueprint
-]
+api_router = APIRouter()
 
-blueprint_group = Blueprint.group(url_prefix='/', *blueprints, version=0.2, version_prefix='/api/v')
+api_router.include_router(guilds_router)
+api_router.include_router(leaderboard_router)
+api_router.include_router(members_router)
+api_router.include_router(relay_router)
+api_router.include_router(pins_router)
+api_router.include_router(projects_router)
+api_router.include_router(quests_router)
+api_router.include_router(quest_progress_router)
+api_router.include_router(world_router)

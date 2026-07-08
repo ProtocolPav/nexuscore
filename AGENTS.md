@@ -1,191 +1,207 @@
-# Nexuscore — Agent Guidelines
+# AGENTS.md - Nexuscore Development Guide
 
 ## Project Overview
 
-Nexuscore is a Python async REST API backend for the "Everthorn" Minecraft guild community. It serves as the data layer for the "Thorny" Discord bot. Built with **Sanic**, **Pydantic v2**, and **asyncpg** on Python 3.12, backed by PostgreSQL.
+- **Project**: Nexuscore - FastAPI backend for Everthorn internal services
+- **Language**: Python 3.12
+- **Framework**: FastAPI with asyncpg (async PostgreSQL)
+- **Database**: PostgreSQL
 
----
+## Architecture
 
-## Build & Run Commands
+The application follows a Router -> Service -> Repository architecture:
+- **Router (src/routes)**: Handles HTTP requests, validates input via Pydantic models, and delegates to services.
+- **Service (src/services)**: Orchestrates multiple repositories, aggregates data, performs business logic and validation.
+- **Repository (src/repositories)**: Handles all database interactions using raw SQL with asyncpg, returns DB models.
+- **Models (src/models)**: 
+  - DB models (suffix `DB`) represent actual database tables with all fields.
+  - Out models (suffix `Out`) exclude some fields and include others for API responses.
+  - Input models (suffix `In`) are used for request validation.
+  - Update models (suffix `Update`) must have all fields as optional
 
+## Running the Application
+
+### Development
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Run locally (development — hot reload)
-# Edit nexus.py: uncomment dev=True line, comment fast=True line
-python nexus.py
-
-# Run locally (production mode)
-python nexus.py
-
-# Docker build & run
-docker build -t nexuscore .
-docker run nexuscore
+PYTHONPATH=. python -m fastapi run src/main.py --host 0.0.0.0 --port 8000
 ```
 
-### Production Deployment
-CI/CD via Google Cloud Build (`cloudbuild.yaml`). Pushing to the configured branch triggers a build that:
-1. Builds the Docker image (Python 3.12 Alpine)
-2. Pushes to GCP Artifact Registry (`europe-docker.pkg.dev`)
-3. Publishes a Pub/Sub message to trigger `docker-compose` update
+### Docker
+```bash
+docker build -t nexuscore .
+docker run -e JWT_SECRET=xxx -e DATABASE_NAME=xxx -e DATABASE_USER=xxx -e DATABASE_PASSWORD=xxx -e DATABASE_HOST=xxx -e WEBHOOK_URL=xxx nexuscore
+```
 
----
+## Environment Variables
 
-## Testing
-
-**There is no test suite in this repository.** No `pytest`, `unittest`, or any testing library is in `requirements.txt`, and no `tests/` directory exists. When adding tests:
-- Use `pytest` with `pytest-asyncio` for async route/model tests
-- Place tests under `tests/` at the project root
-- Run a single test: `pytest tests/path/to/test_file.py::test_function_name -v`
-- Run all tests: `pytest`
-
----
-
-## Linting & Formatting
-
-No linter or formatter is configured (no `.flake8`, `.pylintrc`, `.ruff.toml`, `pyproject.toml`, `.black`, `mypy.ini`). Follow the observed conventions below. When adding tooling, prefer `ruff` for linting/formatting.
-
----
+Required environment variables:
+- `JWT_SECRET` - Secret key for JWT signing
+- `DATABASE_NAME` - PostgreSQL database name
+- `DATABASE_USER` - Database user
+- `DATABASE_PASSWORD` - Database password
+- `DATABASE_HOST` - Database host
+- `DATABASE_PORT` - Database port (default: 5432)
+- `WEBHOOK_URL` - Discord webhook URL
 
 ## Code Style Guidelines
 
-### General
-- **Python 3.12** — use modern Python features where appropriate
-- **4-space indentation**, no tabs
-- Keep lines to a reasonable length (~100 chars); no strict enforcer
-- Docstrings on all route handlers (used by Sanic/OpenAPI for Swagger UI)
-- Inline comments for complex SQL logic only
-
 ### Imports
-- **Absolute imports only** — always use the `src.` prefix from the project root:
-  ```python
-  from src.database import Database
-  from src.utils.base import BaseModel, BaseList, optional_model
-  from src.utils.errors import BadRequest400, NotFound404, Forbidden403
-  ```
-- **Import ordering** (loosely PEP 8, not enforced):
-  1. Standard library (`typing`, `typing_extensions`, `asyncio`, etc.)
-  2. Third-party (`sanic`, `pydantic`, `asyncpg`, `httpx`)
-  3. Internal (`src.*`)
-- Route files import model modules and use qualified access:
-  ```python
-  from src.models import guilds         # then: guilds.GuildModel
-  from src.models.users import user     # then: user.UserModel
-  ```
-- Model files use direct name imports:
-  ```python
-  from src.models.quests.objective import ObjectivesListModel, ObjectiveCreateModel
-  ```
-- Prefer `from typing import ...` but `typing_extensions` is acceptable for backports
+Order imports in the following groups:
+1. Standard library (`secrets`, `typing`)
+2. Third-party packages (`fastapi`, `asyncpg`, `pydantic`)
+3. Local application imports (`src.dependencies`, `src.models`, `src.routes`, `src.services`, `src.repositories`)
 
-### Type Annotations
-- **All function signatures must have full type annotations** — parameters and return types
-- Use Pydantic v2 `Field()` on every model attribute with `description` and `examples`
-- Use `Annotated` + `StringConstraints` for validated string types
-- Use `Literal` + `Field(discriminator=...)` for discriminated union polymorphism
-- Use forward references (quoted strings) for circular/self-referencing types:
-  ```python
-  async def fetch(cls, db: Database, quest_id: int) -> "QuestModel": ...
-  ```
-- `mypy` is not configured — but write type-correct code
+Example:
+```python
+import secrets
+from typing import Optional
+
+from argon2 import PasswordHasher
+from fastapi import APIRouter, Depends, Form
+
+from src.dependencies.auth import get_current_client
+from src.dependencies.database import db
+from src.dependencies.services import get_quest_service
+from src.dependencies.repositories import get_quest_repository
+
+from src.models.auth import ClientCreateRequest
+from src.models.quests.quest import QuestDB, QuestOut
+from src.services.quest import QuestService
+from src.repositories.quest import QuestRepository
+```
 
 ### Naming Conventions
-- **Files:** `snake_case` (e.g., `quest_progress.py`, `reward_metadata.py`)
-- **Classes:** `PascalCase` with consistent suffixes:
-  - `XBaseModel` — shared validated fields
-  - `XModel` — full DB-fetched representation (extends `XBaseModel`, has CRUD methods)
-  - `XCreateModel` — input model for creation (typically inherits from `XBaseModel`)
-  - `XUpdateModel` — all-optional update model, generated via `optional_model()`
-  - `XListModel` — `BaseList[XModel]` wrapping a list of models
-- **Blueprints:** `snake_case` with `_blueprint` suffix (e.g., `user_blueprint`)
-- **Route handlers:** `snake_case` verbs (e.g., `create_user`, `get_guild`, `fail_active_quest`)
-- **Variables:** `snake_case` (e.g., `thorny_id`, `guild_id`, `quest_model`)
-- **Type aliases:** `PascalCase` (e.g., `MinecraftID`, `Targets`, `Metadata`, `TargetProgress`)
-- **Dict maps / constants:** `SCREAMING_SNAKE_CASE` (e.g., `TARGET_TYPE_MAP`, `CUSTOMIZATION_TYPE_MAP`)
-- **DB fields:** `snake_case` matching PostgreSQL column names exactly
+- **Classes**: PascalCase (e.g., `Database`, `BaseModel`, `TokenResponse`)
+- **Functions/Variables**: snake_case (e.g., `get_token`, `db_pool`, `client_id`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `JWT_ALGORITHM`, `TOKEN_TTL_SECONDS`)
+- **Files**: snake_case (e.g., `auth.py`, `database.py`, `base.py`)
 
-### Models (Pydantic v2)
-- All models extend `src.utils.base.BaseModel` (which extends `pydantic.BaseModel` with `model_config = ConfigDict(populate_by_name=True)`)
-- All list wrapper models extend `BaseList[T]` (a `Generic[T]` with an `items: List[T]` field)
-- Generate update models with the `optional_model()` utility — do not duplicate field definitions:
-  ```python
-  UserUpdateModel = optional_model("UserUpdateModel", UserBaseModel)
-  ```
-- Decorate models with `@openapi.component()` for Swagger documentation
+### Type Hints
+- Use Python's `typing` module for complex types
+- Use built-in types directly where possible (e.g., `list[str]` over `List[str]`)
+- Use `Optional[T]` instead of `Union[T, None]`
+- Always include return types on functions
 
-### Database Access (Active Record Pattern)
-- DB access methods live directly on the model class — not in a separate repository layer
-- `@classmethod` for `fetch`, `fetch_all`, `create`; instance method for `update`
-- Always type the `db` parameter as `Database`
-- Use `asyncpg` positional parameters (`$1`, `$2`, ...); never format SQL strings with user input
-- Use `asyncio.gather()` for concurrent independent queries
-- DB schema-qualified table names: `users.user`, `guilds.guild`, `quests_v3.quest`, etc.
+### Pydantic Models (v2)
+- Use `pydantic.BaseModel` as base class
+- Use `.model_json_schema()` not `.schema()` for schema generation
+- Use `model_validate()` not `.parse_obj()` for validation
+- Use `model_dump()` not `.dict()` for serialization
+
+### Async/Await
+- All database operations use `asyncpg` and must be async
+- Use `async with` for context managers (transactions, pool acquisition)
+- Use `await` for all async calls
 
 ### Error Handling
-Use the three custom exceptions from `src/utils/errors.py`:
-```python
-from src.utils.errors import BadRequest400, NotFound404, Forbidden403
-```
-
-Standard pattern for all fetch operations:
-```python
-# 1. Validate required input
-if not thorny_id:
-    raise BadRequest400(extra={'ids': ['thorny_id']})
-
-# 2. Execute query
-data = await db.pool.fetchrow("SELECT ... WHERE thorny_id = $1", thorny_id)
-
-# 3. Return or raise
-if data:
-    return cls(**data)
-raise NotFound404(extra={'resource': 'user', 'id': thorny_id})
-```
-
-Use `@model_validator` on Pydantic models to raise `BadRequest400` for invalid business logic (e.g., empty target lists, mismatched types, out-of-range counts).
-
-For duplicate detection:
-```python
-try:
-    await ItemModel.fetch(db, body.item_id)
-    raise BadRequest400('This item already exists')
-except NotFound404:
-    await ItemModel.create(db, body)
-```
-
-Errors propagate to Sanic's exception handler — do not wrap entire route handlers in try/except unless handling a specific expected case.
-
----
-
-## Architecture Patterns
-
-### Blueprint-Based Routing
-Each domain has its own `Blueprint` in `src/routes/`. All blueprints aggregate in `src/routes/__init__.py` as a `blueprint_group` with prefix `/api/v0.2/`.
-
-### Dependency Injection
-`Database` is registered with Sanic-Ext DI at startup:
-```python
-@app.before_server_start
-async def init_db(application: Sanic):
-    db = await Database.init_pool()
-    application.ext.dependency(db)
-```
-Route handlers receive `db: Database` as an injected parameter — do not instantiate `Database` inside routes.
-
-### Configuration
-Runtime config (DB credentials, Discord webhook URL) is read from `config.json` (gitignored, never committed). No environment variables or secrets manager is used. Do not hardcode credentials.
-
-### OpenAPI Documentation
-Use `@openapi.definition(...)` on route handlers and `@openapi.component()` on models. Swagger UI is served at `/api/docs`. Every route must have a `summary` in its docstring and proper `@openapi.definition` decorator.
+- Use exceptions from `src.errors` only (e.g., `NotFound`, `BadRequest`, `AlreadyExists`)
+- Never use `HTTPException` or `SecurityException` directly
+- Add new exception classes to `src/errors.py` if needed
 
 ### SQL Queries
-Raw SQL with `asyncpg` — no ORM. Build dynamic queries by appending SQL fragments and parameters to lists, then joining:
-```python
-conditions = ["guild_id = $1"]
-params = [guild_id]
-if some_filter:
-    params.append(some_filter)
-    conditions.append(f"column = ${len(params)}")
-query = f"SELECT ... WHERE {' AND '.join(conditions)}"
+- Use parameterized queries with `$1`, `$2`, etc.
+- Use raw SQL strings (not ORM)
+- Keep queries in repository methods
+
+### Configuration
+- Use `pydantic_settings.BaseSettings` for configuration
+- Use uppercase field names for environment variables
+- Access via `settings` singleton from `src.config`
+
+### API Routes
+- Use `APIRouter` for route organization
+- Use prefixes to group routes (e.g., `/auth`, `/v1`)
+- Use tags for OpenAPI documentation
+- Use `Security` for dependency injection with scopes
+- Depend on services via `Depends(get_*_service)`
+
+### Database
+- Access pool via `db.pool` (from `src.dependencies.database`)
+- Use transactions for multi-statement operations
+- Use connection context managers for safe cleanup
+
+## Project Structure
+
 ```
+src/
+├── main.py              # FastAPI app entry point
+├── config.py            # Settings configuration
+├── dependencies/        # Dependency injection (auth, database, services, repositories)
+├── models/              # Pydantic models (DB, Out, In)
+├── repositories/        # Database interaction layer (returns DB models)
+├── services/            # Business logic layer (returns Out models)
+├── routes/              # API route handlers (Router layer)
+├── utils/               # Utility classes and functions
+└── errors.py            # Custom exception classes
+```
+
+## Common Patterns
+
+### Creating a Model
+```python
+from pydantic import BaseModel
+from typing import Optional
+
+class QuestDB(BaseModel):
+    quest_id: int
+    name: str
+    description: Optional[str] = None
+```
+
+### Creating a Repository
+```python
+from src.dependencies.database import Database
+from src.models.quests.quest import QuestDB, QuestIn
+
+class QuestRepository:
+    def __init__(self, db: Database):
+        self.db = db
+
+    async def fetch(self, quest_id: int) -> QuestDB:
+        data = await self.db.pool.fetchrow(
+            "SELECT * FROM quests_v3.quests WHERE quest_id = $1", quest_id
+        )
+        return QuestDB.model_validate(dict(data))
+```
+
+### Creating a Service
+```python
+from src.repositories.quests.quest import QuestRepository
+from src.models.quests.quest import QuestIn, QuestOut
+
+class QuestService:
+    def __init__(self, quest_repo: QuestRepository):
+        self.quest_repo = quest_repo
+
+    async def create(self, model: QuestIn) -> QuestOut:
+        quest_db = await self.quest_repo.create(model)
+        return QuestOut(**quest_db.model_dump())
+```
+
+### Creating a Route
+```python
+from fastapi import APIRouter, status, Security, Depends
+from src.dependencies.auth import Scope, get_guild_client
+from src.dependencies.services import get_quest_service
+from src.models.auth import TokenPayload
+from src.models.quests.quest import QuestIn, QuestOut
+
+router = APIRouter(prefix="/quests", tags=["Quests"])
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+async def create_quest(
+    body: QuestIn,
+    _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WRITE]),
+    service: QuestService = Depends(get_quest_service)
+) -> QuestOut:
+    return await service.create(body)
+```
+
+## Testing
+
+There is currently no testing set up for this project.
+
+## Linting
+
+There is currently no linting configured for this project. Consider adding `ruff` or `flake8` in the future.

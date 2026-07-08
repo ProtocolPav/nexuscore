@@ -1,14 +1,9 @@
 import uuid
 
-from pydantic import Field, StringConstraints, UUID4
-from typing import Annotated, Literal, Optional, Union
-
-from src.utils.base import BaseModel, BaseList, optional_model
-
-from sanic_ext import openapi
+from pydantic import Field, UUID4, BaseModel
+from typing import Annotated, Literal, Union
 
 
-@openapi.component()
 class TargetProgressBaseModel(BaseModel):
     target_uuid: UUID4 = Field(description="The target uuid", default_factory=uuid.uuid4)
     target_type: str = Field(description="The type of the target. Must be equal to `objective_type`.",
@@ -18,7 +13,6 @@ class TargetProgressBaseModel(BaseModel):
                        json_schema_extra={"example": 50})
 
 
-@openapi.component()
 class MineTargetProgressModel(TargetProgressBaseModel):
     target_type: Literal["mine"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                          json_schema_extra={"example": "mine"})
@@ -27,7 +21,6 @@ class MineTargetProgressModel(TargetProgressBaseModel):
                        json_schema_extra={"example": 50})
 
 
-@openapi.component()
 class KillTargetProgressModel(TargetProgressBaseModel):
     target_type: Literal["kill"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                          json_schema_extra={"example": "kill"})
@@ -36,7 +29,6 @@ class KillTargetProgressModel(TargetProgressBaseModel):
                        json_schema_extra={"example": 50})
 
 
-@openapi.component()
 class ScriptEventTargetProgressModel(TargetProgressBaseModel):
     target_type: Literal["scriptevent"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                                 json_schema_extra={"example": "scriptevent"})

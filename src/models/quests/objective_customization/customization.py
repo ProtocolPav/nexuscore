@@ -1,20 +1,15 @@
-from pydantic import Field, StringConstraints
-from typing import Annotated, Literal, Optional, Union
+from pydantic import Field, BaseModel
+from typing import Optional
 
-from src.utils.base import BaseModel
-
-from sanic_ext import openapi
-
-MinecraftID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
+from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
 
-@openapi.component()
 class MainhandCustomization(BaseModel):
-    item: MinecraftID = Field(description="The item which is required to be held",
-                              json_schema_extra={"example": "minecraft:diamond_sword"})
+    item: str = Field(description="The item which is required to be held",
+                      json_schema_extra={"example": "minecraft:diamond_sword"},
+                      pattern=MINECRAFT_REGEX_PATTERN)
 
 
-@openapi.component()
 class LocationCustomization(BaseModel):
     coordinates: tuple[int, int, int] = Field(description="The coordinates",
                                               json_schema_extra={"example": (200, 70, -43)})
@@ -24,7 +19,6 @@ class LocationCustomization(BaseModel):
                                  json_schema_extra={"example": 3})
 
 
-@openapi.component()
 class TimerCustomization(BaseModel):
     seconds: int = Field(description="The timer's seconds",
                          json_schema_extra={"example": 540})
@@ -32,19 +26,16 @@ class TimerCustomization(BaseModel):
                        json_schema_extra={"example": True})
 
 
-@openapi.component()
 class MaximumDeathsCustomization(BaseModel):
     deaths: int = Field(description="The most deaths a player can have before moving to the next objective",
                         json_schema_extra={"example": 3})
     fail: bool = Field(description="Fail the quest when the death count is exceeded",
                        json_schema_extra={"example": True})
 
-@openapi.component()
 class NaturalBlockCustomization(BaseModel):
     pass
 
 
-@openapi.component()
 class Customizations(BaseModel):
     mainhand: Optional[MainhandCustomization] = Field(description="Mainhand Customization", default=None)
     location: Optional[LocationCustomization] = Field(description="Location Customization", default=None)

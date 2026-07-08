@@ -1,79 +1,61 @@
-from sanic import Blueprint, Request, HTTPResponse
-import sanic
-from sanic_ext import openapi, validate
-from sanic_ext.extensions.openapi.definitions import RequestBody, Response
+from fastapi import APIRouter, Depends, Security, status
 
-from src.database import Database
-from src.models.projects import pin
-from src.utils.errors import BadRequest400, NotFound404
+from src.dependencies.auth import get_guild_client
+from src.dependencies.services import get_pin_service
 
-pin_blueprint = Blueprint("pins", url_prefix='/pins')
+from src.models.auth import TokenPayload, Scope
+from src.models.projects.pin import PinOut, PinIn, PinUpdate
 
-@pin_blueprint.route('/', methods=['GET'])
-@openapi.definition(response=[
-    Response(pin.PinsListModel.doc_schema(), 200)
-])
-async def get_all_pins(request: Request, db: Database):
+from src.services.pin import PinService
+
+pins_router = APIRouter(prefix='/pins', tags=['Pins'])
+
+@pins_router.get('')
+async def list_pins(
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_READ]),
+        service: PinService = Depends(get_pin_service)
+) -> list[PinOut]:
     """
-    Get All Pins
-
     Get a list of Pins
     """
-    pins_model = await pin.PinsListModel.fetch(db)
-
-    return sanic.json(pins_model.model_dump(), default=str)
+    return await service.get_all()
 
 
-@pin_blueprint.route('/', methods=['POST'])
-@openapi.definition(body=RequestBody(pin.PinCreateModel.doc_schema()),
-                    response=[
-                        Response(pin.PinModel.doc_schema(), 201),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=pin.PinCreateModel)
-async def create_pin(request: Request, db: Database, body: pin.PinCreateModel):
+@pins_router.post('', status_code=status.HTTP_201_CREATED)
+async def create_pin(
+        body: PinIn,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_WRITE]),
+        service: PinService = Depends(get_pin_service)
+) -> PinOut:
     """
-    Create Pin
-
-    Creates a new pin, inserts a status and content.
+    Creates a new pin
     """
-    pin_id = await pin.PinModel.create(db, body)
-    pin_model = await pin.PinModel.fetch(db, pin_id)
-
-    return sanic.json(status=201, body=pin_model.model_dump(), default=str)
+    return await service.new(body)
 
 
-@pin_blueprint.route('/<pin_id:int>', methods=['GET'])
-@openapi.definition(response=[
-    Response(pin.PinModel.doc_schema(), 200),
-    Response(NotFound404, 404)
-])
-async def get_pin(request: Request, db: Database, pin_id: int):
+@pins_router.get('/{pin_id}')
+async def get_pin(
+        pin_id: int,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_READ]),
+        service: PinService = Depends(get_pin_service)
+) -> PinOut:
     """
-    Get Pin
-
     Returns the pin specified
     """
-    pin_model = await pin.PinModel.fetch(db, pin_id)
-
-    return sanic.json(pin_model.model_dump(), default=str)
+    return await service.get(pin_id)
 
 
-@pin_blueprint.route('/<pin_id:int>', methods=['PATCH', 'PUT'])
-@openapi.definition(body=RequestBody(pin.PinUpdateModel.doc_schema()),
-                    response=[
-                        Response(pin.PinModel.doc_schema(), 200),
-                        Response(BadRequest400, 400),
-                        Response(NotFound404, 404)
-                    ])
-@validate(json=pin.PinUpdateModel)
-async def update_pin(request: Request, db: Database, pin_id: int, body: pin.PinUpdateModel):
+@pins_router.patch('/{pin_id}')
+@pins_router.put('/{pin_id}')
+async def partial_update_pin(
+        pin_id: int,
+        body: PinUpdate,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_PINS_WRITE]),
+        service: PinService = Depends(get_pin_service)
+) -> PinOut:
     """
     Update Pin
 
     Update the pin. Anything that you do not want to update can be left as `null`
     """
-    model = await pin.PinModel.fetch(db, pin_id)
-    await model.update(db, body)
-
-    return sanic.json(model.model_dump(), default=str)
+    return await service.update(pin_id, body)

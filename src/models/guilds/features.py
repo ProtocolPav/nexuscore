@@ -1,29 +1,21 @@
-from pydantic import Field
-from sanic_ext import openapi
-from src.database import Database
+from typing import Annotated
 
-from src.utils.base import BaseModel, BaseList, optional_model
-from src.utils.errors import BadRequest400, NotFound404
+from pydantic import Field, BaseModel
 
 
-@openapi.component()
-class Feature(BaseModel):
-    feature: str = Field(description="The feature itself",
-                         examples=['BASIC', 'PLAYTIME', 'PROFILE'])
-    configured: bool = Field(description="Whether the feature is configured or not. "
-                                         "This will always be false, as this is un-used.")
+FeatureField = Annotated[str, Field(
+    description="The feature itself",
+    examples=['BASIC', 'PLAYTIME', 'PROFILE']
+)]
+Configured = Annotated[bool, Field(
+    description="Whether the feature is configured or not.",
+    examples=[False],
+    deprecated=True
+)]
 
-class FeaturesListModel(BaseList[Feature]):
-    @classmethod
-    async def fetch(cls, db: Database, guild_id: int = None, *args) -> "FeaturesListModel":
-        data = await db.pool.fetch("""
-                                   SELECT feature, configured FROM guilds.features
-                                   WHERE guild_id = $1
-                                   """,
-                                   guild_id)
+class FeatureDB(BaseModel):
+    feature: FeatureField
+    configured: Configured
 
-        features: list[Feature] = []
-        for feature in data:
-            features.append(Feature(**feature))
-
-        return cls(root=features)
+class FeatureOut(FeatureDB):
+    pass

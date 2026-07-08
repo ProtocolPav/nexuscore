@@ -1,30 +1,24 @@
-from pydantic import Field, StringConstraints
-from typing import Annotated, Literal, Optional, Union
+from pydantic import Field, BaseModel
+from typing import Annotated, Literal, Union
 
-from src.utils.base import BaseModel, BaseList, optional_model
-
-from sanic_ext import openapi
-
-MinecraftID = Annotated[str, StringConstraints(pattern='^[a-z]+:[a-z_0-9]+$')]
+from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
 
-@openapi.component()
 class MetadataBaseModel(BaseModel):
     metadata_type: str = Field(description="The metadata type",
                                json_schema_extra={"example": "enchantment"})
 
 
-@openapi.component()
 class EnchantmentModel(MetadataBaseModel):
     metadata_type: Literal['enchantment'] = Field(description="The metadata type",
                                                   json_schema_extra={"example": "enchantment"})
     enchantment_id: str = Field(description="The enchantment ID",
-                                json_schema_extra={"example": "minecraft:sharpness"})
+                                json_schema_extra={"example": "minecraft:sharpness"},
+                                pattern=MINECRAFT_REGEX_PATTERN)
     enchantment_level: int = Field(description="The enchantment level",
                                    json_schema_extra={"example": 4})
 
 
-@openapi.component()
 class RandomEnchantmentModel(MetadataBaseModel):
     metadata_type: Literal['enchantment_random'] = Field(description="The metadata type",
                                                          json_schema_extra={"example": "enchantment_random"})
@@ -36,17 +30,16 @@ class RandomEnchantmentModel(MetadataBaseModel):
                            json_schema_extra={"example": True})
 
 
-@openapi.component()
 class PotionModel(MetadataBaseModel):
     metadata_type: Literal['potion'] = Field(description="The metadata type",
                                              json_schema_extra={"example": "potion"})
     potion_effect: str = Field(description="The potion effect type",
-                               json_schema_extra={"example": "minecraft:long_speed"})
+                               json_schema_extra={"example": "minecraft:long_speed"},
+                               pattern=MINECRAFT_REGEX_PATTERN)
     potion_delivery: str = Field(description="The potion delivery type",
                                  json_schema_extra={"example": "Consume"})
 
 
-@openapi.component()
 class NameModel(MetadataBaseModel):
     metadata_type: Literal['name'] = Field(description="The metadata type",
                                            json_schema_extra={"example": "name"})
@@ -54,7 +47,6 @@ class NameModel(MetadataBaseModel):
                            json_schema_extra={"example": "Super Secret Note"})
 
 
-@openapi.component()
 class LoreModel(MetadataBaseModel):
     metadata_type: Literal['lore'] = Field(description="The metadata type",
                                            json_schema_extra={"example": "lore"})
@@ -62,7 +54,6 @@ class LoreModel(MetadataBaseModel):
                                  json_schema_extra={"example": ["This item gives +3 knockback", "+4 Damage"]})
 
 
-@openapi.component()
 class DamageModel(MetadataBaseModel):
     metadata_type: Literal['damage'] = Field(description="The metadata type",
                                              json_schema_extra={"example": "damage"})

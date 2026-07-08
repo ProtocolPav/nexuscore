@@ -1,124 +1,83 @@
-from datetime import datetime
+from fastapi import APIRouter, status, Security, Depends
 
-from sanic import Blueprint, Request
-import sanic
-from sanic_ext import openapi, validate
-from sanic_ext.extensions.openapi.definitions import Parameter, RequestBody, Response
+from src.dependencies.auth import get_guild_client
+from src.dependencies.services import get_quest_progress_service
+from src.models.auth import TokenPayload, Scope
 
-from src.utils.errors import BadRequest400, NotFound404
+from src.models.quests.quest_progress import QuestProgressIn, QuestProgressOut, QuestProgressUpdate
+from src.services.quest_progress import QuestProgressService
 
-from src.database import Database
-
-from src.models.quests import quest_progress, objective_progress
-
-progress_blueprint = Blueprint("quest_progress", url_prefix='/quests/progress')
+quest_progress_router = APIRouter(prefix='/guilds/me/quests/progress', tags=['Quests'])
 
 
-@progress_blueprint.route('/', methods=['POST'])
-@openapi.definition(body=RequestBody(quest_progress.QuestProgressCreateModel.doc_schema()),
-                    response=[
-                        Response(quest_progress.QuestProgressModel.doc_schema(), 201),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=quest_progress.QuestProgressCreateModel)
-async def create_quest_progress(request: Request, db: Database, body: quest_progress.QuestProgressCreateModel):
+@quest_progress_router.post('', status_code=status.HTTP_201_CREATED)
+async def create_quest_progress(
+        body: QuestProgressIn,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
+        service: QuestProgressService = Depends(get_quest_progress_service)
+) -> QuestProgressOut:
     """
     Create New Quest Progress
 
     Adds a new quest to a user, tracking their progress.
     Automatically sets the quest progress to "active".
     """
-    quest_id = await quest_progress.QuestProgressModel.create(db, body)
-    quest_model = await quest_progress.QuestProgressModel.fetch(db, quest_id)
-    await quest_model.update(db, quest_progress.QuestProgressUpdateModel(status='active'))
-    await quest_model.objectives[0].update(db, quest_progress.ObjectiveProgressUpdateModel(status='active'))
-
-    return sanic.json(status=201, body=quest_model.model_dump(), default=str)
+    return await service.new(body)
 
 
-@progress_blueprint.route('/user/<thorny_id:int>', methods=['GET'])
-@openapi.definition(response=[
-    Response(quest_progress.QuestProgressListModel.doc_schema(), 200),
-    Response(NotFound404, 404)
-])
-async def get_all_quests(request: Request, db: Database, thorny_id: int):
+@quest_progress_router.get('/user/{thorny_id}')
+async def list_quest_progress(
+        thorny_id: int,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
+        service: QuestProgressService = Depends(get_quest_progress_service)
+) -> list[QuestProgressOut]:
     """
     Get All User's Quest Progress
 
     Returns all quest progress belonging to a user
     """
-    quests_list = await quest_progress.QuestProgressListModel.fetch(db, thorny_id)
-
-    return sanic.json(quests_list.model_dump(), default=str)
+    return await service.get_all_users_progress(thorny_id)
 
 
-@progress_blueprint.route('/user/<thorny_id:int>/active', methods=['GET'])
-@openapi.definition(response=[
-    Response(quest_progress.QuestProgressModel.doc_schema(), 200),
-    Response(NotFound404, 404)
-])
-async def get_active_quest(request: Request, db: Database, thorny_id: int):
+@quest_progress_router.get('/user/{thorny_id}/active')
+async def get_active_quest_progress(
+        thorny_id: int,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
+        service: QuestProgressService = Depends(get_quest_progress_service)
+) -> QuestProgressOut:
     """
     Get User's Active Quest
 
     Returns the user's currently active quest.
     """
-    quest = await quest_progress.QuestProgressModel.fetch_active_quest(db, thorny_id)
-
-    return sanic.json(quest.model_dump(), default=str)
+    return await service.get_active(thorny_id)
 
 
-@progress_blueprint.route('/user/<thorny_id:int>/active', methods=['DELETE'])
-@openapi.definition(response=[
-    Response(204),
-    Response(BadRequest400, 400),
-    Response(NotFound404, 404)
-])
-async def fail_active_quest(request: Request, db: Database, thorny_id: int):
+@quest_progress_router.delete('/user/{thorny_id}/active', status_code=status.HTTP_204_NO_CONTENT)
+async def fail_active_quest_progress(
+        thorny_id: int,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
+        service: QuestProgressService = Depends(get_quest_progress_service)
+):
     """
     Fail User's Active Quest
 
     This marks the active quest and all of its objectives as "failed".
     """
-    quest = await quest_progress.QuestProgressModel.fetch_active_quest(db, thorny_id)
-    await quest.mark_failed(db)
-
-    return sanic.empty(status=204)
+    await service.mark_failed(thorny_id)
 
 
-@progress_blueprint.route('/<progress_id:int>', methods=['PUT'])
-@openapi.definition(body=RequestBody(quest_progress.QuestProgressUpdateModel.doc_schema()),
-                    response=[
-                        Response(quest_progress.QuestProgressModel.doc_schema(), 200),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=quest_progress.QuestProgressUpdateModel)
-async def update_quest(request: Request, db: Database, progress_id: int, body):
+@quest_progress_router.put('/{progress_id}')
+@quest_progress_router.patch('/{progress_id}')
+async def partial_update_quest_progress(
+        progress_id: int,
+        body: QuestProgressUpdate,
+        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
+        service: QuestProgressService = Depends(get_quest_progress_service)
+) -> QuestProgressOut:
     """
     Update Specific User's Quest
 
-    Updates a user's quest. Note this does not update objectives.
+    Updates a user's quest.
     """
-    model = await quest_progress.QuestProgressModel.fetch(db, progress_id)
-    await model.update(db, body)
-
-    return sanic.json(model.model_dump(), default=str)
-
-
-@progress_blueprint.route('/<progress_id:int>/<objective_id:int>', methods=['PUT'])
-@openapi.definition(body=RequestBody(objective_progress.ObjectiveProgressUpdateModel.doc_schema()),
-                    response=[
-                        Response(objective_progress.ObjectiveProgressModel.doc_schema(), 200),
-                        Response(BadRequest400, 400)
-                    ])
-@validate(json=objective_progress.ObjectiveProgressUpdateModel)
-async def update_objective(request: Request, db: Database, progress_id: int, objective_id: int, body):
-    """
-    Update Specific User's Quest Objective
-
-    Updates a user's quest objective.
-    """
-    model = await objective_progress.ObjectiveProgressModel.fetch(db, progress_id, objective_id)
-    await model.update(db, body)
-
-    return sanic.json(model.model_dump(), default=str)
+    return await service.update(progress_id, body)

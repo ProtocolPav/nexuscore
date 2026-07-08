@@ -1,28 +1,24 @@
 from datetime import datetime, date
-
 from pydantic import Field
-from sanic_ext import openapi
 from typing_extensions import Optional
+from fastapi import HTTPException
 
-from src.database import Database
-from src.utils.base import BaseModel, BaseList
-from src.utils.errors import BadRequest400, NotFound404
+from src.dependencies.database import Database
+from src.utils.base import LegacyBaseModel, LegacyBaseList
 
 
-@openapi.component()
-class DailyPlaytime(BaseModel):
+class DailyPlaytime(LegacyBaseModel):
     day: date = Field(description="Total playtime in seconds",
                      json_schema_extra={"example": '2024-05-05'})
     playtime: float = Field(description="The day's playtime in seconds",
                             json_schema_extra={"example": 125.54})
 
 
-@openapi.component()
-class DailyPlaytimeList(BaseList[DailyPlaytime]):
+class DailyPlaytimeList(LegacyBaseList[DailyPlaytime]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "DailyPlaytimeList":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetch("""
                                     SELECT t.day, SUM(t.playtime) AS playtime
@@ -46,23 +42,21 @@ class DailyPlaytimeList(BaseList[DailyPlaytime]):
 
             return cls(root=days)
         else:
-            raise NotFound404(extra={'resource': 'user_daily_playtime', 'id': thorny_id})
+            raise HTTPException(status_code=404, detail="No playtime data found")
 
 
-@openapi.component()
-class MonthlyPlaytime(BaseModel):
+class MonthlyPlaytime(LegacyBaseModel):
     month: date = Field(description="Total playtime in seconds",
                         json_schema_extra={"example": '2024-05-01'})
     playtime: float = Field(description="The month's playtime in seconds",
                             json_schema_extra={"example": 332.89})
 
 
-@openapi.component()
-class MonthlyPlaytimeList(BaseList[MonthlyPlaytime]):
+class MonthlyPlaytimeList(LegacyBaseList[MonthlyPlaytime]):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int = None, *args) -> "MonthlyPlaytimeList":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetch("""
                                     SELECT t.month AS month, SUM(t.playtime) AS playtime
@@ -86,10 +80,10 @@ class MonthlyPlaytimeList(BaseList[MonthlyPlaytime]):
 
             return cls(root=months)
         else:
-            raise NotFound404(extra={'resource': 'user_monthly_playtime', 'id': thorny_id})
+            raise HTTPException(status_code=404, detail="No playtime data found")
 
 
-class PlaytimeSummary(BaseModel):
+class PlaytimeSummary(LegacyBaseModel):
     thorny_id: int = Field(description="The ThornyID of a user",
                            json_schema_extra={"example": 34})
     total: float = Field(description="Total playtime in seconds",
@@ -102,7 +96,7 @@ class PlaytimeSummary(BaseModel):
     @classmethod
     async def fetch(cls, db: Database, thorny_id: int, *args) -> "PlaytimeSummary":
         if not thorny_id:
-            raise BadRequest400(extra={'ids': ['thorny_id']})
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         data = await db.pool.fetchrow("""
                                       WITH total_playtime AS (
@@ -141,4 +135,4 @@ class PlaytimeSummary(BaseModel):
 
             return cls(**data, daily=daily, monthly=monthly)
         else:
-            raise NotFound404(extra={'resource': 'user_playtime', 'id': thorny_id})
+            raise HTTPException(status_code=404, detail="No playtime data found")

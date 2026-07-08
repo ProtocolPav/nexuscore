@@ -3,12 +3,9 @@ from datetime import datetime, date
 
 from pydantic import BaseModel, Field
 
-from sanic_ext import openapi
-
-from src.database import Database
+from src.dependencies.database import Database
 
 
-@openapi.component()
 class LeaderboardEntry(BaseModel):
     value: float | int = Field(description="The value of the leaderboard, if it's playtime then it is seconds, etc.")
     thorny_id: int
@@ -107,14 +104,14 @@ class LeaderboardModel(BaseModel):
     async def fetch_quests(cls, db: Database, guild_id: int) -> "LeaderboardModel":
         data = await db.pool.fetchrow("""
                                         with t as (
-                                            select u.thorny_id, u.user_id, count(q.status) as quests
+                                            select u.thorny_id, u.user_id, count(q.status) as quests_router
                                             from users."user" u
-                                            inner join users.quests q on q.thorny_id = u.thorny_id
+                                            inner join users.quests_router q on q.thorny_id = u.thorny_id
                                             where u.guild_id = $1
                                             and q.status = 'completed'
                                             and u.active = true
                                             group by u.thorny_id
-                                            order by quests desc
+                                            order by quests_router desc
                                         )
 
                                         select coalesce(
@@ -122,7 +119,7 @@ class LeaderboardModel(BaseModel):
                                             select
                                             json_agg(json_build_object('thorny_id', t.thorny_id,
                                                                        'discord_id', t.user_id,
-                                                                       'value', t.quests))
+                                                                       'value', t.quests_router))
                                             from t
                                             ),
                                             '[]'::json
