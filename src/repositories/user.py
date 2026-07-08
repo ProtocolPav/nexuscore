@@ -31,8 +31,8 @@ class UserRepository:
                     RETURNING *
                 ),
                 profile_table AS (
-                    INSERT INTO users.profile(user_id)
-                    VALUES ($2)
+                    INSERT INTO users.profile(thorny_id)
+                    VALUES (user_table.thorny_id)
                 )
                 SELECT * FROM user_table
             """, guild_id, model.user_id, model.username)
