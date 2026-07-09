@@ -24,6 +24,10 @@ AuthorID = Annotated[int, Field(
     description="The ThornyID of the page author",
     examples=[12]
 )]
+GuildID = Annotated[int, Field(
+    description="The Discord guild ID this page is registered in.",
+    examples=[123456789012345678]
+)]
 Title = Annotated[str, Field(
     description="The title of the wiki page",
     examples=["Getting Started Guide"]
@@ -78,6 +82,7 @@ class PageBase(BaseModel):
 
 class PageDB(PageBase):
     author_id: AuthorID
+    guild_id: GuildID
     project_id: ProjectID
     view_count: ViewCount
     created_at: CreatedAt
