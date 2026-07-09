@@ -81,6 +81,7 @@ class PageBase(BaseModel):
 
 
 class PageDB(PageBase):
+    page_id: PageID
     author_id: AuthorID
     guild_id: GuildID
     project_id: ProjectID

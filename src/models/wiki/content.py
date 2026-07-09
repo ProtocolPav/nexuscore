@@ -4,6 +4,8 @@ from datetime import datetime
 from pydantic import BaseModel, Field, model_validator
 from typing_extensions import Optional, Annotated
 
+from src.models.users.user import UserOut
+
 ContentID = Annotated[int, Field(
     description="The unique content version ID",
     examples=[1]
@@ -58,7 +60,7 @@ class ContentDB(BaseModel):
 
 class ContentOut(BaseModel):
     version: Version
-    edited_by: EditedByID
+    edited_by: UserOut
     editor_type: EditorType
     change_note: ChangeNote
     content: Content

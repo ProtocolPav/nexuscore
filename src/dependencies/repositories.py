@@ -10,6 +10,8 @@ from src.repositories.quests.quest import QuestRepository
 from src.repositories.quests.quest_progress import QuestProgressRepository
 from src.repositories.quests.reward import RewardRepository
 from src.repositories.user import UserRepository
+from src.repositories.wiki.content import ContentRepository
+from src.repositories.wiki.page import PageRepository
 from src.repositories.world import WorldRepository
 
 
@@ -62,3 +64,13 @@ def get_objective_progress_repo(
         database: Database = Depends(get_db),
 ) -> ObjectiveProgressRepository:
     return ObjectiveProgressRepository(database)
+
+def get_wiki_page_repo(
+        database: Database = Depends(get_db),
+) -> PageRepository:
+    return PageRepository(database)
+
+def get_wiki_content_repo(
+        database: Database = Depends(get_db),
+) -> ContentRepository:
+    return ContentRepository(database)
