@@ -1,17 +1,25 @@
-import json
 from datetime import datetime
 
-from pydantic import Field, model_validator
-from typing import Any
-from typing_extensions import Optional
+from pydantic import BaseModel, Field
+from typing_extensions import Optional, Annotated
 
-from src.database import Database
-from src.models.users import user
-from src.utils.base import BaseModel, BaseList
+ContentID = Annotated[int, Field(
+    description="The unique content version ID",
+    examples=[1]
+)]
+PageID = Annotated[int, Field(
+    description="The page this content belongs to",
+    examples=[321]
+)]
+Version = Annotated[int, Field(
+    description="The version number, scoped per page",
+    examples=[3]
+)]
+EditedByID = Annotated[int, Field(
+    description="The ThornyID of the user who edited this content",
+    examples=[12]
+)]
 
-from sanic_ext import openapi
-
-from src.utils.errors import NotFound404
 
 
 class PageContentBaseModel(BaseModel):
