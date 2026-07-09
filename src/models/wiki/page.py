@@ -5,7 +5,7 @@ from typing_extensions import Optional, Annotated
 
 from src.models.projects.project import ProjectOut
 from src.models.users.user import UserOut
-from src.models.wiki.content import PageContentModel
+from src.models.wiki.content import ContentOut
 
 
 PageID = Annotated[int, Field(
@@ -63,9 +63,6 @@ UpdatedAt = Annotated[datetime, Field(
     description="When the page was last updated",
     examples=['2024-07-05 15:15:00+00:00']
 )]
-Content = Annotated[PageContentModel, Field(
-    description="The latest content version of the page"
-)]
 
 
 class PageBase(BaseModel):
@@ -87,8 +84,6 @@ class PageDB(PageBase):
     updated_at: UpdatedAt
 
 
-class PageOut(PageBase):
+class PageOut(PageBase, ContentOut):
     author: UserOut
-    content: Content
     project: ProjectOut
-
