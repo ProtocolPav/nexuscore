@@ -57,6 +57,10 @@ class WikiService:
         page_db = await self.page_repo.fetch(guild_id, page_id)
         return await self._to_out(page_db)
 
+    async def get_by_slug(self, guild_id: int, slug: str) -> PageOut:
+        page_db = await self.page_repo.fetch_by_slug(guild_id, slug)
+        return await self._to_out(page_db)
+
     async def get_all(self, guild_id: int, query: PageQuery) -> list[PageOut]:
         pages_db = await self.page_repo.fetch_all(guild_id, query)
 

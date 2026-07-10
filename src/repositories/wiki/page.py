@@ -24,6 +24,18 @@ class PageRepository:
 
         return PageDB.model_validate(dict(data))
 
+    async def fetch_by_slug(self, guild_id: int, slug: str) -> PageDB:
+        data = await self.db.pool.fetchrow("""
+            SELECT * FROM wiki.page
+            WHERE guild_id = $1
+            AND slug = $2
+        """, guild_id, slug)
+
+        if not data:
+            raise NotFound("Wiki Page")
+
+        return PageDB.model_validate(dict(data))
+
     async def fetch_all(self, guild_id: int, query: PageQuery) -> list[PageDB]:
         # Build the query dynamically
         query_parts = ["SELECT * FROM wiki.page p"]
