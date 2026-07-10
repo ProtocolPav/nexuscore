@@ -24,20 +24,8 @@ async def list_wiki_pages(
     return await service.get_all(auth.guild_id, filter_query)
 
 
-@wiki_router.get('/{page_id}')
-async def get_wiki_page(
-        page_id: int,
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
-        service: WikiService = Depends(get_wiki_service)
-) -> PageOut:
-    """
-    Returns a wiki page
-    """
-    return await service.get(auth.guild_id, page_id)
-
-
 @wiki_router.get('/{slug}')
-async def get_wiki_page_by_slug(
+async def get_wiki_page(
         slug: str,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
         service: WikiService = Depends(get_wiki_service)
