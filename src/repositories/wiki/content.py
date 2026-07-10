@@ -12,26 +12,24 @@ class ContentRepository:
     def __init__(self, db: Database):
         self.db = db
 
-    async def fetch(self, guild_id: int, content_id: int) -> ContentDB:
+    async def fetch(self, content_id: int) -> ContentDB:
         data = await self.db.pool.fetchrow("""
             SELECT * FROM wiki.content
-            WHERE guild_id = $1
-            AND content_id = $2
-        """, guild_id, content_id)
+            WHERE content_id = $1
+        """, content_id)
 
         if not data:
             raise NotFound("Wiki Content")
 
         return ContentDB.model_validate(dict(data))
 
-    async def fetch_by_page(self, guild_id: int, page_id: int) -> ContentDB:
+    async def fetch_by_page(self, page_id: int) -> ContentDB:
         data = await self.db.pool.fetchrow("""
             SELECT * FROM wiki.content
-            WHERE guild_id = $1
-            AND page_id = $2
+            Where page_id = $1
             ORDER BY version DESC
             LIMIT 1
-        """, guild_id, page_id)
+        """, page_id)
 
         if not data:
             raise NotFound("Wiki Content")

@@ -16,9 +16,9 @@ Slug = Annotated[str, Field(
     description="The URL-safe slug ID of the page",
     examples=["getting_started_guide"]
 )]
-ProjectID = Annotated[int, Field(
+ProjectID = Annotated[str, Field(
     description="The linked project ID for this wiki page",
-    examples=[123]
+    examples=["my-project"]
 )]
 AuthorID = Annotated[int, Field(
     description="The ThornyID of the page author",
@@ -84,12 +84,13 @@ class PageDB(PageBase):
     page_id: PageID
     author_id: AuthorID
     guild_id: GuildID
-    project_id: ProjectID
+    project_id: Optional[ProjectID]
     view_count: ViewCount
     created_at: CreatedAt
     updated_at: UpdatedAt
 
 
-class PageOut(PageBase, ContentOut):
+class PageOut(PageBase):
     author: UserOut
-    project: ProjectOut
+    project: Optional[ProjectOut] = None
+    content: ContentOut

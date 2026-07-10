@@ -63,7 +63,7 @@ class ContentOut(BaseModel):
     edited_by: UserOut
     editor_type: EditorType
     change_note: ChangeNote
-    content: Content
+    data: Content
 
 
 class ContentIn(BaseModel):
@@ -71,4 +71,4 @@ class ContentIn(BaseModel):
     edited_by: EditedByID
     editor_type: EditorType
     change_note: ChangeNote
-    content: Content
+    data: Content

@@ -2,6 +2,7 @@ import asyncio
 
 from src.models.users.profile import ProfileOut
 from src.models.users.user import UserOut
+from src.models.wiki.content import ContentOut
 from src.models.wiki.page import PageDB, PageOut
 from src.repositories.project import ProjectRepository
 from src.repositories.user import UserRepository
@@ -26,7 +27,7 @@ class WikiService:
         author_db, profile_db, content_db = await asyncio.gather(
             self.user_repo.fetch(page.guild_id, page.author_id),
             self.user_repo.fetch_profile(page.guild_id, page.author_id),
-            self.content_repo.fetch_by_page(page.guild_id, page.page_id)
+            self.content_repo.fetch_by_page(page.page_id)
         )
 
         content_editor_db, content_profile_db = await asyncio.gather(
@@ -36,18 +37,19 @@ class WikiService:
 
         return PageOut(
             **page.model_dump(),
-            **content_db.model_dump(exclude={"edited_by"}),
             author=UserOut(
                 **author_db.model_dump(),
                 profile=ProfileOut(
                     **profile_db.model_dump()
                 )
             ),
-            edited_by=UserOut(
-                **content_editor_db.model_dump(),
-                profile=ProfileOut(
-                    **content_profile_db.model_dump()
-                )
+            content=ContentOut(
+                **content_db.model_dump(exclude={"edited_by"}),
+                edited_by=UserOut(
+                    **content_editor_db.model_dump(),
+                    profile=ProfileOut(**content_profile_db.model_dump())
+                ),
+                data=content_db.content
             )
         )
 
