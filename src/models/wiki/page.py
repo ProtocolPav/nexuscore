@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 from typing_extensions import Optional, Annotated
@@ -36,7 +37,7 @@ Summary = Annotated[str, Field(
     description="A short summary of the page",
     examples=["An introduction to the server"]
 )]
-Category = Annotated[Optional[str], Field(
+Category = Annotated[str, Field(
     description="The category this page belongs to",
     examples=["guides"]
 )]
@@ -78,6 +79,9 @@ class PageBase(BaseModel):
     cover_image: Optional[CoverImage]
     published: Published
     locked: Locked
+    view_count: ViewCount
+    created_at: CreatedAt
+    updated_at: UpdatedAt
 
 
 class PageDB(PageBase):
@@ -85,12 +89,52 @@ class PageDB(PageBase):
     author_id: AuthorID
     guild_id: GuildID
     project_id: Optional[ProjectID]
-    view_count: ViewCount
-    created_at: CreatedAt
-    updated_at: UpdatedAt
 
 
 class PageOut(PageBase):
     author: UserOut
     project: Optional[ProjectOut] = None
     content: ContentOut
+
+
+class PageQuery(BaseModel):
+    published: Optional[bool] = Field(
+        description="Filter by published status",
+        examples=[True],
+        default=None
+    )
+    category: Optional[str] = Field(
+        description="Filter by category",
+        examples=["guides"],
+        default=None
+    )
+    tags: Optional[list[str]] = Field(
+        description="Filter by tags",
+        examples=[["python", "django"]],
+        default=[]
+    )
+    search: Optional[str] = Field(
+        description="Fuzzy search by page title (summary and content comes later)",
+        examples=["python"],
+        default=None
+    )
+    sort_by: Optional[Literal["created_at", "updated_at", "title"]] = Field(
+        description="Sort by field",
+        examples=["created_at"],
+        default=None
+    )
+    sort_order: Optional[Literal["asc", "desc"]] = Field(
+        description="Sort order",
+        examples=["asc"],
+        default=None
+    )
+    page: Optional[int] = Field(
+        description="The page number to return",
+        examples=[1],
+        default=1
+    )
+    page_size: Optional[int] = Field(
+        description="The number of items per page",
+        examples=[10],
+        default=10
+    )
