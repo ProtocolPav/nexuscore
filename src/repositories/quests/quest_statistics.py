@@ -1,4 +1,5 @@
 from src.dependencies.database import Database
+from src.errors import NotFound
 
 
 class QuestStatisticsRepository:
@@ -9,6 +10,7 @@ class QuestStatisticsRepository:
         """
         Returns top-level funnel counts, timing stats, and player counts for a quest.
         guild_id is used to scope the quest ownership check.
+        Raises NotFound if the quest does not exist within the guild.
         """
         data = await self.db.pool.fetchrow("""
             SELECT
@@ -66,11 +68,15 @@ class QuestStatisticsRepository:
             GROUP BY q.quest_id, q.title, q.quest_type
         """, quest_id, guild_id)
 
-        return dict(data) if data else None
+        if not data:
+            raise NotFound("Quest")
+
+        return dict(data)
 
     async def fetch_objective_statistics(self, quest_id: int) -> list[dict]:
         """
         Returns per-objective funnel and timing stats, sorted by order_index.
+        Raises NotFound if no objectives exist for the quest.
         """
         rows = await self.db.pool.fetch("""
             SELECT
@@ -101,11 +107,15 @@ class QuestStatisticsRepository:
             ORDER BY o.order_index ASC
         """, quest_id)
 
+        if not rows:
+            raise NotFound("Quest Objectives")
+
         return [dict(r) for r in rows]
 
     async def fetch_completion_times(self, quest_id: int) -> list[float]:
         """
         Returns raw completion durations in seconds for histogram bucketing.
+        Returns an empty list if no completions exist yet — not an error condition.
         """
         rows = await self.db.pool.fetch("""
             SELECT EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds
@@ -121,6 +131,7 @@ class QuestStatisticsRepository:
     async def fetch_daily_activity(self, quest_id: int) -> list[dict]:
         """
         Returns daily accept/completion/failure counts for time-series charts.
+        Returns an empty list if no activity exists yet — not an error condition.
         """
         rows = await self.db.pool.fetch("""
             SELECT
