@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date as Date
 from typing import Annotated, Optional
 
 from pydantic import Field, BaseModel
@@ -38,7 +38,7 @@ class QuestCompletionBucket(BaseModel):
 
 
 class DailyActivityEntry(BaseModel):
-    date: date = Field(description="The calendar date", examples=["2026-01-01"])
+    date: Date = Field(description="The calendar date", examples=["2026-01-01"])
     accepts: int = Field(description="Number of quest accepts on this date")
     completions: int = Field(description="Number of quest completions on this date")
     failures: int = Field(description="Number of quest failures on this date")
