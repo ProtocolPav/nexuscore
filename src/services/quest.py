@@ -2,11 +2,18 @@ import asyncio
 
 from src.models.quests.objective import ObjectiveOut
 from src.models.quests.quest import QuestDB, QuestIn, QuestOut, QuestQuery, QuestUpdate
+from src.models.quests.quest_statistics import (
+    DailyActivityEntry,
+    ObjectiveStatistics,
+    QuestCompletionBucket,
+    QuestStatisticsOut,
+)
 from src.models.quests.reward import RewardOut
 from src.models.users.profile import ProfileOut
 from src.models.users.user import UserOut
 from src.repositories.quests.objective import ObjectiveRepository
 from src.repositories.quests.quest import QuestRepository
+from src.repositories.quests.quest_statistics import QuestStatisticsRepository
 from src.repositories.quests.reward import RewardRepository
 from src.repositories.user import UserRepository
 
@@ -17,12 +24,14 @@ class QuestService:
             quest_repo: QuestRepository,
             objective_repo: ObjectiveRepository,
             reward_repo: RewardRepository,
-            user_repo: UserRepository
+            user_repo: UserRepository,
+            statistics_repo: QuestStatisticsRepository,
     ):
         self.quest_repo = quest_repo
         self.objective_repo = objective_repo
         self.reward_repo = reward_repo
         self.user_repo = user_repo
+        self.statistics_repo = statistics_repo
 
     async def _to_out(self, quest: QuestDB) -> QuestOut:
         creator_db, profile_db, objectives_db = await asyncio.gather(
@@ -86,8 +95,114 @@ class QuestService:
 
                 for r in o.rewards:
                     if r.reward_id:
-                        await self.reward_repo.update(objective_db.objective_id, r.reward_id, r, conn)
+                        await self.reward_repo.update(objective_db.objective_id, r.reward_id, r)
                     else:
                         await self.reward_repo.create(quest_db.quest_id, objective_db.objective_id, r, conn)
 
         return await self._to_out(quest_db)
+
+    async def get_statistics(self, guild_id: int, quest_id: int) -> QuestStatisticsOut:
+        summary, objective_rows, completion_times, daily_rows = await asyncio.gather(
+            self.statistics_repo.fetch_quest_summary(quest_id, guild_id),
+            self.statistics_repo.fetch_objective_statistics(quest_id),
+            self.statistics_repo.fetch_completion_times(quest_id),
+            self.statistics_repo.fetch_daily_activity(quest_id),
+        )
+
+        total_accepts = summary['total_accepts'] or 0
+        total_completed = summary['total_completed'] or 0
+        total_started = summary['total_started'] or 0
+
+        completion_rate = total_completed / total_accepts if total_accepts > 0 else 0.0
+        started_rate = total_started / total_accepts if total_accepts > 0 else 0.0
+
+        # Build histogram buckets from raw durations
+        histogram = _build_histogram(completion_times)
+
+        # Build objective stats
+        objectives = [
+            ObjectiveStatistics(
+                objective_id=row['objective_id'],
+                order_index=row['order_index'],
+                description=row['description'],
+                players_reached=row['players_reached'] or 0,
+                players_completed=row['players_completed'] or 0,
+                players_failed=row['players_failed'] or 0,
+                completion_rate=(
+                    (row['players_completed'] or 0) / row['players_reached']
+                    if row['players_reached'] else 0.0
+                ),
+                drop_rate=(
+                    (row['players_failed'] or 0) / row['players_reached']
+                    if row['players_reached'] else 0.0
+                ),
+                avg_time_seconds=int(row['avg_time_seconds']) if row['avg_time_seconds'] is not None else None,
+                median_time_seconds=int(row['median_time_seconds']) if row['median_time_seconds'] is not None else None,
+            )
+            for row in objective_rows
+        ]
+
+        return QuestStatisticsOut(
+            quest_id=summary['quest_id'],
+            title=summary['title'],
+            quest_type=summary['quest_type'],
+            total_accepts=total_accepts,
+            total_pending=summary['total_pending'] or 0,
+            total_started=total_started,
+            total_completed=total_completed,
+            total_failed=summary['total_failed'] or 0,
+            completion_rate=completion_rate,
+            started_rate=started_rate,
+            avg_completion_time_seconds=int(summary['avg_completion_time_seconds']) if summary['avg_completion_time_seconds'] is not None else None,
+            median_completion_time_seconds=int(summary['median_completion_time_seconds']) if summary['median_completion_time_seconds'] is not None else None,
+            fastest_completion_seconds=int(summary['fastest_completion_seconds']) if summary['fastest_completion_seconds'] is not None else None,
+            slowest_completion_seconds=int(summary['slowest_completion_seconds']) if summary['slowest_completion_seconds'] is not None else None,
+            unique_players=summary['unique_players'] or 0,
+            repeat_attempt_players=summary['repeat_attempt_players'] or 0,
+            objectives=objectives,
+            completion_time_histogram=histogram,
+            daily_activity=[
+                DailyActivityEntry(
+                    date=row['date'],
+                    accepts=row['accepts'] or 0,
+                    completions=row['completions'] or 0,
+                    failures=row['failures'] or 0,
+                )
+                for row in daily_rows
+            ],
+        )
+
+
+def _build_histogram(durations: list[float], num_buckets: int = 10) -> list[QuestCompletionBucket]:
+    """Splits completion durations into evenly-spaced buckets."""
+    if not durations:
+        return []
+
+    min_d = min(durations)
+    max_d = max(durations)
+
+    # If all completions took exactly the same time, return a single bucket
+    if min_d == max_d:
+        return [QuestCompletionBucket(
+            bucket_start_seconds=int(min_d),
+            bucket_end_seconds=int(max_d),
+            count=len(durations)
+        )]
+
+    bucket_size = (max_d - min_d) / num_buckets
+    buckets: list[QuestCompletionBucket] = []
+
+    for i in range(num_buckets):
+        start = min_d + i * bucket_size
+        end = min_d + (i + 1) * bucket_size
+        count = sum(1 for d in durations if start <= d < end)
+        # Ensure the last bucket captures the max value
+        if i == num_buckets - 1:
+            count = sum(1 for d in durations if start <= d <= end)
+        buckets.append(QuestCompletionBucket(
+            bucket_start_seconds=int(start),
+            bucket_end_seconds=int(end),
+            count=count,
+        ))
+
+    return buckets
