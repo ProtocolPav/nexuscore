@@ -7,6 +7,7 @@ from src.dependencies.services import get_quest_service
 from src.models.auth import TokenPayload, Scope
 
 from src.models.quests.quest import QuestIn, QuestOut, QuestQuery, QuestUpdate
+from src.models.quests.quest_statistics import QuestStatisticsOut
 from src.services.quest import QuestService
 
 quests_router = APIRouter(prefix='/guilds/me/quests', tags=['Quests'])
@@ -52,6 +53,22 @@ async def get_quest(
     Returns a specific quest, objectives and rewards
     """
     return await service.get(auth.guild_id, quest_id)
+
+
+@quests_router.get('/{quest_id}/statistics')
+async def get_quest_statistics(
+        quest_id: int,
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
+        service: QuestService = Depends(get_quest_service),
+) -> QuestStatisticsOut:
+    """
+    Get Quest Statistics
+
+    Returns aggregated statistics for a specific quest, including funnel data,
+    completion timing, per-objective drop-off analysis, and daily activity.
+    Useful for quest admins to analyse difficulty, engagement, and player behaviour.
+    """
+    return await service.get_statistics(auth.guild_id, quest_id)
 
 
 @quests_router.patch('/{quest_id}')
