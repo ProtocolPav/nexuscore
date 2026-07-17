@@ -43,7 +43,20 @@ class ScriptEventTargetModel(TargetBaseModel):
     count: int = Field(description="The number of ID's before this objective is completed",
                        json_schema_extra={"example": 50})
 
+
+class VisitTargetModel(TargetBaseModel):
+    target_type: Literal["visit"] = Field(description="The type of the target. Must be equal to `objective_type`.",
+                                          examples=["visit"])
+    coordinates: tuple[int, int, int] = Field(description="The coordinates",
+                                              examples=[[500, -5, 54]])
+    horizontal_radius: int = Field(description="The horizontal radius to check for (x and z axis)",
+                                   examples=[20])
+    vertical_radius: int = Field(description="The vertical radius to check for (y axis)",
+                                 examples=[4])
+    seconds: int = Field(description="The amount of seconds to stay in the area",
+                         examples=[540])
+
 Targets = Annotated[
-    Union[MineTargetModel, KillTargetModel, ScriptEventTargetModel],
+    Union[MineTargetModel, KillTargetModel, ScriptEventTargetModel, VisitTargetModel],
     Field(discriminator="target_type")
 ]

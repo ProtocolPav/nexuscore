@@ -37,8 +37,15 @@ class ScriptEventTargetProgressModel(TargetProgressBaseModel):
                        json_schema_extra={"example": 50})
 
 
+class VisitTargetProgressModel(TargetProgressBaseModel):
+    target_type: Literal["visit"]
+    seconds: int = Field(description="The number of seconds spent in the area so far",
+                         default=0,
+                         examples=[50])
+
+
 TargetProgress = Annotated[
-    Union[MineTargetProgressModel, KillTargetProgressModel, ScriptEventTargetProgressModel],
+    Union[MineTargetProgressModel, KillTargetProgressModel, ScriptEventTargetProgressModel, VisitTargetProgressModel],
     Field(discriminator="target_type")
 ]
 
@@ -46,5 +53,6 @@ TargetProgress = Annotated[
 TARGET_TYPE_MAP = {
     "mine": MineTargetProgressModel,
     "kill": KillTargetProgressModel,
-    "scriptevent": ScriptEventTargetProgressModel
+    "scriptevent": ScriptEventTargetProgressModel,
+    "visit": VisitTargetProgressModel,
 }
