@@ -11,7 +11,7 @@ class ImageService:
     @staticmethod
     def _generate_key(filename: str, prefix: str = "wiki") -> str:
         ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
-        date_path = datetime.utcnow().strftime("%Y/%m")
+        date_path = datetime.now().strftime("%Y/%m")
         return f"{prefix}/{date_path}/{uuid.uuid4()}.{ext}"
 
     def create_presigned_upload(
