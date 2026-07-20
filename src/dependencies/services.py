@@ -1,5 +1,7 @@
+from botocore.client import BaseClient
 from fastapi import Depends
 
+from src.dependencies.r2_client import get_r2_client
 from src.dependencies.repositories import (
     get_guild_repo,
     get_objective_progress_repo, get_objective_repo,
@@ -23,6 +25,7 @@ from src.repositories.wiki.content import ContentRepository
 from src.repositories.wiki.page import PageRepository
 from src.repositories.world import WorldRepository
 from src.services.guild import GuildService
+from src.services.image import ImageService
 from src.services.project import ProjectService
 from src.services.pin import PinService
 from src.services.quest import QuestService
@@ -82,3 +85,8 @@ def get_wiki_service(
         user_repo: UserRepository = Depends(get_user_repo),
 ) -> WikiService:
     return WikiService(page_repo, content_repo, project_repo, user_repo)
+
+def get_image_service(
+        r2_client: BaseClient = Depends(get_r2_client)
+) -> ImageService:
+    return ImageService(r2_client)
