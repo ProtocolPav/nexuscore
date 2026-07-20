@@ -5,7 +5,7 @@ from asyncpg.pool import PoolConnectionProxy
 
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
-from src.models.wiki.content import ContentDB
+from src.models.wiki.content import ContentDB, ContentIn
 
 
 class ContentRepository:
@@ -33,5 +33,20 @@ class ContentRepository:
 
         if not data:
             raise NotFound("Wiki Content")
+
+        return ContentDB.model_validate(dict(data))
+
+    @staticmethod
+    async def create(page_id: int, model: ContentIn, current_version: int, conn: PoolConnectionProxy) -> ContentDB:
+        try:
+            data = await conn.fetchrow("""
+                INSERT INTO wiki.content(page_id, content, edited_by, change_note, editor_type, version)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                
+                RETURNING *
+            """, page_id, json.dumps(model.data), model.edited_by, model.change_note, model.editor_type, current_version + 1)
+
+        except asyncpg.UniqueViolationError:
+            raise AlreadyExists("Wiki Content")
 
         return ContentDB.model_validate(dict(data))

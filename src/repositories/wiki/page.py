@@ -5,7 +5,7 @@ from asyncpg.pool import PoolConnectionProxy
 
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
-from src.models.wiki.page import PageDB, PageQuery
+from src.models.wiki.page import PageDB, PageIn, PageQuery
 
 
 class PageRepository:
@@ -95,3 +95,35 @@ class PageRepository:
         data = await self.db.pool.fetch(sql, *params)
 
         return [PageDB.model_validate(dict(p)) for p in data]
+
+    @staticmethod
+    async def create(guild_id: int, model: PageIn, conn: PoolConnectionProxy) -> PageDB:
+        try:
+            data = await conn.fetchrow("""
+                WITH page_table AS (
+                    INSERT INTO wiki.page(
+                        author_id,
+                        guild_id,
+                        project_id,
+                        slug,
+                        title,
+                        summary,
+                        category,
+                        tags,
+                        cover_image,
+                        published,
+                        locked
+                    )
+                    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+
+                    RETURNING *
+                )
+                SELECT * from page_table
+            """, model.author_id, guild_id, model.project_id,
+               model.slug, model.title, model.summary, model.category, model.tags,
+               model.cover_image, model.published, model.locked)
+
+        except asyncpg.UniqueViolationError:
+            raise AlreadyExists("Wiki Page")
+
+        return PageDB.model_validate(dict(data))

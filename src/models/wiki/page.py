@@ -6,7 +6,7 @@ from typing_extensions import Optional, Annotated
 
 from src.models.projects.project import ProjectOut
 from src.models.users.user import UserOut
-from src.models.wiki.content import ContentOut
+from src.models.wiki.content import ContentIn, ContentOut
 
 
 PageID = Annotated[int, Field(
@@ -95,6 +95,20 @@ class PageOut(PageBase):
     author: UserOut
     project: Optional[ProjectOut] = None
     content: ContentOut
+
+
+class PageIn(BaseModel):
+    author_id: AuthorID
+    project_id: Optional[ProjectID]
+    slug: Slug
+    title: Title
+    summary: Optional[Summary]
+    category: Category
+    tags: Tags
+    cover_image: Optional[CoverImage]
+    published: Published
+    locked: Locked
+    content: ContentIn
 
 
 class PageQuery(BaseModel):

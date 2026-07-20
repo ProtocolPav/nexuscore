@@ -24,7 +24,8 @@ EditedByID = Annotated[int, Field(
 )]
 EditorType = Annotated[str, Field(
     description="The editor type used to create this content",
-    examples=['blocknote']
+    examples=['blocknote'],
+    default='blocknote'
 )]
 ChangeNote = Annotated[str, Field(
     description="A note describing what changed in this version",
@@ -69,6 +70,6 @@ class ContentOut(BaseModel):
 class ContentIn(BaseModel):
     page_id: PageID
     edited_by: EditedByID
-    editor_type: EditorType
+    editor_type: Optional[EditorType]
     change_note: ChangeNote
     data: Content
