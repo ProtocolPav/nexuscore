@@ -68,7 +68,6 @@ class ContentOut(BaseModel):
 
 
 class ContentIn(BaseModel):
-    page_id: PageID
     edited_by: EditedByID
     editor_type: Optional[EditorType]
     change_note: ChangeNote

@@ -3,7 +3,7 @@ import asyncio
 from src.models.users.profile import ProfileOut
 from src.models.users.user import UserOut
 from src.models.wiki.content import ContentOut
-from src.models.wiki.page import PageDB, PageOut, PageQuery
+from src.models.wiki.page import PageDB, PageIn, PageOut, PageQuery
 from src.repositories.project import ProjectRepository
 from src.repositories.user import UserRepository
 from src.repositories.wiki.content import ContentRepository
@@ -68,3 +68,19 @@ class WikiService:
             tasks = [tg.create_task(self._to_out(p)) for p in pages_db]
 
         return [t.result() for t in tasks]
+
+    async def new(self, guild_id: int, model: PageIn) -> PageOut:
+        async with self.page_repo.db.get_transaction() as conn:
+            page_db = await self.page_repo.create(guild_id, model, conn)
+            await self.content_repo.create(page_db.page_id, model.content, 0, conn)
+
+        return await self._to_out(page_db)
+
+    async def update(self, guild_id: int, slug: str, model: PageIn) -> PageOut:
+        async with self.page_repo.db.get_transaction() as conn:
+            page_db = await self.page_repo.fetch_by_slug(guild_id, slug)
+            content_db = await self.content_repo.fetch_by_page(page_db.page_id)
+
+            await self.content_repo.create(page_db.page_id, model.content, content_db.version, conn)
+
+        return await self._to_out(page_db)
