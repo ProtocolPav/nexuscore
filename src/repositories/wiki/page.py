@@ -5,7 +5,7 @@ from asyncpg.pool import PoolConnectionProxy
 
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
-from src.models.wiki.page import PageDB, PageIn, PageQuery
+from src.models.wiki.page import PageDB, PageIn, PageQuery, PageUpdate
 
 
 class PageRepository:
@@ -127,3 +127,27 @@ class PageRepository:
             raise AlreadyExists("Wiki Page")
 
         return PageDB.model_validate(dict(data))
+
+    async def update(self, guild_id: int, page_id: int, model: PageUpdate, conn: PoolConnectionProxy) -> PageDB:
+        page = await self.fetch(guild_id, page_id)
+
+        updated = page.model_copy(update=model.model_dump(exclude_none=True))
+
+        await conn.execute("""
+            UPDATE wiki.page
+            SET title = $2,
+                project_id = $3,
+                summary = $4,
+                category = $5,
+                tags = $6,
+                cover_image = $7,
+                published = $8,
+                locked = $9,
+                updated_at = NOW()
+            
+            WHERE page_id = $1
+        """, page_id, updated.title, updated.project_id,
+                           updated.summary, updated.category, updated.tags, updated.cover_image,
+                           updated.published, updated.locked)
+
+        return updated

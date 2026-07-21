@@ -111,6 +111,18 @@ class PageIn(BaseModel):
     content: ContentIn
 
 
+class PageUpdate(BaseModel):
+    title: Optional[Title] = None
+    project_id: Optional[ProjectID] = None
+    summary: Optional[Summary] = None
+    category: Optional[Category] = None
+    tags: Optional[Tags] = None
+    cover_image: Optional[CoverImage] = None
+    published: Optional[Published] = None
+    locked: Optional[Locked] = None
+    content: Optional[ContentIn] = None
+
+
 class PageQuery(BaseModel):
     published: Optional[bool] = Field(
         description="Filter by published status",

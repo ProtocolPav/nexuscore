@@ -6,7 +6,7 @@ from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_wiki_service
 from src.models.auth import TokenPayload, Scope
 
-from src.models.wiki.page import PageIn, PageOut, PageQuery
+from src.models.wiki.page import PageIn, PageOut, PageQuery, PageUpdate
 from src.services.wiki import WikiService
 
 wiki_router = APIRouter(prefix='/guilds/me/wiki', tags=['Wiki Pages'])
@@ -52,7 +52,7 @@ async def get_wiki_page(
 @wiki_router.put('/{slug}')
 async def partial_update_wiki_page(
         slug: str,
-        body: PageIn,
+        body: PageUpdate,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
         service: WikiService = Depends(get_wiki_service)
 ) -> PageOut:
