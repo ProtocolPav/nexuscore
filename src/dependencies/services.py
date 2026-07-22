@@ -1,5 +1,7 @@
+from botocore.client import BaseClient
 from fastapi import Depends
 
+from src.dependencies.r2_client import get_r2_client
 from src.dependencies.repositories import (
     get_guild_repo,
     get_objective_progress_repo, get_objective_repo,
@@ -8,7 +10,7 @@ from src.dependencies.repositories import (
     get_quest_statistics_repo,
     get_user_repo,
     get_pin_repo,
-    get_world_repo,
+    get_wiki_content_repo, get_wiki_page_repo, get_world_repo,
     get_reward_repo
 )
 from src.repositories.guild import GuildRepository
@@ -21,13 +23,17 @@ from src.repositories.quests.quest_statistics import QuestStatisticsRepository
 from src.repositories.quests.reward import RewardRepository
 from src.repositories.user import UserRepository
 from src.repositories.pin import PinRepository
+from src.repositories.wiki.content import ContentRepository
+from src.repositories.wiki.page import PageRepository
 from src.repositories.world import WorldRepository
 from src.services.guild import GuildService
+from src.services.image import ImageService
 from src.services.project import ProjectService
 from src.services.pin import PinService
 from src.services.quest import QuestService
 from src.services.quest_progress import QuestProgressService
 from src.services.user import UserService
+from src.services.wiki import WikiService
 from src.services.world import WorldService
 
 
@@ -74,3 +80,16 @@ def get_quest_progress_service(
         objective_progress_repo: ObjectiveProgressRepository = Depends(get_objective_progress_repo),
 ) -> QuestProgressService:
     return QuestProgressService(quest_repo, objective_repo, quest_progress_repo, objective_progress_repo)
+
+def get_wiki_service(
+        page_repo: PageRepository = Depends(get_wiki_page_repo),
+        content_repo: ContentRepository = Depends(get_wiki_content_repo),
+        project_repo: ProjectRepository = Depends(get_project_repo),
+        user_repo: UserRepository = Depends(get_user_repo),
+) -> WikiService:
+    return WikiService(page_repo, content_repo, project_repo, user_repo)
+
+def get_image_service(
+        r2_client: BaseClient = Depends(get_r2_client)
+) -> ImageService:
+    return ImageService(r2_client)
