@@ -10,13 +10,19 @@ class Scope(str, Enum):
 
     GUILDS_MEMBERS_READ = "guilds.members:read"
     GUILDS_MEMBERS_WRITE = "guilds.members:write"
+
     GUILDS_PROJECTS_READ = "guilds.projects:read"
     GUILDS_PROJECTS_WRITE = "guilds.projects:write"
+
     GUILDS_PINS_READ = "guilds.pins:read"
     GUILDS_PINS_WRITE = "guilds.pins:write"
 
     GUILDS_QUESTS_READ = "guilds.quests:read"
     GUILDS_QUESTS_WRITE = "guilds.quests:write"
+
+    GUILDS_WIKI_READ = "guilds.wiki:read"
+    GUILDS_WIKI_WRITE = "guilds.wiki:write"
+
     EVENTS_READ = "events:read"
     EVENTS_WRITE = "events:write"
     SERVER_READ = "server:read"
@@ -41,6 +47,8 @@ SCOPE_DESCRIPTIONS: dict[Scope, str] = {
     Scope.SERVER_READ: "Read Minecraft server data",
     Scope.ADMIN_CLIENTS: "Register new guild clients",
     Scope.ADMIN_GUILDS: "Create new Guilds",
+    Scope.GUILDS_WIKI_READ: "Read wiki pages",
+    Scope.GUILDS_WIKI_WRITE: "Create and update wiki pages",
 }
 
 
