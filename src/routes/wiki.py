@@ -15,7 +15,7 @@ wiki_router = APIRouter(prefix='/guilds/me/wiki', tags=['Wiki Pages'])
 @wiki_router.get('')
 async def list_wiki_pages(
         filter_query: Annotated[PageQuery, Query()],
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WIKI_READ]),
         service: WikiService = Depends(get_wiki_service),
 ) -> list[PageOut]:
     """
@@ -27,7 +27,7 @@ async def list_wiki_pages(
 @wiki_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_wiki_page(
         body: PageIn,
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WIKI_WRITE]),
         service: WikiService = Depends(get_wiki_service)
 ) -> PageOut:
     """
@@ -39,7 +39,7 @@ async def create_wiki_page(
 @wiki_router.get('/{slug}')
 async def get_wiki_page(
         slug: str,
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WIKI_READ]),
         service: WikiService = Depends(get_wiki_service)
 ) -> PageOut:
     """
@@ -53,7 +53,7 @@ async def get_wiki_page(
 async def partial_update_wiki_page(
         slug: str,
         body: PageUpdate,
-        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_WIKI_WRITE]),
         service: WikiService = Depends(get_wiki_service)
 ) -> PageOut:
     """
