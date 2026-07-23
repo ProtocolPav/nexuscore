@@ -54,7 +54,8 @@ class VisitTargetModel(TargetBaseModel):
     vertical_radius: int = Field(description="The vertical radius to check for (y axis)",
                                  examples=[4])
     seconds: int = Field(description="The amount of seconds to stay in the area",
-                         examples=[540])
+                         examples=[540],
+                         default=4)
 
 Targets = Annotated[
     Union[MineTargetModel, KillTargetModel, ScriptEventTargetModel, VisitTargetModel],
