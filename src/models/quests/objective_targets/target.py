@@ -47,6 +47,8 @@ class ScriptEventTargetModel(TargetBaseModel):
 class VisitTargetModel(TargetBaseModel):
     target_type: Literal["visit"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                           examples=["visit"])
+    helper_text: str = Field(description="The helper text to be shown to the player, after the verb 'Locate'",
+                             examples=["[Locate] the stronghold"])
     coordinates: tuple[int, int, int] = Field(description="The coordinates",
                                               examples=[[500, -5, 54]])
     horizontal_radius: int = Field(description="The horizontal radius to check for (x and z axis)",
@@ -55,7 +57,7 @@ class VisitTargetModel(TargetBaseModel):
                                  examples=[4])
     seconds: int = Field(description="The amount of seconds to stay in the area",
                          examples=[540],
-                         default=4)
+                         default=2)
 
 Targets = Annotated[
     Union[MineTargetModel, KillTargetModel, ScriptEventTargetModel, VisitTargetModel],
