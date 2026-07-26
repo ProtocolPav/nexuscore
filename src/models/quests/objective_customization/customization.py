@@ -44,6 +44,10 @@ class WaypointCustomization(BaseModel):
                                               examples=[[500, -5, 54]])
     waypoint_type: WaypointTypes = Field(description="The type of waypoint to show",
                                          examples=["boss", "house"])
+    dimension: str = Field(description="The dimension to show the waypoint in",
+                           examples=["minecraft:overworld"],
+                           default="minecraft:overworld",
+                           pattern=MINECRAFT_REGEX_PATTERN)
 
 
 class Customizations(BaseModel):
