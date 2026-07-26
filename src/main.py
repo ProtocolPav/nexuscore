@@ -5,6 +5,7 @@ from scalar_fastapi import get_scalar_api_reference, Theme, AgentScalarConfig
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.dependencies.database import db
+from src.dependencies.r2_client import init_r2_client
 
 from src.routes import api_router
 from src.routes.auth import auth_router
@@ -12,6 +13,7 @@ from src.routes.auth import auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_r2_client()
     await db.init_pool()
     yield
     await db.close_pool()

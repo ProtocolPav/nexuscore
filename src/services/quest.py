@@ -95,7 +95,7 @@ class QuestService:
 
                 for r in o.rewards:
                     if r.reward_id:
-                        await self.reward_repo.update(objective_db.objective_id, r.reward_id, r)
+                        await self.reward_repo.update(objective_db.objective_id, r.reward_id, r, conn)
                     else:
                         await self.reward_repo.create(quest_db.quest_id, objective_db.objective_id, r, conn)
 

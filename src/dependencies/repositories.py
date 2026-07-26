@@ -11,6 +11,8 @@ from src.repositories.quests.quest_progress import QuestProgressRepository
 from src.repositories.quests.quest_statistics import QuestStatisticsRepository
 from src.repositories.quests.reward import RewardRepository
 from src.repositories.user import UserRepository
+from src.repositories.wiki.content import ContentRepository
+from src.repositories.wiki.page import PageRepository
 from src.repositories.world import WorldRepository
 
 
@@ -68,3 +70,14 @@ def get_quest_statistics_repo(
         database: Database = Depends(get_db),
 ) -> QuestStatisticsRepository:
     return QuestStatisticsRepository(database)
+
+
+def get_wiki_page_repo(
+        database: Database = Depends(get_db),
+) -> PageRepository:
+    return PageRepository(database)
+
+def get_wiki_content_repo(
+        database: Database = Depends(get_db),
+) -> ContentRepository:
+    return ContentRepository(database)
