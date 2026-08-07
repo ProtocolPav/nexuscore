@@ -1,5 +1,7 @@
 import asyncio
 
+from opentelemetry import trace
+
 from src.models.users.profile import ProfileOut
 from src.models.users.user import UserOut
 from src.models.wiki.content import ContentOut
@@ -8,6 +10,7 @@ from src.repositories.project import ProjectRepository
 from src.repositories.user import UserRepository
 from src.repositories.wiki.content import ContentRepository
 from src.repositories.wiki.page import PageRepository
+from src.utils.tracing import traced
 
 
 class WikiService:
@@ -53,35 +56,70 @@ class WikiService:
             )
         )
 
+    @traced
     async def get(self, guild_id: int, page_id: int) -> PageOut:
+        span = trace.get_current_span()
+        span.set_attribute("guild.id", guild_id)
+        span.set_attribute("page.id", page_id)
+
         page_db = await self.page_repo.fetch(guild_id, page_id)
         return await self._to_out(page_db)
 
+    @traced
     async def get_by_slug(self, guild_id: int, slug: str) -> PageOut:
+        span = trace.get_current_span()
+        span.set_attribute("guild.id", guild_id)
+        span.set_attribute("page.slug", slug)
+
         page_db = await self.page_repo.fetch_by_slug(guild_id, slug)
+        span.set_attribute("page.id", page_db.page_id)
+
         return await self._to_out(page_db)
 
+    @traced
     async def get_all(self, guild_id: int, query: PageQuery) -> list[PageOut]:
+        span = trace.get_current_span()
+        span.set_attribute("guild.id", guild_id)
+
         pages_db = await self.page_repo.fetch_all(guild_id, query)
+        span.set_attribute("pages.count", len(pages_db))
 
         async with asyncio.TaskGroup() as tg:
             tasks = [tg.create_task(self._to_out(p)) for p in pages_db]
 
         return [t.result() for t in tasks]
 
+    @traced
     async def new(self, guild_id: int, model: PageIn) -> PageOut:
+        span = trace.get_current_span()
+        span.set_attribute("guild.id", guild_id)
+        span.set_attribute("page.slug", model.slug)
+
         async with self.page_repo.db.get_transaction() as conn:
             page_db = await self.page_repo.create(guild_id, model, conn)
+            span.set_attribute("page.id", page_db.page_id)
+
             await self.content_repo.create(page_db.page_id, model.content, 0, conn)
 
         return await self._to_out(page_db)
 
+    @traced
     async def update(self, guild_id: int, slug: str, model: PageUpdate) -> PageOut:
+        span = trace.get_current_span()
+        span.set_attribute("guild.id", guild_id)
+        span.set_attribute("page.slug", slug)
+
         async with self.page_repo.db.get_transaction() as conn:
             page_db = await self.page_repo.fetch_by_slug(guild_id, slug)
+            span.set_attribute("page.id", page_db.page_id)
+
             content_db = await self.content_repo.fetch_by_page(page_db.page_id)
+            span.set_attribute("page.current_version", content_db.version)
 
             await self.page_repo.update(guild_id, page_db.page_id, model, conn)
+
+            content_updated = bool(model.content)
+            span.set_attribute("page.content_updated", content_updated)
 
             if model.content:
                 await self.content_repo.create(page_db.page_id, model.content, content_db.version, conn)
