@@ -14,7 +14,7 @@ class ProjectRepository:
         self.db = db
 
     async def fetch(self, guild_id: int, project_id: str) -> ProjectDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM projects.project p
             WHERE p.project_id = $1
             AND p.guild_id = $2
@@ -26,7 +26,7 @@ class ProjectRepository:
         return ProjectDB.model_validate(dict(data))
 
     async def fetch_all(self, guild_id: int) -> list[ProjectDB]:
-        data = await self.db.pool.fetch("""
+        data = await self.db.fetch("""
             SELECT * FROM projects.project p
             WHERE p.guild_id = $1
         """, guild_id)
@@ -42,7 +42,7 @@ class ProjectRepository:
         project_id = re.sub(r'[^a-z0-9_]', '', ascii_str.lower().replace(' ', '_'))
 
         try:
-            data = await self.db.pool.fetchrow("""
+            data = await self.db.fetchrow("""
                 WITH project_table AS (
                     INSERT INTO projects.project(
                         project_id,
@@ -77,7 +77,7 @@ class ProjectRepository:
 
         updated = project.model_copy(update=model.model_dump(exclude_none=True))
 
-        await self.db.pool.execute("""
+        await self.db.execute("""
             UPDATE projects.project
             SET name = $1,
                thread_id = $2,
@@ -95,7 +95,7 @@ class ProjectRepository:
         return updated
 
     async def fetch_status(self, project_id: str) -> StatusDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT status, since FROM projects.status
             WHERE project_id = $1
             ORDER BY since DESC
@@ -108,7 +108,7 @@ class ProjectRepository:
 
     async def create_status(self, project_id: str, model: StatusIn) -> StatusDB:
         try:
-            data = await self.db.pool.fetchrow("""
+            data = await self.db.fetchrow("""
                 WITH status_table AS (
                     INSERT INTO projects.status(project_id, status)
                     VALUES ($1, $2)

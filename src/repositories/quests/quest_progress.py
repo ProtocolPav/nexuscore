@@ -11,7 +11,7 @@ class QuestProgressRepository:
         self.db = db
 
     async def fetch(self, progress_id: int) -> QuestProgressDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM quests_v3.quest_progress
             WHERE progress_id = $1
         """,progress_id)
@@ -22,7 +22,7 @@ class QuestProgressRepository:
         return QuestProgressDB.model_validate(dict(data))
 
     async def fetch_active(self, progress_id: int) -> QuestProgressDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * from quests_v3.quest_progress
             WHERE thorny_id = $1
                 AND status = 'active'
@@ -79,7 +79,7 @@ class QuestProgressRepository:
         return updated
 
     async def fetch_all_users_progress(self, thorny_id: int) -> list[QuestProgressDB]:
-        data = await self.db.pool.fetch("""
+        data = await self.db.fetch("""
             SELECT * from quests_v3.quest_progress
             WHERE thorny_id = $1
         """, thorny_id)
@@ -87,7 +87,7 @@ class QuestProgressRepository:
         return [QuestProgressDB.model_validate(dict(o)) for o in data]
 
     async def fetch_all_quests_progress(self, quest_id: int) -> list[QuestProgressDB]:
-        data = await self.db.pool.fetch("""
+        data = await self.db.fetch("""
             SELECT * from quests_v3.quest_progress
             WHERE quest_id = $1
         """, quest_id)

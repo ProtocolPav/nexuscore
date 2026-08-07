@@ -11,7 +11,7 @@ class UserRepository:
         self.db = db
 
     async def fetch(self, guild_id: int, thorny_id: int) -> UserDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM users.user
             WHERE guild_id = $1
             AND thorny_id = $2
@@ -24,7 +24,7 @@ class UserRepository:
 
     async def create(self, guild_id: int, model: UserIn) -> UserDB:
         try:
-            data = await self.db.pool.fetchrow("""
+            data = await self.db.fetchrow("""
                 WITH user_table AS (
                     INSERT INTO users.user(guild_id, user_id, username)
                     VALUES ($1, $2, $3)
@@ -47,7 +47,7 @@ class UserRepository:
         updated = user.model_copy(update=model.model_dump(exclude_none=True))
         # TODO: Whitelist currently cannot be set to null.
 
-        await self.db.pool.execute("""
+        await self.db.execute("""
            UPDATE users.user
            SET username = $1,
                birthday = $2,
@@ -76,7 +76,7 @@ class UserRepository:
         return updated
 
     async def fetch_by_gamertag(self, guild_id: int, gamertag: str) -> UserDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM users.user
             WHERE guild_id = $1
             AND gamertag = $2
@@ -88,7 +88,7 @@ class UserRepository:
         return UserDB.model_validate(dict(data))
 
     async def fetch_by_whitelist(self, guild_id: int, whitelist: str) -> UserDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM users.user
             WHERE guild_id = $1
             AND whitelist = $2
@@ -100,7 +100,7 @@ class UserRepository:
         return UserDB.model_validate(dict(data))
 
     async def fetch_by_discord_id(self, guild_id: int, discord_id: int) -> UserDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM users.user
             WHERE guild_id = $1
             AND user_id = $2
@@ -112,7 +112,7 @@ class UserRepository:
         return UserDB.model_validate(dict(data))
 
     async def fetch_profile(self, guild_id: int, thorny_id: int) -> ProfileDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM users.user
             INNER JOIN users.profile ON users.user.thorny_id = users.profile.thorny_id
             WHERE guild_id = $1
@@ -129,7 +129,7 @@ class UserRepository:
 
         updated = profile.model_copy(update=model.model_dump(exclude_none=True))
 
-        await self.db.pool.execute("""
+        await self.db.execute("""
            UPDATE users.profile
            SET slogan = $1,
                aboutme = $2,

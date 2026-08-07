@@ -1,6 +1,8 @@
 import asyncio
 from datetime import datetime
 
+from opentelemetry import trace
+
 from src.models.quests.objective import ObjectiveDB, ObjectiveOut
 from src.models.quests.objective_customization.progress import CUSTOMIZATION_TYPE_MAP, CustomizationProgress
 from src.models.quests.objective_progress import ObjectiveProgressIn, ObjectiveProgressOut
@@ -16,6 +18,7 @@ from src.repositories.quests.quest import QuestRepository
 from src.repositories.quests.quest_progress import QuestProgressRepository
 from src.repositories.quests.reward import RewardRepository
 from src.repositories.user import UserRepository
+from src.utils.tracing import traced
 
 
 class QuestProgressService:
@@ -61,32 +64,55 @@ class QuestProgressService:
 
         return CustomizationProgress(**customization_progress)
 
+    @traced
     async def get(self, progress_id: int) -> QuestProgressOut:
+        span = trace.get_current_span()
+        span.set_attribute("progress.id", progress_id)
+
         quest_db = await self.quest_progress_repo.fetch(progress_id)
         return await self._to_out(quest_db)
 
+    @traced
     async def get_active(self, thorny_id: int) -> QuestProgressOut:
+        span = trace.get_current_span()
+        span.set_attribute("user.thorny_id", thorny_id)
+
         quest_db = await self.quest_progress_repo.fetch_active(thorny_id)
         return await self._to_out(quest_db)
 
+    @traced
     async def get_all_users_progress(self, thorny_id: int) -> list[QuestProgressOut]:
+        span = trace.get_current_span()
+        span.set_attribute("user.thorny_id", thorny_id)
+
         quests_db = await self.quest_progress_repo.fetch_all_users_progress(thorny_id)
+        span.set_attribute("progress.count", len(quests_db))
 
         async with asyncio.TaskGroup() as tg:
             tasks = [tg.create_task(self._to_out(q)) for q in quests_db]
 
         return [t.result() for t in tasks]
 
+    @traced
     async def get_all_quests_progress(self, quest_id: int) -> list[QuestProgressOut]:
+        span = trace.get_current_span()
+        span.set_attribute("quest.id", quest_id)
+
         quests_db = await self.quest_progress_repo.fetch_all_quests_progress(quest_id)
+        span.set_attribute("progress.count", len(quests_db))
 
         async with asyncio.TaskGroup() as tg:
             tasks = [tg.create_task(self._to_out(q)) for q in quests_db]
 
         return [t.result() for t in tasks]
 
+    @traced
     async def mark_failed(self, thorny_id: int) -> QuestProgressOut:
+        span = trace.get_current_span()
+        span.set_attribute("user.thorny_id", thorny_id)
+
         quest_progress = await self.get_active(thorny_id)
+        span.set_attribute("progress.id", quest_progress.progress_id)
 
         quest_update = QuestProgressUpdate(**{
             "status": "failed",
@@ -102,11 +128,17 @@ class QuestProgressService:
 
         return await self.update(quest_progress.progress_id, quest_update)
 
+    @traced
     async def new(self, model: QuestProgressIn) -> QuestProgressOut:
+        span = trace.get_current_span()
+        span.set_attribute("quest.id", model.quest_id)
+
         objectives_db = await self.objective_repo.fetch_all(model.quest_id)
+        span.set_attribute("quest.objectives_count", len(objectives_db))
 
         async with self.quest_repo.db.get_transaction() as conn:
             quest_progress_db = await self.quest_progress_repo.create(model, conn)
+            span.set_attribute("progress.id", quest_progress_db.progress_id)
 
             for o in objectives_db:
                 await self.objective_progress_repo.create(
@@ -133,7 +165,12 @@ class QuestProgressService:
 
         return await self._to_out(quest_progress_db)
 
+    @traced
     async def update(self, progress_id: int, model: QuestProgressUpdate) -> QuestProgressOut:
+        span = trace.get_current_span()
+        span.set_attribute("progress.id", progress_id)
+        span.set_attribute("progress.objectives_submitted", len(model.objectives))
+
         async with self.quest_repo.db.get_transaction() as conn:
             quest_progress_db = await self.quest_progress_repo.update(progress_id, model, conn)
 

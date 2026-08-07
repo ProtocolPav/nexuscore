@@ -12,7 +12,7 @@ class QuestRepository:
         self.db = db
 
     async def fetch(self, quest_id: int, guild_id: int) -> QuestDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM quests_v3.quest
             WHERE quest_id = $1
             AND guild_id = $2
@@ -143,6 +143,6 @@ class QuestRepository:
         query = " ".join(query_parts)
 
         # Execute the query
-        data = await self.db.pool.fetch(query, *params)
+        data = await self.db.fetch(query, *params)
 
         return [QuestDB.model_validate(dict(q)) for q in data]

@@ -13,7 +13,7 @@ class RewardRepository:
         self.db = db
 
     async def fetch(self, reward_id: int) -> RewardDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM quests_v3.reward
             WHERE reward_id = $1
         """, reward_id)
@@ -73,7 +73,7 @@ class RewardRepository:
         return updated
 
     async def fetch_all(self, objective_id: int) -> list[RewardDB]:
-        data = await self.db.pool.fetch("""
+        data = await self.db.fetch("""
             SELECT * FROM quests_v3.reward
             WHERE objective_id = $1
             ORDER BY reward_id

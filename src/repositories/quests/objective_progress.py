@@ -13,7 +13,7 @@ class ObjectiveProgressRepository:
         self.db = db
 
     async def fetch(self, objective_id: int, progress_id: int) -> ObjectiveProgressDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM quests_v3.objective_progress
             WHERE objective_id = $1
             AND progress_id = $2
@@ -81,7 +81,7 @@ class ObjectiveProgressRepository:
         return updated
 
     async def fetch_all(self, progress_id: int) -> list[ObjectiveProgressDB]:
-        data = await self.db.pool.fetch("""
+        data = await self.db.fetch("""
             SELECT * from quests_v3.objective_progress
             WHERE progress_id = $1
         """, progress_id)

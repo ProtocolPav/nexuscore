@@ -22,7 +22,7 @@ class InteractionStatisticsList(LegacyBaseList[InteractionStatistic]):
         if not thorny_id or not interaction_type:
             raise HTTPException(status_code=400, detail="Missing required parameters")
 
-        data = await db.pool.fetch("""
+        data = await db.fetch("""
                                     select "type", reference, count(reference) as "count" from events.interactions i 
                                     where i.thorny_id = $1
                                     and i.type = $2
@@ -52,7 +52,7 @@ class InteractionTotals(LegacyBaseModel):
         if not thorny_id:
             raise HTTPException(status_code=400, detail="Missing required parameters")
 
-        data = await db.pool.fetchrow("""
+        data = await db.fetchrow("""
                                         SELECT
                                             COALESCE(SUM(CASE WHEN type = 'mine' THEN 1 ELSE 0 END), 0) as mine,
                                             COALESCE(SUM(CASE WHEN type = 'place' THEN 1 ELSE 0 END), 0) as place,

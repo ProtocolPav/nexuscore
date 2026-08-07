@@ -13,7 +13,7 @@ class ContentRepository:
         self.db = db
 
     async def fetch(self, content_id: int) -> ContentDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM wiki.content
             WHERE content_id = $1
         """, content_id)
@@ -24,7 +24,7 @@ class ContentRepository:
         return ContentDB.model_validate(dict(data))
 
     async def fetch_by_page(self, page_id: int) -> ContentDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM wiki.content
             Where page_id = $1
             ORDER BY version DESC

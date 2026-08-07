@@ -20,7 +20,7 @@ class DailyPlaytimeList(LegacyBaseList[DailyPlaytime]):
         if not thorny_id:
             raise HTTPException(status_code=400, detail="Missing required parameters")
 
-        data = await db.pool.fetch("""
+        data = await db.fetch("""
                                     SELECT t.day, SUM(t.playtime) AS playtime
                                     FROM (
                                         SELECT COALESCE(EXTRACT(EPOCH FROM SUM(playtime)), 0) AS playtime, 
@@ -58,7 +58,7 @@ class MonthlyPlaytimeList(LegacyBaseList[MonthlyPlaytime]):
         if not thorny_id:
             raise HTTPException(status_code=400, detail="Missing required parameters")
 
-        data = await db.pool.fetch("""
+        data = await db.fetch("""
                                     SELECT t.month AS month, SUM(t.playtime) AS playtime
                                     FROM (
                                         SELECT COALESCE(EXTRACT(EPOCH FROM SUM(playtime)), 0) AS playtime,
@@ -98,7 +98,7 @@ class PlaytimeSummary(LegacyBaseModel):
         if not thorny_id:
             raise HTTPException(status_code=400, detail="Missing required parameters")
 
-        data = await db.pool.fetchrow("""
+        data = await db.fetchrow("""
                                       WITH total_playtime AS (
                                         SELECT SUM (EXTRACT (EPOCH FROM playtime)) AS total_playtime
                                         FROM events.sessions_view sv

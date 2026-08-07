@@ -6,7 +6,7 @@ from src.utils.base import LegacyBaseList
 class MembersListModel(LegacyBaseList[user.UserOut]):
     @classmethod
     async def fetch(cls, db: Database, project_id: str = None, *args) -> "MembersListModel":
-        data = await db.pool.fetch("""
+        data = await db.fetch("""
                                    SELECT user_id FROM projects.members
                                    WHERE project_id = $1
                                    """,
@@ -20,7 +20,7 @@ class MembersListModel(LegacyBaseList[user.UserOut]):
 
     @staticmethod
     async def insert_members(db: Database, project_id: str, members: list[int]):
-        async with db.pool.acquire() as conn:
+        async with db.acquire() as conn:
             async with conn.transaction():
                 for member in members:
                     await conn.execute("""
@@ -31,7 +31,7 @@ class MembersListModel(LegacyBaseList[user.UserOut]):
 
     @staticmethod
     async def remove_members(db: Database, project_id: str, members: list[int]):
-        async with db.pool.acquire() as conn:
+        async with db.acquire() as conn:
             async with conn.transaction():
                 for member in members:
                     await conn.execute("""
