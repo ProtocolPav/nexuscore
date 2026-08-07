@@ -13,7 +13,7 @@ class PageRepository:
         self.db = db
 
     async def fetch(self, guild_id: int, page_id: int) -> PageDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM wiki.page
             WHERE guild_id = $1
             AND page_id = $2
@@ -25,7 +25,7 @@ class PageRepository:
         return PageDB.model_validate(dict(data))
 
     async def fetch_by_slug(self, guild_id: int, slug: str) -> PageDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM wiki.page
             WHERE guild_id = $1
             AND slug = $2
@@ -92,7 +92,7 @@ class PageRepository:
         sql = " ".join(query_parts)
 
         # Execute the query
-        data = await self.db.pool.fetch(sql, *params)
+        data = await self.db.fetch(sql, *params)
 
         return [PageDB.model_validate(dict(p)) for p in data]
 

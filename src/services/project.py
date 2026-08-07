@@ -1,5 +1,7 @@
 import asyncio
 
+from opentelemetry import trace
+
 from src.models.projects.project import ProjectDB, ProjectIn, ProjectOut, ProjectUpdate
 from src.models.projects.status import StatusIn, StatusOut
 
@@ -7,6 +9,7 @@ from src.models.users.user import UserOut
 from src.models.users.profile import ProfileOut
 from src.repositories.project import ProjectRepository
 from src.repositories.user import UserRepository
+from src.utils.tracing import traced
 
 
 class ProjectService:
@@ -31,30 +34,52 @@ class ProjectService:
             status_since=stat.since
         )
 
+    @traced
     async def get(self, guild_id: int, project_id: str) -> ProjectOut:
+        span = trace.get_current_span()
+        span.set_attribute("project.id", project_id)
+
         project_db = await self.project_repo.fetch(guild_id, project_id)
         return await self._to_out(project_db)
 
+    @traced
     async def get_all(self, guild_id: int) -> list[ProjectOut]:
         projects_db = await self.project_repo.fetch_all(guild_id)
-
         async with asyncio.TaskGroup() as tg:
             tasks = [tg.create_task(self._to_out(p)) for p in projects_db]
 
         return [t.result() for t in tasks]
 
+    @traced
     async def new(self, guild_id: int, model: ProjectIn) -> ProjectOut:
+        span = trace.get_current_span()
+
         project_db = await self.project_repo.create(guild_id, model)
+
+        span.set_attribute("project.id", project_db.project_id)
+
         return await self._to_out(project_db)
 
+    @traced
     async def update(self, guild_id: int, project_id: str, model: ProjectUpdate) -> ProjectOut:
+        span = trace.get_current_span()
+        span.set_attribute("project.id", project_id)
+
         project_db = await self.project_repo.update(guild_id, project_id, model)
         return await self._to_out(project_db)
 
+    @traced
     async def get_status(self, project_id: str) -> StatusOut:
+        span = trace.get_current_span()
+        span.set_attribute("project.id", project_id)
+
         status_db = await self.project_repo.fetch_status(project_id)
         return StatusOut(**status_db.model_dump())
 
+    @traced
     async def new_status(self, project_id: str, model: StatusIn) -> StatusOut:
+        span = trace.get_current_span()
+        span.set_attribute("project.id", project_id)
+
         status_db = await self.project_repo.create_status(project_id, model)
         return StatusOut(**status_db.model_dump())

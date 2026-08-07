@@ -14,5 +14,7 @@ class Settings(BaseSettings):
     R2_SECRET_KEY: str
     R2_ACCOUNT_ID: str
     R2_BUCKET_NAME: str
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://tempo:4317"
+    POSTHOG_API_KEY: str = ""
 
 settings = Settings()

@@ -77,7 +77,7 @@ async def register_client(
     """Master-tier clients only. Creates a guild-scoped API key."""
     raw_key = secrets.token_urlsafe(48)
     hashed = ph.hash(raw_key)
-    client_id = await db.pool.fetchval(
+    client_id = await db.fetchval(
         """
         INSERT INTO auth.clients (client_name, hashed_key, tier, guild_id, scopes)
         VALUES ($1, $2, 'guild', $3, $4)

@@ -18,7 +18,7 @@ class GuildRepository:
         self.db = db
 
     async def fetch(self, guild_id: int) -> GuildDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM guilds.guild 
             WHERE guild_id = $1
         """,guild_id)
@@ -30,7 +30,7 @@ class GuildRepository:
 
     async def create(self, model: GuildIn) -> GuildDB:
         try:
-            data = await self.db.pool.fetchrow("""
+            data = await self.db.fetchrow("""
                 WITH guild_table AS (
                     INSERT INTO guilds.guild(guild_id, name)
                     VALUES ($1, $2)
@@ -52,7 +52,7 @@ class GuildRepository:
 
         updated = guild.model_copy(update=model.model_dump(exclude_none=True))
 
-        await self.db.pool.execute("""
+        await self.db.execute("""
             UPDATE guilds.guild
             SET name=$2, 
                 currency_name=$3, 
@@ -70,7 +70,7 @@ class GuildRepository:
         return updated
 
     async def fetch_features(self, guild_id: int) -> list[FeatureDB]:
-        data = await self.db.pool.fetch("""
+        data = await self.db.fetch("""
             SELECT * FROM guilds.features
             WHERE guild_id = $1
         """, guild_id)
@@ -78,7 +78,7 @@ class GuildRepository:
         return [FeatureDB.model_validate(dict(row)) for row in data]
 
     async def fetch_channels(self, guild_id: int) -> list[ChannelDB]:
-        data = await self.db.pool.fetch("""
+        data = await self.db.fetch("""
             SELECT * FROM guilds.channels
             WHERE guild_id = $1
         """, guild_id)
@@ -86,7 +86,7 @@ class GuildRepository:
         return [ChannelDB.model_validate(dict(row)) for row in data]
 
     async def fetch_online_members(self, guild_id: int) -> list[OnlineMember]:
-        data = await self.db.pool.fetch("""
+        data = await self.db.fetch("""
            SELECT 
                 sv.thorny_id, 
                 u.user_id, 
@@ -156,12 +156,12 @@ class GuildRepository:
         query = " ".join(query_parts)
 
         # Execute the query
-        data = await self.db.pool.fetch(query, *params)
+        data = await self.db.fetch(query, *params)
 
         return [SessionDB.model_validate(dict(row)) for row in data]
 
     async def fetch_playtime_analysis(self, guild_id: int) -> GuildPlaytimeAnalysis:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             with totals as (
                 select 
                     sum(sv.playtime) as total_playtime,
@@ -278,7 +278,7 @@ class GuildRepository:
         )
 
     async def create_connection(self, model: ConnectionIn, ignore: bool = False) -> ConnectionDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             WITH connection_table AS (
                 INSERT INTO events.connections(type, thorny_id, ignored)
                 VALUES($1, $2, $3)
@@ -290,7 +290,7 @@ class GuildRepository:
         return ConnectionDB.model_validate(dict(data))
 
     async def create_interaction(self, model: InteractionIn) -> InteractionDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             WITH interaction_table AS (
                 INSERT INTO events.interactions(
                     thorny_id,
@@ -410,6 +410,6 @@ class GuildRepository:
         query = " ".join(query_parts)
 
         # Execute the query
-        data = await self.db.pool.fetch(query, *params)
+        data = await self.db.fetch(query, *params)
 
         return [InteractionDB.model_validate(dict(itr)) for itr in data]

@@ -8,7 +8,7 @@ class WorldRepository:
         self.db = db
 
     async def fetch(self, guild_id: int) -> WorldDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM server.world
             WHERE guild_id = $1
         """,guild_id)
@@ -24,7 +24,7 @@ class WorldRepository:
         updated = world.model_copy(update=model.model_dump(exclude_none=True))
         # TODO: Whitelist currently cannot be set to null.
 
-        await self.db.pool.execute("""
+        await self.db.execute("""
             UPDATE server.world
             SET overworld_border = $1,
                 nether_border = $2,

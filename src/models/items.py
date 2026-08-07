@@ -26,7 +26,7 @@ class ItemModel(ItemBaseModel):
 
     @classmethod
     async def create(cls, db: Database, model: "ItemCreateModel", *args):
-        await db.pool.execute("""
+        await db.execute("""
                               insert into server.items(item_id, value, max_uses, depreciation, current_uses)
                               values($1, $2, $3, $4, 0)
                               """,
@@ -37,7 +37,7 @@ class ItemModel(ItemBaseModel):
         if not item_id:
             raise HTTPException(status_code=400, detail={'ids': ['item_id']})
 
-        data = await db.pool.fetchrow("""
+        data = await db.fetchrow("""
                                        SELECT * FROM server.items
                                        WHERE item_id = $1
                                        """,
@@ -52,7 +52,7 @@ class ItemModel(ItemBaseModel):
         for k, v in model.model_dump().items():
             setattr(self, k, v) if v is not None else None
 
-        await db.pool.execute("""
+        await db.execute("""
                                UPDATE server.items
                                SET value = $1,
                                    max_uses = $2,
@@ -66,7 +66,7 @@ class ItemModel(ItemBaseModel):
 class ItemListModel(LegacyBaseList[ItemModel]):
     @classmethod
     async def fetch(cls, db: Database, *args) -> "ItemListModel":
-        data = await db.pool.fetch("""
+        data = await db.fetch("""
                                     SELECT * FROM server.items
                                     ORDER BY item_id 
                                    """)

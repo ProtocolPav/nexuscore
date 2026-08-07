@@ -1,13 +1,7 @@
-import re
-import unicodedata
-
 import asyncpg
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
 from src.models.projects.pin import PinDB, PinIn, PinUpdate
-
-from src.models.projects.project import ProjectDB, ProjectIn, ProjectUpdate
-from src.models.projects.status import StatusDB, StatusEnum, StatusIn
 
 
 class PinRepository:
@@ -15,7 +9,7 @@ class PinRepository:
         self.db = db
 
     async def fetch(self, pin_id: int) -> PinDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM projects.pins p
             WHERE p.id = $1
         """,pin_id)
@@ -26,7 +20,7 @@ class PinRepository:
         return PinDB.model_validate(dict(data))
 
     async def fetch_all(self) -> list[PinDB]:
-        data = await self.db.pool.fetch("""
+        data = await self.db.fetch("""
             SELECT * FROM projects.pins p
         """)
 
@@ -37,7 +31,7 @@ class PinRepository:
 
     async def create(self, model: PinIn) -> PinDB:
         try:
-            data = await self.db.pool.fetchrow("""
+            data = await self.db.fetchrow("""
                 WITH pins_table AS (
                     INSERT INTO projects.pins(name,
                                               description,
@@ -62,7 +56,7 @@ class PinRepository:
 
         updated = pin.model_copy(update=model.model_dump(exclude_none=True))
 
-        await self.db.pool.execute("""
+        await self.db.execute("""
            UPDATE projects.pins
            SET name = $1,
                pin_type = $2,

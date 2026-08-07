@@ -23,7 +23,7 @@ class LeaderboardModel(BaseModel):
             year = month_start.year
 
         month_end = datetime(year=year, month=month_start.month % 12 + 1, day=1)
-        data = await db.pool.fetchrow("""
+        data = await db.fetchrow("""
                     with t as (
                     select extract(epoch from sum(playtime)) as playtime, sv.thorny_id, u.user_id from events.sessions_view sv 
                     inner join users."user" u 
@@ -50,7 +50,7 @@ class LeaderboardModel(BaseModel):
 
     @classmethod
     async def fetch_currency(cls, db: Database, guild_id: int) -> "LeaderboardModel":
-        data = await db.pool.fetchrow("""
+        data = await db.fetchrow("""
                                         with t as (
                                             select thorny_id, user_id, balance
                                             from users."user"
@@ -76,7 +76,7 @@ class LeaderboardModel(BaseModel):
 
     @classmethod
     async def fetch_levels(cls, db: Database, guild_id: int) -> "LeaderboardModel":
-        data = await db.pool.fetchrow("""
+        data = await db.fetchrow("""
                                         with t as (
                                             select thorny_id, user_id, level
                                             from users."user"
@@ -102,7 +102,7 @@ class LeaderboardModel(BaseModel):
 
     @classmethod
     async def fetch_quests(cls, db: Database, guild_id: int) -> "LeaderboardModel":
-        data = await db.pool.fetchrow("""
+        data = await db.fetchrow("""
                                         with t as (
                                             select u.thorny_id, u.user_id, count(q.status) as quests_count
                                             from users."user" u
