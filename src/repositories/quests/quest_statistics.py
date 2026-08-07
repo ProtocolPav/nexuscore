@@ -12,7 +12,7 @@ class QuestStatisticsRepository:
         guild_id is used to scope the quest ownership check.
         Raises NotFound if the quest does not exist within the guild.
         """
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT
                 q.quest_id,
                 q.title,
@@ -78,7 +78,7 @@ class QuestStatisticsRepository:
         Returns per-objective funnel and timing stats, sorted by order_index.
         Raises NotFound if no objectives exist for the quest.
         """
-        rows = await self.db.pool.fetch("""
+        rows = await self.db.fetch("""
             SELECT
                 o.objective_id,
                 o.order_index,
@@ -117,7 +117,7 @@ class QuestStatisticsRepository:
         Returns raw completion durations in seconds for histogram bucketing.
         Returns an empty list if no completions exist yet — not an error condition.
         """
-        rows = await self.db.pool.fetch("""
+        rows = await self.db.fetch("""
             SELECT EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds
             FROM quests_v3.quest_progress
             WHERE quest_id = $1
@@ -133,7 +133,7 @@ class QuestStatisticsRepository:
         Returns daily accept/completion/failure counts for time-series charts.
         Returns an empty list if no activity exists yet — not an error condition.
         """
-        rows = await self.db.pool.fetch("""
+        rows = await self.db.fetch("""
             SELECT
                 accept_time::date                                                       AS date,
                 COUNT(*)                                                                AS accepts,

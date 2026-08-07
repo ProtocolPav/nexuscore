@@ -13,7 +13,7 @@ class ObjectiveRepository:
         self.db = db
 
     async def fetch(self, objective_id: int) -> ObjectiveDB:
-        data = await self.db.pool.fetchrow("""
+        data = await self.db.fetchrow("""
             SELECT * FROM quests_v3.objective
             WHERE objective_id = $1
         """,objective_id)
@@ -79,7 +79,7 @@ class ObjectiveRepository:
         return updated
 
     async def fetch_all(self, quest_id: int) -> list[ObjectiveDB]:
-        data = await self.db.pool.fetch("""
+        data = await self.db.fetch("""
             SELECT * FROM quests_v3.objective
             WHERE quest_id = $1
             ORDER BY order_index
