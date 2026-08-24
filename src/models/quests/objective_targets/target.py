@@ -1,7 +1,7 @@
 import uuid
 
 from pydantic import Field, UUID4, BaseModel
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal, Optional, Union
 
 from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
@@ -53,8 +53,9 @@ class VisitTargetModel(TargetBaseModel):
                                               examples=[[500, -5, 54]])
     horizontal_radius: int = Field(description="The horizontal radius to check for (x and z axis)",
                                    examples=[20])
-    vertical_radius: int = Field(description="The vertical radius to check for (y axis)",
-                                 examples=[4])
+    vertical_radius: Optional[int] = Field(description="The vertical radius to check for (y axis)",
+                                           examples=[4],
+                                           default=None)
     seconds: int = Field(description="The amount of seconds to stay in the area",
                          examples=[540],
                          default=2)
