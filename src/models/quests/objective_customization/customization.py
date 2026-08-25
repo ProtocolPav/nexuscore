@@ -39,7 +39,7 @@ class NaturalBlockCustomization(BaseModel):
 
 WaypointTypes = Literal["star", "question"]
 
-class WaypointCustomization(BaseModel):
+class Waypoint(BaseModel):
     coordinates: tuple[int, int, int] = Field(description="The coordinates to show the waypoint at",
                                               examples=[[500, -5, 54]])
     waypoint_type: WaypointTypes = Field(description="The type of waypoint to show",
@@ -48,6 +48,10 @@ class WaypointCustomization(BaseModel):
                            examples=["minecraft:overworld"],
                            default="minecraft:overworld",
                            pattern=MINECRAFT_REGEX_PATTERN)
+
+
+class WaypointCustomization(BaseModel):
+    waypoints: list[Waypoint] = Field(description="The waypoints to show",)
 
 
 class Customizations(BaseModel):
