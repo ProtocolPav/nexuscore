@@ -1,5 +1,5 @@
 from pydantic import Field, BaseModel
-from typing import Optional
+from typing import Literal, Optional
 
 from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
@@ -32,8 +32,26 @@ class MaximumDeathsCustomization(BaseModel):
     fail: bool = Field(description="Fail the quest when the death count is exceeded",
                        json_schema_extra={"example": True})
 
+
 class NaturalBlockCustomization(BaseModel):
     pass
+
+
+WaypointTypes = Literal["star", "question"]
+
+class Waypoint(BaseModel):
+    coordinates: tuple[int, int, int] = Field(description="The coordinates to show the waypoint at",
+                                              examples=[[500, -5, 54]])
+    waypoint_type: WaypointTypes = Field(description="The type of waypoint to show",
+                                         examples=["star"])
+    dimension: str = Field(description="The dimension to show the waypoint in",
+                           examples=["minecraft:overworld"],
+                           default="minecraft:overworld",
+                           pattern=MINECRAFT_REGEX_PATTERN)
+
+
+class WaypointCustomization(BaseModel):
+    waypoints: list[Waypoint] = Field(description="The waypoints to show",)
 
 
 class Customizations(BaseModel):
@@ -42,3 +60,4 @@ class Customizations(BaseModel):
     timer: Optional[TimerCustomization] = Field(description="Timer Customization", default=None)
     maximum_deaths: Optional[MaximumDeathsCustomization] = Field(description="Maximum Deaths Customization", default=None)
     natural_block: Optional[NaturalBlockCustomization] = Field(description="Natural Block Customization", default=None)
+    waypoint: Optional[WaypointCustomization] = Field(description="Waypoint Customization", default=None)
