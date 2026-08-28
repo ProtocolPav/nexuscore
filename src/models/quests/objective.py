@@ -87,7 +87,6 @@ class ObjectiveIn(BaseModel):
     logic: Logic
     target_count: Optional[TargetCount] = None
     targets: ObjectiveTargets
-    customizations: ObjectiveCustomizations
     rewards: list[RewardIn]
 
     @model_validator(mode='after')

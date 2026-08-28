@@ -106,7 +106,7 @@ class LeaderboardModel(BaseModel):
                                         with t as (
                                             select u.thorny_id, u.user_id, count(q.status) as quests_count
                                             from users."user" u
-                                            inner join users.quests_v3 q on q.thorny_id = u.thorny_id
+                                            inner join quests_v3.quest_progress q on q.thorny_id = u.thorny_id
                                             where u.guild_id = $1
                                             and q.status = 'completed'
                                             and u.active = true

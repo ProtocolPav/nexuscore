@@ -1,4 +1,4 @@
-from pydantic import Field, BaseModel
+from pydantic import ConfigDict, Field, BaseModel
 from typing import Literal, Optional
 
 from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
@@ -51,6 +51,8 @@ class Waypoint(BaseModel):
 
 
 class WaypointCustomization(BaseModel):
+    model_config = ConfigDict(json_schema_mode_override="validation")
+
     waypoints: list[Waypoint] = Field(description="The waypoints to show",)
 
 
