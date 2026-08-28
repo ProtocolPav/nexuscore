@@ -3,7 +3,7 @@ import json
 from pydantic import Field, model_validator, BaseModel
 from typing import Annotated, Literal, Optional
 
-from src.models.quests.objective_customization.customization import CustomizationsIn, CustomizationsOut
+from src.models.quests.objective_customization.customization import Customizations
 from src.models.quests.objective_targets.target import Targets
 from src.models.quests.reward import RewardIn, RewardOut, RewardUpdate
 
@@ -44,10 +44,7 @@ TargetCount = Annotated[int, Field(
 ObjectiveTargets = Annotated[list[Targets], Field(
     description="The targets of the objective. Target types must be equal to `objective_type`",
 )]
-ObjectiveCustomizationsIn = Annotated[CustomizationsIn, Field(
-    description="The customizations of the objective",
-)]
-ObjectiveCustomizationsOut = Annotated[CustomizationsOut, Field(
+ObjectiveCustomizations = Annotated[Customizations, Field(
     description="The customizations of the objective",
 )]
 
@@ -60,6 +57,7 @@ class ObjectiveBase(BaseModel):
     logic: Logic
     target_count: Optional[TargetCount] = None
     targets: ObjectiveTargets
+    customizations: ObjectiveCustomizations
 
 
 class ObjectiveDB(ObjectiveBase):
@@ -79,7 +77,6 @@ class ObjectiveDB(ObjectiveBase):
 
 class ObjectiveOut(ObjectiveBase):
     rewards: list[RewardOut]
-    customizations: ObjectiveCustomizationsOut
 
 
 class ObjectiveIn(BaseModel):
@@ -90,7 +87,6 @@ class ObjectiveIn(BaseModel):
     logic: Logic
     target_count: Optional[TargetCount] = None
     targets: ObjectiveTargets
-    customizations: ObjectiveCustomizationsIn
     rewards: list[RewardIn]
 
     @model_validator(mode='after')
@@ -118,5 +114,5 @@ class ObjectiveUpdate(BaseModel):
     logic: Optional[Logic] = None
     target_count: Optional[TargetCount] = None
     targets: Optional[ObjectiveTargets] = None
-    customizations: Optional[ObjectiveCustomizationsIn] = None
+    customizations: Optional[ObjectiveCustomizations] = None
     rewards: Optional[list[RewardUpdate]] = []
