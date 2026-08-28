@@ -88,6 +88,7 @@ class ObjectiveIn(BaseModel):
     target_count: Optional[TargetCount] = None
     targets: ObjectiveTargets
     rewards: list[RewardIn]
+    customizations: ObjectiveCustomizations
 
     @model_validator(mode='after')
     def check_targets(self) -> "ObjectiveIn":
