@@ -44,8 +44,15 @@ class VisitTargetProgressModel(TargetProgressBaseModel):
                          examples=[50])
 
 
+class DeliverTargetProgressModel(TargetProgressBaseModel):
+    target_type: Literal["deliver"]
+    count: int = Field(description="The number of items/entities logged so far",
+                       default=0,
+                       json_schema_extra={"example": 50})
+
+
 TargetProgress = Annotated[
-    Union[MineTargetProgressModel, KillTargetProgressModel, ScriptEventTargetProgressModel, VisitTargetProgressModel],
+    Union[MineTargetProgressModel, KillTargetProgressModel, ScriptEventTargetProgressModel, VisitTargetProgressModel, DeliverTargetProgressModel],
     Field(discriminator="target_type")
 ]
 
@@ -55,4 +62,5 @@ TARGET_TYPE_MAP = {
     "kill": KillTargetProgressModel,
     "scriptevent": ScriptEventTargetProgressModel,
     "visit": VisitTargetProgressModel,
+    "deliver": DeliverTargetProgressModel,
 }

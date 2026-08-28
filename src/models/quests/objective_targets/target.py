@@ -64,13 +64,6 @@ class VisitTargetModel(TargetBaseModel):
 class DeliverTargetModel(TargetBaseModel):
     target_type: Literal["deliver"] = Field(description="The type of the target. Must be equal to `objective_type`.",
                                             examples=["deliver"])
-    coordinates: tuple[int, int, int] = Field(description="The coordinates",
-                                              examples=[[500, -5, 54]])
-    horizontal_radius: int = Field(description="The horizontal radius to check for (x and z axis)",
-                                   examples=[20])
-    vertical_radius: Optional[int] = Field(description="The vertical radius to check for (y axis)",
-                                           examples=[4],
-                                           default=None)
     item: Optional[str] = Field(description="The item to be delivered. If this is present, `entity` should not be.",
                                 json_schema_extra={"example": "minecraft:stick"},
                                 default=None,
