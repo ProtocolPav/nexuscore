@@ -28,7 +28,7 @@ OrderIndex = Annotated[int, Field(
     description="The order of the objective. Starts at 0.",
     examples=[0],
 )]
-ObjectiveType = Annotated[Literal["kill", "mine", "scriptevent", "visit"], Field(
+ObjectiveType = Annotated[Literal["kill", "mine", "scriptevent", "visit", "deliver"], Field(
     description="The type of objective",
     examples=["mine"]
 )]

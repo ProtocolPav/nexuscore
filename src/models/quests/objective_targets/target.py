@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import Field, UUID4, BaseModel
+from pydantic import Field, UUID4, BaseModel, model_validator
 from typing import Annotated, Literal, Optional, Union
 
 from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
@@ -60,7 +60,37 @@ class VisitTargetModel(TargetBaseModel):
                          examples=[540],
                          default=2)
 
+
+class DeliverTargetModel(TargetBaseModel):
+    target_type: Literal["deliver"] = Field(description="The type of the target. Must be equal to `objective_type`.",
+                                            examples=["deliver"])
+    coordinates: tuple[int, int, int] = Field(description="The coordinates",
+                                              examples=[[500, -5, 54]])
+    horizontal_radius: int = Field(description="The horizontal radius to check for (x and z axis)",
+                                   examples=[20])
+    vertical_radius: Optional[int] = Field(description="The vertical radius to check for (y axis)",
+                                           examples=[4],
+                                           default=None)
+    item: Optional[str] = Field(description="The item to be delivered. If this is present, `entity` should not be.",
+                                json_schema_extra={"example": "minecraft:stick"},
+                                default=None,
+                                pattern=MINECRAFT_REGEX_PATTERN)
+    entity: Optional[str] = Field(description="The entity to be delivered. If this is present, `item` should not be.",
+                                  json_schema_extra={"example": "minecraft:pig"},
+                                  default=None,
+                                  pattern=MINECRAFT_REGEX_PATTERN)
+
+    @model_validator(mode='after')
+    def check_targets(self) -> "DeliverTargetModel":
+        if self.item is None and self.entity is None:
+            raise ValueError("The target must have either an item or an entity")
+
+        if self.entity is not None and self.item is not None:
+            raise ValueError("The target cannot have both an item and an entity.")
+
+        return self
+
 Targets = Annotated[
-    Union[MineTargetModel, KillTargetModel, ScriptEventTargetModel, VisitTargetModel],
+    Union[MineTargetModel, KillTargetModel, ScriptEventTargetModel, VisitTargetModel, DeliverTargetModel],
     Field(discriminator="target_type")
 ]
