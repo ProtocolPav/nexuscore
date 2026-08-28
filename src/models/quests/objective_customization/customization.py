@@ -54,10 +54,14 @@ class WaypointCustomization(BaseModel):
     waypoints: list[Waypoint] = Field(description="The waypoints to show",)
 
 
-class Customizations(BaseModel):
+class CustomizationsIn(BaseModel):
     mainhand: Optional[MainhandCustomization] = Field(description="Mainhand Customization", default=None)
     location: Optional[LocationCustomization] = Field(description="Location Customization", default=None)
     timer: Optional[TimerCustomization] = Field(description="Timer Customization", default=None)
     maximum_deaths: Optional[MaximumDeathsCustomization] = Field(description="Maximum Deaths Customization", default=None)
     natural_block: Optional[NaturalBlockCustomization] = Field(description="Natural Block Customization", default=None)
     waypoint: Optional[WaypointCustomization] = Field(description="Waypoint Customization", default=None)
+
+
+class CustomizationsOut(CustomizationsIn):
+    pass
