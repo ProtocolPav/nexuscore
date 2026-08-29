@@ -52,6 +52,10 @@ CompletedOn = Annotated[date, Field(
 Owner = Annotated[user.UserOut, Field(
     description="The owner of the project, in the form of a User object",
 )]
+CoverImage = Annotated[str, Field(
+    description="URL of the cover image",
+    examples=["https://example.com/cover.png"]
+)]
 
 
 class ProjectBase(BaseModel):
@@ -73,6 +77,7 @@ class ProjectOut(ProjectBase):
     status: Status
     status_since: StatusSince
     owner: Owner
+    cover_image: Optional[CoverImage]
 
 class ProjectIn(BaseModel):
     owner_id: ProjectOwnerID

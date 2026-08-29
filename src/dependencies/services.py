@@ -45,9 +45,10 @@ def get_guild_service(
 
 def get_project_service(
         project_repo: ProjectRepository = Depends(get_project_repo),
-        user_repo: UserRepository = Depends(get_user_repo)
+        user_repo: UserRepository = Depends(get_user_repo),
+        wiki_page_repo: PageRepository = Depends(get_wiki_page_repo),
 ) -> ProjectService:
-    return ProjectService(project_repo, user_repo)
+    return ProjectService(project_repo, user_repo, wiki_page_repo)
 
 def get_pin_service(
         pin_repo: PinRepository = Depends(get_pin_repo),

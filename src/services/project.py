@@ -1,7 +1,9 @@
 import asyncio
 
+from fastapi import HTTPException
 from opentelemetry import trace
 
+from repositories.wiki.page import PageRepository
 from src.models.projects.project import ProjectDB, ProjectIn, ProjectOut, ProjectUpdate
 from src.models.projects.status import StatusIn, StatusOut
 
@@ -13,9 +15,10 @@ from src.utils.tracing import traced
 
 
 class ProjectService:
-    def __init__(self, project_repo: ProjectRepository, user_repo: UserRepository):
+    def __init__(self, project_repo: ProjectRepository, user_repo: UserRepository, wiki_repo: PageRepository):
         self.project_repo = project_repo
         self.user_repo = user_repo
+        self.wiki_repo = wiki_repo
 
     async def _to_out(self, project: ProjectDB) -> ProjectOut:
         owner, profile, stat = await asyncio.gather(
@@ -24,6 +27,12 @@ class ProjectService:
             self.project_repo.fetch_status(project.project_id)
         )
 
+        try:
+            wiki = await self.wiki_repo.fetch_by_slug(project.guild_id, project.project_id)
+            cover_image = wiki.cover_image
+        except HTTPException:
+            cover_image = None
+
         return ProjectOut(
             **project.model_dump(),
             owner=UserOut(
@@ -31,7 +40,8 @@ class ProjectService:
                 profile=ProfileOut(**profile.model_dump())
             ),
             status=stat.status,
-            status_since=stat.since
+            status_since=stat.since,
+            cover_image=cover_image
         )
 
     @traced
