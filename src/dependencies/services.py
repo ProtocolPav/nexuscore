@@ -3,6 +3,7 @@ from fastapi import Depends
 
 from src.dependencies.r2_client import get_r2_client
 from src.dependencies.repositories import (
+    get_daily_quest_repo, get_daily_template_repo,
     get_guild_repo,
     get_objective_progress_repo, get_objective_repo,
     get_project_repo,
@@ -14,6 +15,8 @@ from src.dependencies.repositories import (
     get_reward_repo
 )
 from src.repositories.guild import GuildRepository
+from src.repositories.quests.daily_quest import DailyQuestRepository
+from src.repositories.quests.daily_template import DailyTemplateRepository
 from src.repositories.quests.objective import ObjectiveRepository
 from src.repositories.project import ProjectRepository
 from src.repositories.quests.objective_progress import ObjectiveProgressRepository
@@ -26,6 +29,7 @@ from src.repositories.pin import PinRepository
 from src.repositories.wiki.content import ContentRepository
 from src.repositories.wiki.page import PageRepository
 from src.repositories.world import WorldRepository
+from src.services.daily_quest import DailyQuestService
 from src.services.guild import GuildService
 from src.services.image import ImageService
 from src.services.project import ProjectService
@@ -80,6 +84,14 @@ def get_quest_progress_service(
         objective_progress_repo: ObjectiveProgressRepository = Depends(get_objective_progress_repo),
 ) -> QuestProgressService:
     return QuestProgressService(quest_repo, objective_repo, quest_progress_repo, objective_progress_repo)
+
+def get_daily_quest_service(
+        template_repo: DailyTemplateRepository = Depends(get_daily_template_repo),
+        daily_repo: DailyQuestRepository = Depends(get_daily_quest_repo),
+        quest_service: QuestService = Depends(get_quest_service),
+        quest_progress_service: QuestProgressService = Depends(get_quest_progress_service),
+) -> DailyQuestService:
+    return DailyQuestService(template_repo, daily_repo, quest_service, quest_progress_service)
 
 def get_wiki_service(
         page_repo: PageRepository = Depends(get_wiki_page_repo),
