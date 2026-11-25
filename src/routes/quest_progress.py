@@ -1,4 +1,6 @@
-from fastapi import APIRouter, status, Security, Depends
+from typing import Optional
+
+from fastapi import APIRouter, Query, status, Security, Depends
 
 from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_quest_progress_service
@@ -8,6 +10,13 @@ from src.models.quests.quest_progress import QuestProgressIn, QuestProgressOut, 
 from src.services.quest_progress import QuestProgressService
 
 quest_progress_router = APIRouter(prefix='/guilds/me/quests/progress', tags=['Quests'])
+
+QuestTypeQuery = Query(
+    default=None,
+    description="The quest type to look for, e.g. `daily`. "
+                "When omitted, daily quests are excluded and the user's regular quest is used.",
+    examples=["daily"],
+)
 
 
 @quest_progress_router.post('', status_code=status.HTTP_201_CREATED)
@@ -42,6 +51,7 @@ async def list_quest_progress(
 @quest_progress_router.get('/user/{thorny_id}/active')
 async def get_active_quest_progress(
         thorny_id: int,
+        quest_type: Optional[str] = QuestTypeQuery,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
         service: QuestProgressService = Depends(get_quest_progress_service)
 ) -> QuestProgressOut:
@@ -49,13 +59,16 @@ async def get_active_quest_progress(
     Get User's Active Quest
 
     Returns the user's currently active quest.
+    By default this is their regular (accepted) quest. Use `?quest_type=daily`
+    to get their active daily quest instead.
     """
-    return await service.get_active(thorny_id)
+    return await service.get_active(thorny_id, quest_type)
 
 
 @quest_progress_router.delete('/user/{thorny_id}/active', status_code=status.HTTP_204_NO_CONTENT)
 async def fail_active_quest_progress(
         thorny_id: int,
+        quest_type: Optional[str] = QuestTypeQuery,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
         service: QuestProgressService = Depends(get_quest_progress_service)
 ):
@@ -63,8 +76,9 @@ async def fail_active_quest_progress(
     Fail User's Active Quest
 
     This marks the active quest and all of its objectives as "failed".
+    Use `?quest_type=daily` to fail the active daily quest instead.
     """
-    await service.mark_failed(thorny_id)
+    await service.mark_failed(thorny_id, quest_type)
 
 
 @quest_progress_router.put('/{progress_id}')

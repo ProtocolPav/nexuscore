@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from typing import Optional
 
 from opentelemetry import trace
 
@@ -73,11 +74,12 @@ class QuestProgressService:
         return await self._to_out(quest_db)
 
     @traced
-    async def get_active(self, thorny_id: int) -> QuestProgressOut:
+    async def get_active(self, thorny_id: int, quest_type: Optional[str] = None) -> QuestProgressOut:
         span = trace.get_current_span()
         span.set_attribute("user.thorny_id", thorny_id)
+        span.set_attribute("quest.type", quest_type or "regular")
 
-        quest_db = await self.quest_progress_repo.fetch_active(thorny_id)
+        quest_db = await self.quest_progress_repo.fetch_active(thorny_id, quest_type)
         return await self._to_out(quest_db)
 
     @traced
@@ -107,11 +109,11 @@ class QuestProgressService:
         return [t.result() for t in tasks]
 
     @traced
-    async def mark_failed(self, thorny_id: int) -> QuestProgressOut:
+    async def mark_failed(self, thorny_id: int, quest_type: Optional[str] = None) -> QuestProgressOut:
         span = trace.get_current_span()
         span.set_attribute("user.thorny_id", thorny_id)
 
-        quest_progress = await self.get_active(thorny_id)
+        quest_progress = await self.get_active(thorny_id, quest_type)
         span.set_attribute("progress.id", quest_progress.progress_id)
 
         quest_update = QuestProgressUpdate(**{

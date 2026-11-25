@@ -1,8 +1,11 @@
+from typing import Optional
+
 import asyncpg
 from asyncpg.pool import PoolConnectionProxy
 
 from src.dependencies.database import Database
 from src.errors import AlreadyExists, NotFound
+from src.models.quests.daily import DAILY_QUEST_TYPE
 from src.models.quests.quest_progress import QuestProgressDB, QuestProgressIn, QuestProgressUpdate
 
 
@@ -21,13 +24,26 @@ class QuestProgressRepository:
 
         return QuestProgressDB.model_validate(dict(data))
 
-    async def fetch_active(self, progress_id: int) -> QuestProgressDB:
+    async def fetch_active(self, thorny_id: int, quest_type: Optional[str] = None) -> QuestProgressDB:
+        """
+        Fetches the user's active quest progress.
+        If `quest_type` is None, daily quests are excluded so that the user's
+        regular (accepted) quest is returned. Otherwise, filters by that quest type.
+        Daily quests are only considered while they are still running.
+        """
         data = await self.db.fetchrow("""
-            SELECT * from quests_v3.quest_progress
-            WHERE thorny_id = $1
-                AND status = 'active'
-            ORDER BY accept_time
-        """,progress_id)
+            SELECT qp.* FROM quests_v3.quest_progress qp
+            JOIN quests_v3.quest q ON q.quest_id = qp.quest_id
+            WHERE qp.thorny_id = $1
+                AND qp.status = 'active'
+                AND (
+                    ($2::varchar IS NULL AND q.quest_type <> $3)
+                    OR q.quest_type = $2::varchar
+                )
+                AND (q.quest_type <> $3 OR q.end_time > now())
+            ORDER BY qp.accept_time
+            LIMIT 1
+        """, thorny_id, quest_type, DAILY_QUEST_TYPE)
 
         if not data:
             raise NotFound("Quest Progress")
