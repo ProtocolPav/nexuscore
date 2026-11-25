@@ -32,7 +32,7 @@ async def create_quest_progress(
     Adds a new quest to a user, tracking their progress.
     Automatically sets the quest progress to "active".
 
-    Quests can only be accepted before they end, and daily quests only once per user.
+    Quests can only be accepted while they are running, and daily quests only once per user.
     """
     return await service.new(auth.guild_id, body)
 

@@ -147,7 +147,11 @@ class QuestProgressService:
 
         quest_db = await self.quest_repo.fetch(model.quest_id, guild_id)
 
-        if quest_db.end_time <= datetime.now(timezone.utc):
+        now = datetime.now(timezone.utc)
+        if quest_db.start_time > now:
+            raise BadRequest("This quest has not started yet")
+
+        if quest_db.end_time <= now:
             raise BadRequest("This quest has already ended")
 
         # Daily quests can only be attempted once per user
