@@ -66,19 +66,24 @@ async def get_active_quest_progress(
 
 
 @quest_progress_router.delete('/user/{thorny_id}/active', status_code=status.HTTP_204_NO_CONTENT)
-async def fail_active_quest_progress(
+async def abandon_active_quest_progress(
         thorny_id: int,
         quest_type: Optional[str] = QuestTypeQuery,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
         service: QuestProgressService = Depends(get_quest_progress_service)
 ):
     """
-    Fail User's Active Quest
+    Abandon User's Active Quest
 
-    This marks the active quest and all of its objectives as "failed".
-    Use `?quest_type=daily` to fail the active daily quest instead.
+    Use this when the player chooses to drop their quest.
+    Marks the active quest and the objective the player was on as `abandoned`.
+    Objectives the player never reached stay `pending`.
+    Use `?quest_type=daily` to abandon the active daily quest instead.
+
+    To record a genuine failure (e.g. the player died), update the progress
+    with status `failed` instead.
     """
-    await service.mark_failed(thorny_id, quest_type)
+    await service.mark_abandoned(thorny_id, quest_type)
 
 
 @quest_progress_router.put('/{progress_id}')

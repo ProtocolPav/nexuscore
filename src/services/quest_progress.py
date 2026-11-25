@@ -109,7 +109,12 @@ class QuestProgressService:
         return [t.result() for t in tasks]
 
     @traced
-    async def mark_failed(self, thorny_id: int, quest_type: Optional[str] = None) -> QuestProgressOut:
+    async def mark_abandoned(self, thorny_id: int, quest_type: Optional[str] = None) -> QuestProgressOut:
+        """
+        The player chose to drop their active quest.
+        Marks the quest and the objective they were on as `abandoned`. Objectives they
+        never reached stay `pending`, so statistics show where players gave up.
+        """
         span = trace.get_current_span()
         span.set_attribute("user.thorny_id", thorny_id)
 
@@ -117,14 +122,14 @@ class QuestProgressService:
         span.set_attribute("progress.id", quest_progress.progress_id)
 
         quest_update = QuestProgressUpdate(**{
-            "status": "failed",
+            "status": "abandoned",
             "end_time": datetime.now(),
             "objectives": [
                 {
                     "objective_id": o.objective_id,
-                    "status": "failed",
+                    "status": "abandoned",
                     "end_time": datetime.now()
-                } for o in quest_progress.objectives if o.status in ['active', 'pending']
+                } for o in quest_progress.objectives if o.status == 'active'
             ]
         })
 
