@@ -3,7 +3,7 @@ import random
 from datetime import date, datetime
 from typing import Annotated, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.models.quests.objective import Logic, ObjectiveType
 from src.models.quests.objective_customization.customization import LocationCustomization
@@ -133,6 +133,9 @@ class NaturalBlockOption(BaseModel):
 
 
 class CustomizationOptions(BaseModel):
+    # Used in requests and responses; keep a single schema so API client generators don't see duplicates
+    model_config = ConfigDict(json_schema_mode_override="validation")
+
     mainhand: Optional[MainhandOption] = Field(description="Possible mainhand requirement", default=None)
     location: Optional[LocationOption] = Field(description="Possible location requirement", default=None)
     timer: Optional[TimerOption] = Field(description="Possible timer", default=None)
