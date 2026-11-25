@@ -44,6 +44,10 @@ Required environment variables:
 - `DATABASE_PORT` - Database port (default: 5432)
 - `WEBHOOK_URL` - Discord webhook URL
 
+Optional:
+- `QUEST_TASKS_ENABLED` - Run the quest background loop: abandons progress on expired quests and generates daily quests (default: true)
+- `QUEST_TASKS_INTERVAL_SECONDS` - How often the quest background loop runs (default: 60)
+
 ## Code Style Guidelines
 
 ### Imports

@@ -16,5 +16,7 @@ class Settings(BaseSettings):
     R2_BUCKET_NAME: str
     OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://tempo:4317"
     POSTHOG_API_KEY: str = ""
+    QUEST_TASKS_ENABLED: bool = True
+    QUEST_TASKS_INTERVAL_SECONDS: int = 60
 
 settings = Settings()
