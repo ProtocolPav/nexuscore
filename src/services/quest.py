@@ -6,6 +6,8 @@ from asyncpg.pool import PoolConnectionProxy
 
 from opentelemetry import trace
 
+from src.errors import BadRequest
+from src.models.quests.daily import DAILY_QUEST_TYPE
 from src.models.quests.objective import ObjectiveOut
 from src.models.quests.quest import QuestDB, QuestIn, QuestOut, QuestQuery, QuestUpdate
 from src.models.quests.quest_statistics import (
@@ -130,6 +132,13 @@ class QuestService:
         span.set_attribute("guild.id", guild_id)
         span.set_attribute("quest.id", quest_id)
         span.set_attribute("quest.objectives_submitted", len(model.objectives))
+
+        # A daily quest's window and type come from its date, so they can't be edited
+        current = await self.quest_repo.fetch(quest_id, guild_id)
+        if current.quest_type == DAILY_QUEST_TYPE and (
+                model.start_time is not None or model.end_time is not None or model.quest_type is not None
+        ):
+            raise BadRequest("A daily quest's start_time, end_time and quest_type cannot be edited")
 
         objectives_updated = 0
         objectives_created = 0
