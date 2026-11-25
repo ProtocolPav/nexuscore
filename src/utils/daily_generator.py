@@ -2,7 +2,7 @@ import random
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Optional
 
-from src.models.quests.daily import DAILY_QUEST_TYPE, DailyTemplateBase
+from src.models.quests.daily import DailyQuestIn, DailyTemplateBase
 from src.models.quests.objective import ObjectiveIn
 from src.models.quests.objective_customization.customization import (
     Customizations,
@@ -20,7 +20,6 @@ from src.models.quests.objective_targets.target import (
     ScriptEventTargetModel,
     VisitTargetModel,
 )
-from src.models.quests.quest import QuestIn
 from src.models.quests.reward import RewardIn
 
 TARGET_MODELS = {
@@ -140,7 +139,7 @@ def generate_daily_quest(
         template: DailyTemplateBase,
         quest_date: date,
         rng: Optional[random.Random] = None,
-) -> QuestIn:
+) -> DailyQuestIn:
     """
     Rolls a concrete, single-objective daily quest from a template.
     Pure function: does not touch the database.
@@ -176,13 +175,12 @@ def generate_daily_quest(
 
     start, end = daily_window(quest_date)
 
-    return QuestIn(
+    return DailyQuestIn(
         start_time=start,
         end_time=end,
         title=_format(template.title, **placeholders),
         description=_format(template.description, **placeholders),
         tags=["daily"],
-        quest_type=DAILY_QUEST_TYPE,
         created_by=template.created_by,
         objectives=[objective],
     )

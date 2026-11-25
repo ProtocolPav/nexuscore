@@ -6,8 +6,8 @@ from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_daily_quest_service
 from src.models.auth import Scope, TokenPayload
 
-from src.models.quests.daily import DailyTemplateIn, DailyTemplateOut, DailyTemplateUpdate
-from src.models.quests.quest import QuestIn, QuestOut
+from src.models.quests.daily import DailyQuestIn, DailyTemplateIn, DailyTemplateOut, DailyTemplateUpdate
+from src.models.quests.quest import QuestOut
 from src.services.daily_quest import DailyQuestService
 
 daily_quests_router = APIRouter(prefix='/guilds/me/quests/daily', tags=['Daily Quests'])
@@ -76,7 +76,7 @@ async def preview_daily_template(
         body: DailyTemplateIn,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
         service: DailyQuestService = Depends(get_daily_quest_service),
-) -> QuestIn:
+) -> DailyQuestIn:
     """
     Preview Daily Template
 

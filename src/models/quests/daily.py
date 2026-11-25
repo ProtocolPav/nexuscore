@@ -1,7 +1,7 @@
 import json
 import random
 from datetime import date, datetime
-from typing import Annotated, Optional, Union
+from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -13,6 +13,7 @@ from src.models.quests.objective_targets.target import (
     ScriptEventTargetModel,
     VisitTargetModel,
 )
+from src.models.quests.quest import QuestIn
 from src.models.quests.reward_metadata import Metadata
 from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
@@ -312,6 +313,11 @@ class DailyTemplateUpdate(BaseModel):
 
 
 # ---------- Generated daily quests ----------
+
+class DailyQuestIn(QuestIn):
+    """A generated daily quest. Only the generator creates these; QuestIn does not accept `daily`."""
+    quest_type: Literal["daily"] = Field(description="Always `daily`", default="daily")
+
 
 class DailyQuestDB(BaseModel):
     guild_id: GuildID

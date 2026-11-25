@@ -7,12 +7,13 @@ from opentelemetry import trace
 from src.errors import AlreadyExists, BadRequest, NotFound
 from src.models.quests.daily import (
     DailyQuestDB,
+    DailyQuestIn,
     DailyTemplateDB,
     DailyTemplateIn,
     DailyTemplateOut,
     DailyTemplateUpdate,
 )
-from src.models.quests.quest import QuestIn, QuestOut
+from src.models.quests.quest import QuestOut
 from src.models.quests.quest_progress import QuestProgressOut
 from src.repositories.quests.daily_quest import DailyQuestRepository
 from src.repositories.quests.daily_template import DailyTemplateRepository
@@ -93,7 +94,7 @@ class DailyQuestService:
         await self.template_repo.delete(template_id, guild_id)
 
     @staticmethod
-    def preview_template(model: DailyTemplateIn) -> QuestIn:
+    def preview_template(model: DailyTemplateIn) -> DailyQuestIn:
         """Rolls a quest from a (possibly unsaved) template without saving anything."""
         return generate_daily_quest(model, utc_today())
 

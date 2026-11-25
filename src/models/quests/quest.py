@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional
 
 from pydantic import Field, BaseModel
 
@@ -41,6 +41,10 @@ QuestType = Annotated[str, Field(
     description="The quest type",
     examples=["side"]
 )]
+CreatableQuestType = Annotated[Literal["minor", "side", "story", "weekly"], Field(
+    description="The quest type. `daily` quests are generated automatically and cannot be created directly.",
+    examples=["side"]
+)]
 
 
 class QuestBase(BaseModel):
@@ -69,7 +73,7 @@ class QuestIn(BaseModel):
     title: Title
     description: Description
     tags: Tags
-    quest_type: QuestType
+    quest_type: CreatableQuestType
     created_by: CreatedBy
     objectives: list[ObjectiveIn]
 
@@ -80,7 +84,7 @@ class QuestUpdate(BaseModel):
     title: Optional[Title] = None
     description: Optional[Description] = None
     tags: Optional[Tags] = None
-    quest_type: Optional[QuestType] = None
+    quest_type: Optional[CreatableQuestType] = None
     created_by: Optional[CreatedBy] = None
     objectives: Optional[list[ObjectiveUpdate]] = []
 
