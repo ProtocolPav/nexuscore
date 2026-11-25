@@ -4,7 +4,7 @@ from typing import Optional
 
 from opentelemetry import trace
 
-from src.errors import AlreadyExists, BadRequest
+from src.errors import AlreadyExists, BadRequest, ProgressFinished
 from src.models.quests.daily import DAILY_QUEST_TYPE
 from src.models.quests.objective import ObjectiveDB, ObjectiveOut
 from src.models.quests.objective_customization.progress import CUSTOMIZATION_TYPE_MAP, CustomizationProgress
@@ -22,6 +22,9 @@ from src.repositories.quests.quest_progress import QuestProgressRepository
 from src.repositories.quests.reward import RewardRepository
 from src.repositories.user import UserRepository
 from src.utils.tracing import traced
+
+
+FINISHED_STATUSES = ("completed", "failed", "abandoned")
 
 
 class QuestProgressService:
@@ -230,6 +233,12 @@ class QuestProgressService:
         span = trace.get_current_span()
         span.set_attribute("progress.id", progress_id)
         span.set_attribute("progress.objectives_submitted", len(model.objectives))
+
+        # Finished progress is final. This stops clients holding a stale copy from
+        # reverting it, e.g. back to active after the quest expired.
+        current = await self.quest_progress_repo.fetch(progress_id)
+        if current.status in FINISHED_STATUSES:
+            raise ProgressFinished(current.status)
 
         async with self.quest_repo.db.get_transaction() as conn:
             quest_progress_db = await self.quest_progress_repo.update(progress_id, model, conn)
