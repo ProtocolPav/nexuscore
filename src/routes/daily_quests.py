@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Security, status
@@ -6,41 +7,68 @@ from src.dependencies.auth import get_guild_client
 from src.dependencies.services import get_daily_quest_service
 from src.models.auth import Scope, TokenPayload
 
-from src.models.quests.daily import DailyQuestIn, DailyTemplateIn, DailyTemplateOut, DailyTemplateUpdate
+from src.models.quests.daily import DailyQuestIn, DailyQuestOut, DailyTemplateIn, DailyTemplateOut, DailyTemplateUpdate
 from src.models.quests.quest import QuestOut
 from src.services.daily_quest import DailyQuestService
 
 daily_quests_router = APIRouter(prefix='/guilds/me/quests/daily', tags=['Daily Quests'])
 
 
+QuestDateQuery = Query(
+    default=None,
+    description="The UTC date of the daily quest. Default: today.",
+    examples=["2026-11-27"],
+)
+
+
 @daily_quests_router.get('')
 async def get_daily_quest(
+        quest_date: Optional[date] = QuestDateQuery,
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
         service: DailyQuestService = Depends(get_daily_quest_service),
 ) -> QuestOut:
     """
-    Get Today's Daily Quest
+    Get Daily Quest
 
-    Returns the guild's daily quest for the current UTC day.
+    Returns the guild's daily quest for a UTC day, today by default.
     Daily quests reset at 00:00 UTC.
     """
-    return await service.get_today(auth.guild_id)
+    return await service.get_day(auth.guild_id, quest_date)
+
+
+@daily_quests_router.get('/upcoming')
+async def list_upcoming_daily_quests(
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
+        service: DailyQuestService = Depends(get_daily_quest_service),
+) -> list[DailyQuestOut]:
+    """
+    List Upcoming Daily Quests
+
+    Returns every generated daily quest from today onwards, ordered by date.
+    Daily quests are generated several days in advance, so admins can customise
+    an upcoming day's quest with PATCH /guilds/me/quests/{quest_id}.
+    `quest.last_edited_at` shows which ones have been customised.
+    """
+    return await service.get_upcoming(auth.guild_id)
 
 
 @daily_quests_router.post('/generate')
 async def generate_daily_quest(
-        force: bool = Query(default=False, description="Replace today's daily quest if it already exists. "
-                                                      "Players' unfinished progress on the old one is abandoned."),
+        quest_date: Optional[date] = QuestDateQuery,
+        force: bool = Query(default=False, description="Replace the day's daily quest if it already exists, "
+                                                      "including any admin edits. Players' unfinished "
+                                                      "progress on the old one is abandoned."),
         auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
         service: DailyQuestService = Depends(get_daily_quest_service),
 ) -> QuestOut:
     """
-    Generate Today's Daily Quest
+    Generate Daily Quest
 
-    Daily quests are generated automatically. Use this to generate one immediately,
-    or with `force=true` to re-roll today's daily quest.
+    Daily quests are generated automatically, several days in advance. Use this to
+    generate a day's quest immediately (today by default, or any future day), or with
+    `force=true` to re-roll it.
     """
-    return await service.generate(auth.guild_id, force=force)
+    return await service.generate(auth.guild_id, quest_date, force=force)
 
 
 @daily_quests_router.get('/templates')

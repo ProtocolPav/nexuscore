@@ -13,7 +13,7 @@ from src.models.quests.objective_targets.target import (
     ScriptEventTargetModel,
     VisitTargetModel,
 )
-from src.models.quests.quest import QuestIn
+from src.models.quests.quest import QuestIn, QuestOut
 from src.models.quests.reward_metadata import Metadata
 from src.utils.minecraft_id import MINECRAFT_REGEX_PATTERN
 
@@ -324,3 +324,11 @@ class DailyQuestDB(BaseModel):
     quest_date: date = Field(description="The UTC date this daily quest is for", examples=["2026-11-22"])
     quest_id: int = Field(description="The generated quest's ID", examples=[732])
     template_id: Optional[int] = Field(description="The template this quest was generated from", examples=[12])
+
+
+class DailyQuestOut(BaseModel):
+    quest_date: date = Field(description="The UTC date this daily quest is for", examples=["2026-11-22"])
+    template_id: Optional[int] = Field(description="The template this quest was generated from. "
+                                                   "`null` if the template was deleted.", examples=[12])
+    quest: QuestOut = Field(description="The generated quest. `quest.last_edited_at` is set if an admin "
+                                        "has customised it.")

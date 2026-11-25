@@ -1,3 +1,4 @@
+import asyncio
 import random
 from datetime import date, timedelta
 from typing import Optional
@@ -8,6 +9,7 @@ from src.errors import AlreadyExists, BadRequest, NotFound
 from src.models.quests.daily import (
     DailyQuestDB,
     DailyQuestIn,
+    DailyQuestOut,
     DailyTemplateDB,
     DailyTemplateIn,
     DailyTemplateOut,
@@ -198,9 +200,21 @@ class DailyQuestService:
     # ---------- Today's quest ----------
 
     @traced
-    async def get_today(self, guild_id: int) -> QuestOut:
-        daily_db = await self.daily_repo.fetch(guild_id, utc_today())
+    async def get_day(self, guild_id: int, quest_date: Optional[date] = None) -> QuestOut:
+        """The daily quest for a day, today by default."""
+        daily_db = await self.daily_repo.fetch(guild_id, quest_date or utc_today())
         return await self.quest_service.get(guild_id, daily_db.quest_id)
+
+    @traced
+    async def get_upcoming(self, guild_id: int) -> list[DailyQuestOut]:
+        """All generated daily quests from today onwards, ordered by date."""
+        dailies_db = await self.daily_repo.fetch_from(guild_id, utc_today())
+        quests = await asyncio.gather(*[self.quest_service.get(guild_id, d.quest_id) for d in dailies_db])
+
+        return [
+            DailyQuestOut(quest_date=d.quest_date, template_id=d.template_id, quest=q)
+            for d, q in zip(dailies_db, quests)
+        ]
 
     @traced
     async def accept_today(self, guild_id: int, thorny_id: int) -> QuestProgressOut:
