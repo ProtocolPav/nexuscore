@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional
 
 from opentelemetry import trace
 
@@ -162,6 +163,9 @@ class QuestService:
 
         histogram = _build_histogram(completion_times)
 
+        def rate(count: Optional[int], reached: Optional[int]) -> float:
+            return (count or 0) / reached if reached else 0.0
+
         objectives = [
             ObjectiveStatistics(
                 objective_id=row['objective_id'],
@@ -170,14 +174,12 @@ class QuestService:
                 players_reached=row['players_reached'] or 0,
                 players_completed=row['players_completed'] or 0,
                 players_failed=row['players_failed'] or 0,
-                completion_rate=(
-                    (row['players_completed'] or 0) / row['players_reached']
-                    if row['players_reached'] else 0.0
-                ),
-                drop_rate=(
-                    (row['players_failed'] or 0) / row['players_reached']
-                    if row['players_reached'] else 0.0
-                ),
+                players_abandoned=row['players_abandoned'] or 0,
+                completion_rate=rate(row['players_completed'], row['players_reached']),
+                failure_rate=rate(row['players_failed'], row['players_reached']),
+                abandon_rate=rate(row['players_abandoned'], row['players_reached']),
+                drop_rate=rate((row['players_failed'] or 0) + (row['players_abandoned'] or 0),
+                               row['players_reached']),
                 avg_time_seconds=int(row['avg_time_seconds']) if row['avg_time_seconds'] is not None else None,
                 median_time_seconds=int(row['median_time_seconds']) if row['median_time_seconds'] is not None else None,
             )
@@ -193,6 +195,7 @@ class QuestService:
             total_started=total_started,
             total_completed=total_completed,
             total_failed=summary['total_failed'] or 0,
+            total_abandoned=summary['total_abandoned'] or 0,
             completion_rate=completion_rate,
             started_rate=started_rate,
             avg_completion_time_seconds=int(summary['avg_completion_time_seconds']) if summary['avg_completion_time_seconds'] is not None else None,
@@ -209,6 +212,7 @@ class QuestService:
                     accepts=row['accepts'] or 0,
                     completions=row['completions'] or 0,
                     failures=row['failures'] or 0,
+                    abandonments=row['abandonments'] or 0,
                 )
                 for row in daily_rows
             ],
