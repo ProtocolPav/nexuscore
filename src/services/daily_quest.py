@@ -7,6 +7,7 @@ from opentelemetry import trace
 
 from src.errors import AlreadyExists, BadRequest, NotFound
 from src.models.quests.daily import (
+    DAILY_QUEST_TYPE,
     DailyQuestDB,
     DailyQuestIn,
     DailyQuestOut,
@@ -218,10 +219,20 @@ class DailyQuestService:
         ]
 
     @traced
-    async def accept_today(self, guild_id: int, thorny_id: int) -> QuestProgressOut:
+    async def accept_current(self, guild_id: int, thorny_id: int) -> QuestProgressOut:
         """
-        Accepts today's daily quest for a user. Idempotent: if the user has already
-        accepted it, their existing progress (whatever its status) is returned.
+        Returns the user's current daily quest progress, accepting today's daily if needed.
+        Players only ever have one daily at a time:
+
+        - If they have an unfinished daily that is still running (e.g. yesterday's, while
+          dailies overlap), that is returned.
+        - Otherwise today's daily is accepted. If they already accepted it, their existing
+          progress is returned, whatever its status.
         """
+        try:
+            return await self.quest_progress_service.get_active(thorny_id, DAILY_QUEST_TYPE)
+        except NotFound:
+            pass
+
         daily_db = await self.daily_repo.fetch(guild_id, utc_today())
         return await self.quest_progress_service.accept_once(guild_id, thorny_id, daily_db.quest_id)

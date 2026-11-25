@@ -96,14 +96,18 @@ async def accept_daily_quest(
         service: DailyQuestService = Depends(get_daily_quest_service)
 ) -> QuestProgressOut:
     """
-    Accept Today's Daily Quest
+    Accept Daily Quest
 
-    Accepts today's daily quest for the user. Safe to call repeatedly:
-    if the user already accepted it, their existing progress is returned,
-    whatever its status (active, completed, failed or abandoned).
-    Clients that support daily quests should call this when a player joins.
+    Returns the user's current daily quest progress, accepting today's daily if needed.
+    Players have one daily at a time: while consecutive dailies overlap, an unfinished
+    daily from the previous day is returned until it is finished or expires. After that,
+    today's daily is accepted.
+
+    Safe to call repeatedly: if the user already accepted today's daily, their existing
+    progress is returned, whatever its status (active, completed, failed or abandoned).
+    Clients should call this when a player joins, and again when their daily finishes.
     """
-    return await service.accept_today(auth.guild_id, thorny_id)
+    return await service.accept_current(auth.guild_id, thorny_id)
 
 
 @quest_progress_router.put('/{progress_id}')
