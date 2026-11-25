@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -19,5 +20,7 @@ class Settings(BaseSettings):
     QUEST_TASKS_ENABLED: bool = True
     QUEST_TASKS_INTERVAL_SECONDS: int = 60
     DAILY_QUEST_BACKLOG_DAYS: int = 7
+    # Over 24 hours, consecutive daily quests overlap
+    DAILY_QUEST_DURATION_HOURS: int = Field(default=30, ge=24, le=48)
 
 settings = Settings()

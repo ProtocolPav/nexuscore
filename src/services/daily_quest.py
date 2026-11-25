@@ -42,12 +42,14 @@ class DailyQuestService:
             quest_service: QuestService,
             quest_progress_service: QuestProgressService,
             user_repo: UserRepository,
+            duration_hours: int = 24,
     ):
         self.template_repo = template_repo
         self.daily_repo = daily_repo
         self.quest_service = quest_service
         self.quest_progress_service = quest_progress_service
         self.user_repo = user_repo
+        self.duration_hours = duration_hours
 
     # ---------- Templates ----------
 
@@ -95,10 +97,9 @@ class DailyQuestService:
     async def delete_template(self, guild_id: int, template_id: int) -> None:
         await self.template_repo.delete(template_id, guild_id)
 
-    @staticmethod
-    def preview_template(model: DailyTemplateIn) -> DailyQuestIn:
+    def preview_template(self, model: DailyTemplateIn) -> DailyQuestIn:
         """Rolls a quest from a (possibly unsaved) template without saving anything."""
-        return generate_daily_quest(model, utc_today())
+        return generate_daily_quest(model, utc_today(), duration_hours=self.duration_hours)
 
     # ---------- Generation ----------
 
@@ -148,7 +149,7 @@ class DailyQuestService:
         template = self._choose_template(templates, previous.template_id if previous else None, rng)
         span.set_attribute("daily.template_id", template.template_id)
 
-        quest_in = generate_daily_quest(template, quest_date, rng)
+        quest_in = generate_daily_quest(template, quest_date, rng, duration_hours=self.duration_hours)
 
         # The quest and its daily_quest row are written atomically
         async with self.daily_repo.db.get_transaction() as conn:

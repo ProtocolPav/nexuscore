@@ -30,10 +30,14 @@ TARGET_MODELS = {
 }
 
 
-def daily_window(quest_date: date) -> tuple[datetime, datetime]:
-    """The start and end of a daily quest: UTC midnight to the next UTC midnight."""
+def daily_window(quest_date: date, duration_hours: int = 24) -> tuple[datetime, datetime]:
+    """
+    The start and end of a daily quest. It starts at UTC midnight on its date and runs
+    for `duration_hours`. Over 24 hours, consecutive dailies overlap, so players who play
+    around the reset can still finish the previous day's quest.
+    """
     start = datetime.combine(quest_date, time.min, tzinfo=timezone.utc)
-    return start, start + timedelta(days=1)
+    return start, start + timedelta(hours=duration_hours)
 
 
 def utc_today() -> date:
@@ -139,6 +143,7 @@ def generate_daily_quest(
         template: DailyTemplateBase,
         quest_date: date,
         rng: Optional[random.Random] = None,
+        duration_hours: int = 24,
 ) -> DailyQuestIn:
     """
     Rolls a concrete, single-objective daily quest from a template.
@@ -173,7 +178,7 @@ def generate_daily_quest(
         customizations=_roll_customizations(template, rng),
     )
 
-    start, end = daily_window(quest_date)
+    start, end = daily_window(quest_date, duration_hours)
 
     return DailyQuestIn(
         start_time=start,

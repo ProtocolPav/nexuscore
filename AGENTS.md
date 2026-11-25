@@ -47,6 +47,7 @@ Required environment variables:
 Optional:
 - `QUEST_TASKS_ENABLED` - Run the quest background loop: abandons progress on expired quests and generates daily quests (default: true)
 - `QUEST_TASKS_INTERVAL_SECONDS` - How often the quest background loop runs (default: 60)
+- `DAILY_QUEST_DURATION_HOURS` - How long each daily quest runs from its UTC midnight start, 24-48. Over 24, consecutive dailies overlap so players can finish the previous day's quest (default: 30)
 - `DAILY_QUEST_BACKLOG_DAYS` - How many days of daily quests to keep generated, including today, so admins can customise upcoming ones (default: 7)
 
 ## Code Style Guidelines

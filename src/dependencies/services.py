@@ -2,6 +2,7 @@ from botocore.client import BaseClient
 from fastapi import Depends
 
 from src.dependencies.database import Database
+from src.settings import settings
 from src.dependencies.r2_client import get_r2_client
 from src.dependencies.repositories import (
     get_daily_quest_repo, get_daily_template_repo,
@@ -93,7 +94,10 @@ def get_daily_quest_service(
         quest_progress_service: QuestProgressService = Depends(get_quest_progress_service),
         user_repo: UserRepository = Depends(get_user_repo),
 ) -> DailyQuestService:
-    return DailyQuestService(template_repo, daily_repo, quest_service, quest_progress_service, user_repo)
+    return DailyQuestService(
+        template_repo, daily_repo, quest_service, quest_progress_service, user_repo,
+        settings.DAILY_QUEST_DURATION_HOURS,
+    )
 
 
 # Builders for use outside of a request, e.g. background tasks
@@ -114,7 +118,7 @@ def build_daily_quest_service(database: Database) -> DailyQuestService:
     return DailyQuestService(
         DailyTemplateRepository(database), DailyQuestRepository(database),
         build_quest_service(database), build_quest_progress_service(database),
-        UserRepository(database),
+        UserRepository(database), settings.DAILY_QUEST_DURATION_HOURS,
     )
 
 def get_wiki_service(
