@@ -32,7 +32,7 @@ async def create_quest_progress(
     Adds a new quest to a user, tracking their progress.
     Automatically sets the quest progress to "active".
 
-    A daily quest can only be accepted once per user, and only before it ends.
+    Quests can only be accepted before they end, and daily quests only once per user.
     """
     return await service.new(auth.guild_id, body)
 
@@ -100,7 +100,7 @@ async def accept_daily_quest(
 
     Accepts today's daily quest for the user. Safe to call repeatedly:
     if the user already accepted it, their existing progress is returned,
-    whatever its status (active, completed or failed).
+    whatever its status (active, completed, failed or abandoned).
     Clients that support daily quests should call this when a player joins.
     """
     return await service.accept_today(auth.guild_id, thorny_id)
