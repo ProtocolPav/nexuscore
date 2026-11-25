@@ -1,9 +1,11 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from opentelemetry import trace
 
+from src.errors import AlreadyExists, BadRequest
+from src.models.quests.daily import DAILY_QUEST_TYPE
 from src.models.quests.objective import ObjectiveDB, ObjectiveOut
 from src.models.quests.objective_customization.progress import CUSTOMIZATION_TYPE_MAP, CustomizationProgress
 from src.models.quests.objective_progress import ObjectiveProgressIn, ObjectiveProgressOut
@@ -136,9 +138,19 @@ class QuestProgressService:
         return await self.update(quest_progress.progress_id, quest_update)
 
     @traced
-    async def new(self, model: QuestProgressIn) -> QuestProgressOut:
+    async def new(self, guild_id: int, model: QuestProgressIn) -> QuestProgressOut:
         span = trace.get_current_span()
         span.set_attribute("quest.id", model.quest_id)
+
+        quest_db = await self.quest_repo.fetch(model.quest_id, guild_id)
+
+        if quest_db.end_time <= datetime.now(timezone.utc):
+            raise BadRequest("This quest has already ended")
+
+        # Daily quests can only be attempted once per user
+        if quest_db.quest_type == DAILY_QUEST_TYPE \
+                and await self.quest_progress_repo.fetch_users_quest_progress(model.thorny_id, model.quest_id):
+            raise AlreadyExists("Quest Progress")
 
         objectives_db = await self.objective_repo.fetch_all(model.quest_id)
         span.set_attribute("quest.objectives_count", len(objectives_db))
@@ -171,6 +183,47 @@ class QuestProgressService:
         await self.update(quest_progress_db.progress_id, quest_update)
 
         return await self._to_out(quest_progress_db)
+
+    @traced
+    async def get_users_progress_for_quest(self, thorny_id: int, quest_id: int) -> Optional[QuestProgressOut]:
+        """Returns the user's most recent progress on a quest, or None if they never accepted it."""
+        quest_db = await self.quest_progress_repo.fetch_users_quest_progress(thorny_id, quest_id)
+        return await self._to_out(quest_db) if quest_db else None
+
+    @traced
+    async def accept_once(self, guild_id: int, thorny_id: int, quest_id: int) -> QuestProgressOut:
+        """
+        Accepts a quest for a user unless they already have progress on it.
+        Idempotent: returns their existing progress, whatever its status.
+        """
+        span = trace.get_current_span()
+        span.set_attribute("user.thorny_id", thorny_id)
+        span.set_attribute("quest.id", quest_id)
+
+        existing = await self.get_users_progress_for_quest(thorny_id, quest_id)
+        if existing:
+            return existing
+
+        try:
+            created = await self.new(guild_id, QuestProgressIn(thorny_id=thorny_id, quest_id=quest_id))
+        except AlreadyExists:
+            # Lost a race with a concurrent accept
+            return await self.get_users_progress_for_quest(thorny_id, quest_id)
+
+        return await self.get(created.progress_id)
+
+    @traced
+    async def abandon_expired(self) -> int:
+        """
+        Abandons unfinished progress on every quest that has ended, of any quest type.
+        Returns the number of quest progress rows abandoned.
+        """
+        span = trace.get_current_span()
+
+        abandoned = await self.quest_progress_repo.abandon_expired_progress()
+        span.set_attribute("progress.abandoned", abandoned)
+
+        return abandoned
 
     @traced
     async def update(self, progress_id: int, model: QuestProgressUpdate) -> QuestProgressOut:

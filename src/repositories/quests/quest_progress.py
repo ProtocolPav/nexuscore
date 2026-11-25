@@ -50,6 +50,48 @@ class QuestProgressRepository:
 
         return QuestProgressDB.model_validate(dict(data))
 
+    async def fetch_users_quest_progress(self, thorny_id: int, quest_id: int) -> Optional[QuestProgressDB]:
+        data = await self.db.fetchrow("""
+            SELECT * FROM quests_v3.quest_progress
+            WHERE thorny_id = $1
+                AND quest_id = $2
+            ORDER BY accept_time DESC
+            LIMIT 1
+        """, thorny_id, quest_id)
+
+        return QuestProgressDB.model_validate(dict(data)) if data else None
+
+    async def abandon_expired_progress(self) -> int:
+        """
+        Marks every unfinished quest progress whose quest has ended (any quest type)
+        as abandoned, along with the objective the player was on. Objectives they never
+        reached stay pending. Returns the number of quest progress rows abandoned.
+        """
+        async with self.db.get_transaction() as conn:
+            abandoned = await conn.fetch("""
+                UPDATE quests_v3.quest_progress qp
+                SET status = 'abandoned',
+                    end_time = now()
+                FROM quests_v3.quest q
+                WHERE qp.quest_id = q.quest_id
+                    AND q.end_time <= now()
+                    AND qp.status IN ('active', 'pending')
+                RETURNING qp.progress_id
+            """)
+
+            progress_ids = [row['progress_id'] for row in abandoned]
+
+            if progress_ids:
+                await conn.execute("""
+                    UPDATE quests_v3.objective_progress
+                    SET status = 'abandoned',
+                        end_time = now()
+                    WHERE progress_id = ANY($1::int8[])
+                        AND status = 'active'
+                """, progress_ids)
+
+        return len(progress_ids)
+
     @staticmethod
     async def create(
             model: QuestProgressIn,

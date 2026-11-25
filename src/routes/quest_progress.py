@@ -22,7 +22,7 @@ QuestTypeQuery = Query(
 @quest_progress_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_quest_progress(
         body: QuestProgressIn,
-        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
         service: QuestProgressService = Depends(get_quest_progress_service)
 ) -> QuestProgressOut:
     """
@@ -30,8 +30,10 @@ async def create_quest_progress(
 
     Adds a new quest to a user, tracking their progress.
     Automatically sets the quest progress to "active".
+
+    A daily quest can only be accepted once per user, and only before it ends.
     """
-    return await service.new(body)
+    return await service.new(auth.guild_id, body)
 
 
 @quest_progress_router.get('/user/{thorny_id}')
