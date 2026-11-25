@@ -25,6 +25,18 @@ class DailyQuestRepository:
 
         return DailyQuestDB.model_validate(dict(data))
 
+    async def fetch_from(self, guild_id: int, start: date, end: Optional[date] = None) -> list[DailyQuestDB]:
+        """Daily quests from `start` onwards (and up to `end`, if given), ordered by date."""
+        data = await self.db.fetch("""
+            SELECT * FROM quests_v3.daily_quest
+            WHERE guild_id = $1
+            AND quest_date >= $2
+            AND ($3::date IS NULL OR quest_date <= $3::date)
+            ORDER BY quest_date
+        """, guild_id, start, end)
+
+        return [DailyQuestDB.model_validate(dict(d)) for d in data]
+
     async def fetch_previous(self, guild_id: int, quest_date: date) -> Optional[DailyQuestDB]:
         data = await self.db.fetchrow("""
             SELECT * FROM quests_v3.daily_quest

@@ -18,5 +18,6 @@ class Settings(BaseSettings):
     POSTHOG_API_KEY: str = ""
     QUEST_TASKS_ENABLED: bool = True
     QUEST_TASKS_INTERVAL_SECONDS: int = 60
+    DAILY_QUEST_BACKLOG_DAYS: int = 7
 
 settings = Settings()

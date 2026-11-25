@@ -1,5 +1,5 @@
 import random
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 
 from opentelemetry import trace
@@ -129,6 +129,9 @@ class DailyQuestService:
         quest_date = quest_date or utc_today()
         span.set_attribute("daily.date", quest_date.isoformat())
 
+        if quest_date < utc_today():
+            raise BadRequest("Daily quests cannot be generated for past days")
+
         existing = await self._fetch_daily(guild_id, quest_date)
 
         if existing and not force:
@@ -164,25 +167,33 @@ class DailyQuestService:
         return await self.quest_service.get(guild_id, quest_db.quest_id)
 
     @traced
-    async def ensure_todays_quests(self) -> None:
+    async def ensure_upcoming_quests(self, days: int) -> None:
         """
-        Makes sure every guild with enabled templates has today's daily quest.
-        Called periodically by the background loop.
+        Makes sure every guild with enabled templates has daily quests generated for
+        today and the following days, `days` in total. Pre-generating lets admins
+        customise upcoming dailies. Called periodically by the background loop.
         """
         span = trace.get_current_span()
 
         today = utc_today()
+        dates = [today + timedelta(days=i) for i in range(max(days, 1))]
+
         guild_ids = await self.template_repo.fetch_guilds_with_enabled_templates()
         span.set_attribute("daily.guilds", len(guild_ids))
+        span.set_attribute("daily.backlog_days", len(dates))
 
         for guild_id in guild_ids:
-            if await self._fetch_daily(guild_id, today):
-                continue
+            existing = {d.quest_date for d in await self.daily_repo.fetch_from(guild_id, dates[0], dates[-1])}
 
-            try:
-                await self.generate(guild_id, today)
-            except AlreadyExists:
-                pass  # Generated concurrently by another worker
+            # Oldest first, so each day avoids the previous day's template
+            for quest_date in dates:
+                if quest_date in existing:
+                    continue
+
+                try:
+                    await self.generate(guild_id, quest_date)
+                except AlreadyExists:
+                    pass  # Generated concurrently by another worker
 
     # ---------- Today's quest ----------
 
