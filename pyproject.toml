@@ -15,7 +15,7 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.65b0",
     "opentelemetry-sdk>=1.44.0",
     "pydantic==2.12.5",
-    "pyjwt==2.13.0",
+    "pyjwt==2.15.0",
     "python-multipart==0.0.31",
     "scalar-fastapi==1.8.2",
     "sqlalchemy[asyncio]==2.0.41",
