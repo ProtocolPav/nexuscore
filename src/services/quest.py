@@ -108,7 +108,9 @@ class QuestService:
         Ends a quest immediately by moving its end time to now.
         Unfinished progress is abandoned by the next expiry run.
         """
-        await self.quest_repo.update(quest_id, guild_id, QuestUpdate(end_time=datetime.now(timezone.utc)), conn)
+        await self.quest_repo.update(
+            quest_id, guild_id, QuestUpdate(end_time=datetime.now(timezone.utc)), conn, mark_edited=False
+        )
 
     @traced
     async def new(self, guild_id: int, model: QuestIn) -> QuestOut:

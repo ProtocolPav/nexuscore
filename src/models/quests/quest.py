@@ -41,6 +41,10 @@ QuestType = Annotated[str, Field(
     description="The quest type",
     examples=["side"]
 )]
+LastEditedAt = Annotated[Optional[datetime], Field(
+    description="When the quest was last edited by an admin. `null` if it never was.",
+    examples=['2026-01-15 12:00:00+00:00']
+)]
 CreatableQuestType = Annotated[Literal["minor", "side", "story", "weekly"], Field(
     description="The quest type. `daily` quests are generated automatically and cannot be created directly.",
     examples=["side"]
@@ -55,6 +59,7 @@ class QuestBase(BaseModel):
     description: Description
     tags: Tags
     quest_type: QuestType
+    last_edited_at: LastEditedAt = None
 
 
 class QuestDB(QuestBase):
