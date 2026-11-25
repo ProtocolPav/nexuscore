@@ -16,6 +16,7 @@ from src.models.quests.quest import QuestIn, QuestOut
 from src.models.quests.quest_progress import QuestProgressOut
 from src.repositories.quests.daily_quest import DailyQuestRepository
 from src.repositories.quests.daily_template import DailyTemplateRepository
+from src.repositories.user import UserRepository
 from src.services.quest import QuestService
 from src.services.quest_progress import QuestProgressService
 from src.utils.daily_generator import generate_daily_quest, utc_today
@@ -37,13 +38,22 @@ class DailyQuestService:
             daily_repo: DailyQuestRepository,
             quest_service: QuestService,
             quest_progress_service: QuestProgressService,
+            user_repo: UserRepository,
     ):
         self.template_repo = template_repo
         self.daily_repo = daily_repo
         self.quest_service = quest_service
         self.quest_progress_service = quest_progress_service
+        self.user_repo = user_repo
 
     # ---------- Templates ----------
+
+    async def _check_creator(self, guild_id: int, thorny_id: int) -> None:
+        # Generated quests are attributed to the creator, so they must be in this guild
+        try:
+            await self.user_repo.fetch(guild_id, thorny_id)
+        except NotFound:
+            raise BadRequest("`created_by` must be a user in this guild")
 
     @traced
     async def get_template(self, guild_id: int, template_id: int) -> DailyTemplateOut:
@@ -57,6 +67,7 @@ class DailyQuestService:
 
     @traced
     async def new_template(self, guild_id: int, model: DailyTemplateIn) -> DailyTemplateOut:
+        await self._check_creator(guild_id, model.created_by)
         template_db = await self.template_repo.create(guild_id, model)
         return DailyTemplateOut(**template_db.model_dump())
 
@@ -73,6 +84,7 @@ class DailyQuestService:
         except ValueError as e:
             raise BadRequest(str(e))
 
+        await self._check_creator(guild_id, merged.created_by)
         template_db = await self.template_repo.update(template_id, guild_id, merged)
         return DailyTemplateOut(**template_db.model_dump())
 

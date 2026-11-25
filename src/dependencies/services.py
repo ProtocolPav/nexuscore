@@ -91,8 +91,9 @@ def get_daily_quest_service(
         daily_repo: DailyQuestRepository = Depends(get_daily_quest_repo),
         quest_service: QuestService = Depends(get_quest_service),
         quest_progress_service: QuestProgressService = Depends(get_quest_progress_service),
+        user_repo: UserRepository = Depends(get_user_repo),
 ) -> DailyQuestService:
-    return DailyQuestService(template_repo, daily_repo, quest_service, quest_progress_service)
+    return DailyQuestService(template_repo, daily_repo, quest_service, quest_progress_service, user_repo)
 
 
 # Builders for use outside of a request, e.g. background tasks
@@ -113,6 +114,7 @@ def build_daily_quest_service(database: Database) -> DailyQuestService:
     return DailyQuestService(
         DailyTemplateRepository(database), DailyQuestRepository(database),
         build_quest_service(database), build_quest_progress_service(database),
+        UserRepository(database),
     )
 
 def get_wiki_service(
