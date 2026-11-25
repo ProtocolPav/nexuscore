@@ -96,6 +96,11 @@ class QuestQuery(BaseModel):
         examples=[["side", "main", "minor"]],
         default=None,
     )
+    exclude_quest_types: Optional[list[str]] = Field(
+        description="Exclude these quest types, e.g. `daily`",
+        examples=[["daily"]],
+        default=None,
+    )
     time_start: Optional[datetime] = Field(
         description="The start time to filter by",
         examples=["2024-01-01 04:00:00+00:00"],

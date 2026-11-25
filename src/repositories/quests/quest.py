@@ -91,6 +91,12 @@ class QuestRepository:
 
             params.append(query.quest_types)
 
+        if query.exclude_quest_types is not None and len(query.exclude_quest_types) > 0:
+            param_idx = len(params)
+            conditions.append(f"q.quest_type <> ALL(${param_idx + 1})")
+
+            params.append(query.exclude_quest_types)
+
         # Handle time filtering
         if query.time_start is not None and query.time_end is not None:
             # Both start and end provided - filter between range
