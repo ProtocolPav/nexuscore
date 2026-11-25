@@ -1,5 +1,8 @@
 import asyncio
+from datetime import datetime, timezone
 from typing import Optional
+
+from asyncpg.pool import PoolConnectionProxy
 
 from opentelemetry import trace
 
@@ -85,6 +88,28 @@ class QuestService:
 
         return [t.result() for t in tasks]
 
+    async def create_in_transaction(self, guild_id: int, model: QuestIn, conn: PoolConnectionProxy) -> QuestDB:
+        """
+        Creates a quest with its objectives and rewards using an existing transaction,
+        so callers can create a quest atomically alongside their own writes.
+        """
+        quest_db = await self.quest_repo.create(guild_id, model, conn)
+
+        for o in model.objectives:
+            objective_db = await self.objective_repo.create(quest_db.quest_id, o, conn)
+
+            for r in o.rewards:
+                await self.reward_repo.create(objective_db.quest_id, objective_db.objective_id, r, conn)
+
+        return quest_db
+
+    async def end_now(self, guild_id: int, quest_id: int, conn: PoolConnectionProxy) -> None:
+        """
+        Ends a quest immediately by moving its end time to now.
+        Unfinished progress is abandoned by the next expiry run.
+        """
+        await self.quest_repo.update(quest_id, guild_id, QuestUpdate(end_time=datetime.now(timezone.utc)), conn)
+
     @traced
     async def new(self, guild_id: int, model: QuestIn) -> QuestOut:
         span = trace.get_current_span()
@@ -92,14 +117,8 @@ class QuestService:
         span.set_attribute("quest.objectives_count", len(model.objectives))
 
         async with self.quest_repo.db.get_transaction() as conn:
-            quest_db = await self.quest_repo.create(guild_id, model, conn)
+            quest_db = await self.create_in_transaction(guild_id, model, conn)
             span.set_attribute("quest.id", quest_db.quest_id)
-
-            for o in model.objectives:
-                objective_db = await self.objective_repo.create(quest_db.quest_id, o, conn)
-
-                for r in o.rewards:
-                    await self.reward_repo.create(objective_db.quest_id, objective_db.objective_id, r, conn)
 
         return await self._to_out(quest_db)
 
