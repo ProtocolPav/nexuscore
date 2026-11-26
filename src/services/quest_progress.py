@@ -1,8 +1,11 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Optional
 
 from opentelemetry import trace
 
+from src.errors import AlreadyExists, BadRequest, ProgressFinished
+from src.models.quests.daily import DAILY_QUEST_TYPE
 from src.models.quests.objective import ObjectiveDB, ObjectiveOut
 from src.models.quests.objective_customization.progress import CUSTOMIZATION_TYPE_MAP, CustomizationProgress
 from src.models.quests.objective_progress import ObjectiveProgressIn, ObjectiveProgressOut
@@ -19,6 +22,9 @@ from src.repositories.quests.quest_progress import QuestProgressRepository
 from src.repositories.quests.reward import RewardRepository
 from src.repositories.user import UserRepository
 from src.utils.tracing import traced
+
+
+FINISHED_STATUSES = ("completed", "failed", "abandoned")
 
 
 class QuestProgressService:
@@ -73,11 +79,12 @@ class QuestProgressService:
         return await self._to_out(quest_db)
 
     @traced
-    async def get_active(self, thorny_id: int) -> QuestProgressOut:
+    async def get_active(self, thorny_id: int, quest_type: Optional[str] = None) -> QuestProgressOut:
         span = trace.get_current_span()
         span.set_attribute("user.thorny_id", thorny_id)
+        span.set_attribute("quest.type", quest_type or "regular")
 
-        quest_db = await self.quest_progress_repo.fetch_active(thorny_id)
+        quest_db = await self.quest_progress_repo.fetch_active(thorny_id, quest_type)
         return await self._to_out(quest_db)
 
     @traced
@@ -107,31 +114,50 @@ class QuestProgressService:
         return [t.result() for t in tasks]
 
     @traced
-    async def mark_failed(self, thorny_id: int) -> QuestProgressOut:
+    async def mark_abandoned(self, thorny_id: int, quest_type: Optional[str] = None) -> QuestProgressOut:
+        """
+        The player chose to drop their active quest.
+        Marks the quest and the objective they were on as `abandoned`. Objectives they
+        never reached stay `pending`, so statistics show where players gave up.
+        """
         span = trace.get_current_span()
         span.set_attribute("user.thorny_id", thorny_id)
 
-        quest_progress = await self.get_active(thorny_id)
+        quest_progress = await self.get_active(thorny_id, quest_type)
         span.set_attribute("progress.id", quest_progress.progress_id)
 
         quest_update = QuestProgressUpdate(**{
-            "status": "failed",
+            "status": "abandoned",
             "end_time": datetime.now(),
             "objectives": [
                 {
                     "objective_id": o.objective_id,
-                    "status": "failed",
+                    "status": "abandoned",
                     "end_time": datetime.now()
-                } for o in quest_progress.objectives if o.status in ['active', 'pending']
+                } for o in quest_progress.objectives if o.status == 'active'
             ]
         })
 
         return await self.update(quest_progress.progress_id, quest_update)
 
     @traced
-    async def new(self, model: QuestProgressIn) -> QuestProgressOut:
+    async def new(self, guild_id: int, model: QuestProgressIn) -> QuestProgressOut:
         span = trace.get_current_span()
         span.set_attribute("quest.id", model.quest_id)
+
+        quest_db = await self.quest_repo.fetch(model.quest_id, guild_id)
+
+        now = datetime.now(timezone.utc)
+        if quest_db.start_time > now:
+            raise BadRequest("This quest has not started yet")
+
+        if quest_db.end_time <= now:
+            raise BadRequest("This quest has already ended")
+
+        # Daily quests can only be attempted once per user
+        if quest_db.quest_type == DAILY_QUEST_TYPE \
+                and await self.quest_progress_repo.fetch_users_quest_progress(model.thorny_id, model.quest_id):
+            raise AlreadyExists("Quest Progress")
 
         objectives_db = await self.objective_repo.fetch_all(model.quest_id)
         span.set_attribute("quest.objectives_count", len(objectives_db))
@@ -166,10 +192,57 @@ class QuestProgressService:
         return await self._to_out(quest_progress_db)
 
     @traced
+    async def get_users_progress_for_quest(self, thorny_id: int, quest_id: int) -> Optional[QuestProgressOut]:
+        """Returns the user's most recent progress on a quest, or None if they never accepted it."""
+        quest_db = await self.quest_progress_repo.fetch_users_quest_progress(thorny_id, quest_id)
+        return await self._to_out(quest_db) if quest_db else None
+
+    @traced
+    async def accept_once(self, guild_id: int, thorny_id: int, quest_id: int) -> QuestProgressOut:
+        """
+        Accepts a quest for a user unless they already have progress on it.
+        Idempotent: returns their existing progress, whatever its status.
+        """
+        span = trace.get_current_span()
+        span.set_attribute("user.thorny_id", thorny_id)
+        span.set_attribute("quest.id", quest_id)
+
+        existing = await self.get_users_progress_for_quest(thorny_id, quest_id)
+        if existing:
+            return existing
+
+        try:
+            created = await self.new(guild_id, QuestProgressIn(thorny_id=thorny_id, quest_id=quest_id))
+        except AlreadyExists:
+            # Lost a race with a concurrent accept
+            return await self.get_users_progress_for_quest(thorny_id, quest_id)
+
+        return await self.get(created.progress_id)
+
+    @traced
+    async def abandon_expired(self) -> int:
+        """
+        Abandons unfinished progress on every quest that has ended, of any quest type.
+        Returns the number of quest progress rows abandoned.
+        """
+        span = trace.get_current_span()
+
+        abandoned = await self.quest_progress_repo.abandon_expired_progress()
+        span.set_attribute("progress.abandoned", abandoned)
+
+        return abandoned
+
+    @traced
     async def update(self, progress_id: int, model: QuestProgressUpdate) -> QuestProgressOut:
         span = trace.get_current_span()
         span.set_attribute("progress.id", progress_id)
         span.set_attribute("progress.objectives_submitted", len(model.objectives))
+
+        # Finished progress is final. This stops clients holding a stale copy from
+        # reverting it, e.g. back to active after the quest expired.
+        current = await self.quest_progress_repo.fetch(progress_id)
+        if current.status in FINISHED_STATUSES:
+            raise ProgressFinished(current.status)
 
         async with self.quest_repo.db.get_transaction() as conn:
             quest_progress_db = await self.quest_progress_repo.update(progress_id, model, conn)

@@ -30,8 +30,10 @@ EndTime = Annotated[Optional[datetime], Field(
     description="The time the user ended the quest, either by failing or completing it",
     examples=['2024-05-05 05:34:21.123456']
 )]
-Status = Annotated[Literal['active', 'pending', 'completed', 'failed'], Field(
-    description="The status of the quest",
+Status = Annotated[Literal['active', 'pending', 'completed', 'failed', 'abandoned'], Field(
+    description="The status of the quest.\n"
+                "- `failed`: the player genuinely failed (e.g. died, ran out of time)\n"
+                "- `abandoned`: the player chose to drop the quest, or the quest expired while unfinished",
     examples=['active']
 )]
 

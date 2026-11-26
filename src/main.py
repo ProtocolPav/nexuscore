@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response, Depends
@@ -10,6 +12,8 @@ from src.dependencies.r2_client import init_r2_client
 
 from src.routes import api_router
 from src.routes.auth import auth_router
+from src.settings import settings
+from src.tasks.quests import quest_maintenance_loop
 from telemetry import setup_telemetry
 
 
@@ -19,7 +23,16 @@ async def lifespan(app: FastAPI):
     setup_telemetry()
     FastAPIInstrumentor.instrument_app(app, excluded_urls="healthcheck,docs,openapi.json,")
     await db.init_pool()
+
+    quest_task = asyncio.create_task(quest_maintenance_loop()) if settings.QUEST_TASKS_ENABLED else None
+
     yield
+
+    if quest_task:
+        quest_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await quest_task
+
     await db.close_pool()
 
 app = FastAPI(

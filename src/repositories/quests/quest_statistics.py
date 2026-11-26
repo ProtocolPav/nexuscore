@@ -22,9 +22,11 @@ class QuestStatisticsRepository:
                 COUNT(qp.progress_id) FILTER (WHERE qp.status = 'pending')      AS total_pending,
                 COUNT(qp.progress_id) FILTER (WHERE qp.status = 'active'
                                                  OR qp.status = 'completed'
-                                                 OR qp.status = 'failed')       AS total_started,
+                                                 OR qp.status = 'failed'
+                                                 OR qp.status = 'abandoned')    AS total_started,
                 COUNT(qp.progress_id) FILTER (WHERE qp.status = 'completed')    AS total_completed,
                 COUNT(qp.progress_id) FILTER (WHERE qp.status = 'failed')       AS total_failed,
+                COUNT(qp.progress_id) FILTER (WHERE qp.status = 'abandoned')    AS total_abandoned,
 
                 -- Timing (seconds): only for completed rows that have both start and end
                 AVG(
@@ -84,9 +86,11 @@ class QuestStatisticsRepository:
                 o.order_index,
                 o.description,
 
-                COUNT(op.progress_id)                                               AS players_reached,
+                -- Pending objectives were never reached by the player
+                COUNT(op.progress_id) FILTER (WHERE op.status <> 'pending')         AS players_reached,
                 COUNT(op.progress_id) FILTER (WHERE op.status = 'completed')        AS players_completed,
                 COUNT(op.progress_id) FILTER (WHERE op.status = 'failed')           AS players_failed,
+                COUNT(op.progress_id) FILTER (WHERE op.status = 'abandoned')        AS players_abandoned,
 
                 AVG(
                     EXTRACT(EPOCH FROM (op.end_time - op.start_time))
@@ -130,7 +134,7 @@ class QuestStatisticsRepository:
 
     async def fetch_daily_activity(self, quest_id: int) -> list[dict]:
         """
-        Returns daily accept/completion/failure counts for time-series charts.
+        Returns daily accept/completion/failure/abandonment counts for time-series charts.
         Returns an empty list if no activity exists yet — not an error condition.
         """
         rows = await self.db.fetch("""
@@ -138,7 +142,8 @@ class QuestStatisticsRepository:
                 accept_time::date                                                       AS date,
                 COUNT(*)                                                                AS accepts,
                 COUNT(*) FILTER (WHERE status = 'completed')                           AS completions,
-                COUNT(*) FILTER (WHERE status = 'failed')                              AS failures
+                COUNT(*) FILTER (WHERE status = 'failed')                              AS failures,
+                COUNT(*) FILTER (WHERE status = 'abandoned')                           AS abandonments
             FROM quests_v3.quest_progress
             WHERE quest_id = $1
             GROUP BY accept_time::date

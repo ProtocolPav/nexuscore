@@ -16,10 +16,15 @@ class ObjectiveStatistics(BaseModel):
 
     players_reached: int = Field(description="Number of players who started this objective")
     players_completed: int = Field(description="Number of players who completed this objective")
-    players_failed: int = Field(description="Number of players who failed this objective")
+    players_failed: int = Field(description="Number of players who genuinely failed this objective")
+    players_abandoned: int = Field(description="Number of players who dropped the quest, "
+                                               "or whose quest expired, while on this objective")
 
     completion_rate: float = Field(description="players_completed / players_reached. 0 if none reached.", examples=[0.72])
-    drop_rate: float = Field(description="players_failed / players_reached. 0 if none reached.", examples=[0.28])
+    failure_rate: float = Field(description="players_failed / players_reached. 0 if none reached.", examples=[0.12])
+    abandon_rate: float = Field(description="players_abandoned / players_reached. 0 if none reached.", examples=[0.16])
+    drop_rate: float = Field(description="(players_failed + players_abandoned) / players_reached. "
+                                         "0 if none reached.", examples=[0.28])
 
     avg_time_seconds: Optional[int] = Field(
         description="Average time in seconds spent on this objective (start_time to end_time), across completions",
@@ -42,6 +47,7 @@ class DailyActivityEntry(BaseModel):
     accepts: int = Field(description="Number of quest accepts on this date")
     completions: int = Field(description="Number of quest completions on this date")
     failures: int = Field(description="Number of quest failures on this date")
+    abandonments: int = Field(description="Number of quests abandoned or expired on this date")
 
 
 class QuestStatisticsOut(BaseModel):
@@ -54,7 +60,8 @@ class QuestStatisticsOut(BaseModel):
     total_pending: int = Field(description="Players who accepted but never started the quest")
     total_started: int = Field(description="Players who actively began working on objectives")
     total_completed: int = Field(description="Players who completed the quest")
-    total_failed: int = Field(description="Players who failed the quest")
+    total_failed: int = Field(description="Players who genuinely failed the quest")
+    total_abandoned: int = Field(description="Players who dropped the quest, or whose quest expired unfinished")
 
     completion_rate: float = Field(
         description="total_completed / total_accepts. 0 if no accepts.",
@@ -95,5 +102,5 @@ class QuestStatisticsOut(BaseModel):
         description="Bucketed completion times for histogram display"
     )
     daily_activity: list[DailyActivityEntry] = Field(
-        description="Daily accepts, completions, and failures for time-series line charts"
+        description="Daily accepts, completions, failures and abandonments for time-series line charts"
     )

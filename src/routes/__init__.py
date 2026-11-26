@@ -1,3 +1,4 @@
+from src.routes.daily_quests import daily_quests_router
 from src.routes.image import image_router
 from src.routes.relay import relay_router
 from src.routes.guild import guilds_router
@@ -20,6 +21,8 @@ api_router.include_router(members_router)
 api_router.include_router(relay_router)
 api_router.include_router(pins_router)
 api_router.include_router(projects_router)
+# Must come before quests_router so /quests/daily is not captured by /quests/{quest_id}
+api_router.include_router(daily_quests_router)
 api_router.include_router(quests_router)
 api_router.include_router(quest_progress_router)
 api_router.include_router(world_router)

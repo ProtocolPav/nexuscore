@@ -98,3 +98,14 @@ class GuildScopedTokenRequired(NexusException):
                 "message": "This endpoint requires a guild-scoped token. Request a new token with a guild_id specified."
             }
         )
+
+class ProgressFinished(NexusException):
+    def __init__(self, progress_status: str):
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "progress_finished",
+                "status": progress_status,
+                "message": f"This quest progress is already {progress_status} and can no longer be updated."
+            }
+        )

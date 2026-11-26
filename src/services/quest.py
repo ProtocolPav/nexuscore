@@ -1,7 +1,13 @@
 import asyncio
+from datetime import datetime, timezone
+from typing import Optional
+
+from asyncpg.pool import PoolConnectionProxy
 
 from opentelemetry import trace
 
+from src.errors import BadRequest
+from src.models.quests.daily import DAILY_QUEST_TYPE
 from src.models.quests.objective import ObjectiveOut
 from src.models.quests.quest import QuestDB, QuestIn, QuestOut, QuestQuery, QuestUpdate
 from src.models.quests.quest_statistics import (
@@ -84,6 +90,30 @@ class QuestService:
 
         return [t.result() for t in tasks]
 
+    async def create_in_transaction(self, guild_id: int, model: QuestIn, conn: PoolConnectionProxy) -> QuestDB:
+        """
+        Creates a quest with its objectives and rewards using an existing transaction,
+        so callers can create a quest atomically alongside their own writes.
+        """
+        quest_db = await self.quest_repo.create(guild_id, model, conn)
+
+        for o in model.objectives:
+            objective_db = await self.objective_repo.create(quest_db.quest_id, o, conn)
+
+            for r in o.rewards:
+                await self.reward_repo.create(objective_db.quest_id, objective_db.objective_id, r, conn)
+
+        return quest_db
+
+    async def end_now(self, guild_id: int, quest_id: int, conn: PoolConnectionProxy) -> None:
+        """
+        Ends a quest immediately by moving its end time to now.
+        Unfinished progress is abandoned by the next expiry run.
+        """
+        await self.quest_repo.update(
+            quest_id, guild_id, QuestUpdate(end_time=datetime.now(timezone.utc)), conn, mark_edited=False
+        )
+
     @traced
     async def new(self, guild_id: int, model: QuestIn) -> QuestOut:
         span = trace.get_current_span()
@@ -91,14 +121,8 @@ class QuestService:
         span.set_attribute("quest.objectives_count", len(model.objectives))
 
         async with self.quest_repo.db.get_transaction() as conn:
-            quest_db = await self.quest_repo.create(guild_id, model, conn)
+            quest_db = await self.create_in_transaction(guild_id, model, conn)
             span.set_attribute("quest.id", quest_db.quest_id)
-
-            for o in model.objectives:
-                objective_db = await self.objective_repo.create(quest_db.quest_id, o, conn)
-
-                for r in o.rewards:
-                    await self.reward_repo.create(objective_db.quest_id, objective_db.objective_id, r, conn)
 
         return await self._to_out(quest_db)
 
@@ -108,6 +132,13 @@ class QuestService:
         span.set_attribute("guild.id", guild_id)
         span.set_attribute("quest.id", quest_id)
         span.set_attribute("quest.objectives_submitted", len(model.objectives))
+
+        # A daily quest's window and type come from its date, so they can't be edited
+        current = await self.quest_repo.fetch(quest_id, guild_id)
+        if current.quest_type == DAILY_QUEST_TYPE and (
+                model.start_time is not None or model.end_time is not None or model.quest_type is not None
+        ):
+            raise BadRequest("A daily quest's start_time, end_time and quest_type cannot be edited")
 
         objectives_updated = 0
         objectives_created = 0
@@ -162,6 +193,9 @@ class QuestService:
 
         histogram = _build_histogram(completion_times)
 
+        def rate(count: Optional[int], reached: Optional[int]) -> float:
+            return (count or 0) / reached if reached else 0.0
+
         objectives = [
             ObjectiveStatistics(
                 objective_id=row['objective_id'],
@@ -170,14 +204,12 @@ class QuestService:
                 players_reached=row['players_reached'] or 0,
                 players_completed=row['players_completed'] or 0,
                 players_failed=row['players_failed'] or 0,
-                completion_rate=(
-                    (row['players_completed'] or 0) / row['players_reached']
-                    if row['players_reached'] else 0.0
-                ),
-                drop_rate=(
-                    (row['players_failed'] or 0) / row['players_reached']
-                    if row['players_reached'] else 0.0
-                ),
+                players_abandoned=row['players_abandoned'] or 0,
+                completion_rate=rate(row['players_completed'], row['players_reached']),
+                failure_rate=rate(row['players_failed'], row['players_reached']),
+                abandon_rate=rate(row['players_abandoned'], row['players_reached']),
+                drop_rate=rate((row['players_failed'] or 0) + (row['players_abandoned'] or 0),
+                               row['players_reached']),
                 avg_time_seconds=int(row['avg_time_seconds']) if row['avg_time_seconds'] is not None else None,
                 median_time_seconds=int(row['median_time_seconds']) if row['median_time_seconds'] is not None else None,
             )
@@ -193,6 +225,7 @@ class QuestService:
             total_started=total_started,
             total_completed=total_completed,
             total_failed=summary['total_failed'] or 0,
+            total_abandoned=summary['total_abandoned'] or 0,
             completion_rate=completion_rate,
             started_rate=started_rate,
             avg_completion_time_seconds=int(summary['avg_completion_time_seconds']) if summary['avg_completion_time_seconds'] is not None else None,
@@ -209,6 +242,7 @@ class QuestService:
                     accepts=row['accepts'] or 0,
                     completions=row['completions'] or 0,
                     failures=row['failures'] or 0,
+                    abandonments=row['abandonments'] or 0,
                 )
                 for row in daily_rows
             ],

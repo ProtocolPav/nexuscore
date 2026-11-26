@@ -24,8 +24,10 @@ EndTime = Annotated[datetime, Field(
     description="The time that this objective was completed",
     examples=['2024-05-05T05:34:21Z']
 )]
-ProgressStatus = Annotated[Literal['active', 'pending', 'completed', 'failed'], Field(
-    description="The status of this objective",
+ProgressStatus = Annotated[Literal['active', 'pending', 'completed', 'failed', 'abandoned'], Field(
+    description="The status of this objective.\n"
+                "- `failed`: the player genuinely failed this objective\n"
+                "- `abandoned`: the player dropped the quest, or it expired, while on this objective",
     examples=['active']
 )]
 TargetProgressList = Annotated[list[TargetProgress], Field(

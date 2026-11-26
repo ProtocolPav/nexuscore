@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import asyncpg
 
 from asyncpg.pool import PoolConnectionProxy
@@ -50,10 +52,19 @@ class QuestRepository:
 
         return QuestDB.model_validate(dict(data))
 
-    async def update(self, quest_id: int, guild_id: int, model: QuestUpdate, conn: PoolConnectionProxy) -> QuestDB:
+    async def update(
+            self,
+            quest_id: int,
+            guild_id: int,
+            model: QuestUpdate,
+            conn: PoolConnectionProxy,
+            mark_edited: bool = True,
+    ) -> QuestDB:
         quest = await self.fetch(quest_id, guild_id)
 
         updated = quest.model_copy(update=model.model_dump(exclude_none=True))
+        if mark_edited:
+            updated.last_edited_at = datetime.now(timezone.utc)
 
         await conn.execute("""
             UPDATE quests_v3.quest
@@ -63,10 +74,11 @@ class QuestRepository:
                 description = $4,
                 created_by = $5,
                 tags = $6,
-                quest_type = $7
-            WHERE quest_id = $8
+                quest_type = $7,
+                last_edited_at = $8
+            WHERE quest_id = $9
         """, updated.start_time, updated.end_time, updated.title, updated.description, updated.created_by,
-                                   updated.tags, updated.quest_type, updated.quest_id)
+                                   updated.tags, updated.quest_type, updated.last_edited_at, updated.quest_id)
 
         return updated
 
@@ -90,6 +102,12 @@ class QuestRepository:
             conditions.append(f"q.quest_type = ANY(${param_idx + 1})")
 
             params.append(query.quest_types)
+
+        if query.exclude_quest_types is not None and len(query.exclude_quest_types) > 0:
+            param_idx = len(params)
+            conditions.append(f"q.quest_type <> ALL(${param_idx + 1})")
+
+            params.append(query.exclude_quest_types)
 
         # Handle time filtering
         if query.time_start is not None and query.time_end is not None:
