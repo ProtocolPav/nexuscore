@@ -4,6 +4,7 @@ from datetime import datetime, date
 from pydantic import BaseModel, Field
 
 from src.dependencies.database import Database
+from src.models.quests.daily import DAILY_QUEST_TYPE
 
 
 class LeaderboardEntry(BaseModel):
@@ -107,8 +108,10 @@ class LeaderboardModel(BaseModel):
                                             select u.thorny_id, u.user_id, count(q.status) as quests_count
                                             from users."user" u
                                             inner join quests_v3.quest_progress q on q.thorny_id = u.thorny_id
+                                            inner join quests_v3.quest qu on qu.quest_id = q.quest_id
                                             where u.guild_id = $1
                                             and q.status = 'completed'
+                                            and qu.quest_type <> $2  -- daily quests count towards streaks instead
                                             and u.active = true
                                             group by u.thorny_id
                                             order by quests_count desc
@@ -125,7 +128,7 @@ class LeaderboardModel(BaseModel):
                                             '[]'::json
                                         ) as leaderboard
                                       """,
-                                      guild_id)
+                                      guild_id, DAILY_QUEST_TYPE)
 
         return cls(**{'leaderboard': json.loads(data['leaderboard'])})
 

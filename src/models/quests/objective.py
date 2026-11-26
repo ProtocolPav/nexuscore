@@ -1,6 +1,6 @@
 import json
 
-from pydantic import Field, model_validator, BaseModel
+from pydantic import ConfigDict, Field, model_validator, BaseModel
 from typing import Annotated, Literal, Optional
 
 from src.models.quests.objective_customization.customization import Customizations
@@ -80,6 +80,9 @@ class ObjectiveOut(ObjectiveBase):
 
 
 class ObjectiveIn(BaseModel):
+    # Also returned by the daily template preview; keep a single schema so API client generators don't see duplicates
+    model_config = ConfigDict(json_schema_mode_override="validation")
+
     description: Description
     display: Optional[Display] = None
     order_index: OrderIndex

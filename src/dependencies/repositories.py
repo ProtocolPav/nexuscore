@@ -2,6 +2,8 @@ from fastapi import Depends
 
 from src.dependencies.database import Database, get_db
 from src.repositories.guild import GuildRepository
+from src.repositories.quests.daily_quest import DailyQuestRepository
+from src.repositories.quests.daily_template import DailyTemplateRepository
 from src.repositories.quests.objective import ObjectiveRepository
 from src.repositories.pin import PinRepository
 from src.repositories.project import ProjectRepository
@@ -70,6 +72,16 @@ def get_quest_statistics_repo(
         database: Database = Depends(get_db),
 ) -> QuestStatisticsRepository:
     return QuestStatisticsRepository(database)
+
+def get_daily_template_repo(
+        database: Database = Depends(get_db),
+) -> DailyTemplateRepository:
+    return DailyTemplateRepository(database)
+
+def get_daily_quest_repo(
+        database: Database = Depends(get_db),
+) -> DailyQuestRepository:
+    return DailyQuestRepository(database)
 
 
 def get_wiki_page_repo(

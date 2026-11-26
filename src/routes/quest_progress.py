@@ -1,19 +1,29 @@
-from fastapi import APIRouter, status, Security, Depends
+from typing import Optional
+
+from fastapi import APIRouter, Query, status, Security, Depends
 
 from src.dependencies.auth import get_guild_client
-from src.dependencies.services import get_quest_progress_service
+from src.dependencies.services import get_daily_quest_service, get_quest_progress_service
 from src.models.auth import TokenPayload, Scope
 
 from src.models.quests.quest_progress import QuestProgressIn, QuestProgressOut, QuestProgressUpdate
+from src.services.daily_quest import DailyQuestService
 from src.services.quest_progress import QuestProgressService
 
 quest_progress_router = APIRouter(prefix='/guilds/me/quests/progress', tags=['Quests'])
+
+QuestTypeQuery = Query(
+    default=None,
+    description="The quest type to look for, e.g. `daily`. "
+                "When omitted, daily quests are excluded and the user's regular quest is used.",
+    examples=["daily"],
+)
 
 
 @quest_progress_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_quest_progress(
         body: QuestProgressIn,
-        _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
         service: QuestProgressService = Depends(get_quest_progress_service)
 ) -> QuestProgressOut:
     """
@@ -21,8 +31,10 @@ async def create_quest_progress(
 
     Adds a new quest to a user, tracking their progress.
     Automatically sets the quest progress to "active".
+
+    Quests can only be accepted while they are running, and daily quests only once per user.
     """
-    return await service.new(body)
+    return await service.new(auth.guild_id, body)
 
 
 @quest_progress_router.get('/user/{thorny_id}')
@@ -42,6 +54,7 @@ async def list_quest_progress(
 @quest_progress_router.get('/user/{thorny_id}/active')
 async def get_active_quest_progress(
         thorny_id: int,
+        quest_type: Optional[str] = QuestTypeQuery,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_READ]),
         service: QuestProgressService = Depends(get_quest_progress_service)
 ) -> QuestProgressOut:
@@ -49,22 +62,52 @@ async def get_active_quest_progress(
     Get User's Active Quest
 
     Returns the user's currently active quest.
+    By default this is their regular (accepted) quest. Use `?quest_type=daily`
+    to get their active daily quest instead.
     """
-    return await service.get_active(thorny_id)
+    return await service.get_active(thorny_id, quest_type)
 
 
 @quest_progress_router.delete('/user/{thorny_id}/active', status_code=status.HTTP_204_NO_CONTENT)
-async def fail_active_quest_progress(
+async def abandon_active_quest_progress(
         thorny_id: int,
+        quest_type: Optional[str] = QuestTypeQuery,
         _: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
         service: QuestProgressService = Depends(get_quest_progress_service)
 ):
     """
-    Fail User's Active Quest
+    Abandon User's Active Quest
 
-    This marks the active quest and all of its objectives as "failed".
+    Use this when the player chooses to drop their quest.
+    Marks the active quest and the objective the player was on as `abandoned`.
+    Objectives the player never reached stay `pending`.
+    Use `?quest_type=daily` to abandon the active daily quest instead.
+
+    To record a genuine failure (e.g. the player died), update the progress
+    with status `failed` instead.
     """
-    await service.mark_failed(thorny_id)
+    await service.mark_abandoned(thorny_id, quest_type)
+
+
+@quest_progress_router.post('/user/{thorny_id}/daily')
+async def accept_daily_quest(
+        thorny_id: int,
+        auth: TokenPayload = Security(get_guild_client, scopes=[Scope.GUILDS_QUESTS_WRITE]),
+        service: DailyQuestService = Depends(get_daily_quest_service)
+) -> QuestProgressOut:
+    """
+    Accept Daily Quest
+
+    Returns the user's current daily quest progress, accepting today's daily if needed.
+    Players have one daily at a time: while consecutive dailies overlap, an unfinished
+    daily from the previous day is returned until it is finished or expires. After that,
+    today's daily is accepted.
+
+    Safe to call repeatedly: if the user already accepted today's daily, their existing
+    progress is returned, whatever its status (active, completed, failed or abandoned).
+    Clients should call this when a player joins, and again when their daily finishes.
+    """
+    return await service.accept_current(auth.guild_id, thorny_id)
 
 
 @quest_progress_router.put('/{progress_id}')

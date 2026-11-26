@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional
 
 from pydantic import Field, BaseModel
 
@@ -41,6 +41,14 @@ QuestType = Annotated[str, Field(
     description="The quest type",
     examples=["side"]
 )]
+LastEditedAt = Annotated[Optional[datetime], Field(
+    description="When the quest was last edited by an admin. `null` if it never was.",
+    examples=['2026-01-15 12:00:00+00:00']
+)]
+CreatableQuestType = Annotated[Literal["minor", "side", "story", "weekly"], Field(
+    description="The quest type. `daily` quests are generated automatically and cannot be created directly.",
+    examples=["side"]
+)]
 
 
 class QuestBase(BaseModel):
@@ -51,6 +59,7 @@ class QuestBase(BaseModel):
     description: Description
     tags: Tags
     quest_type: QuestType
+    last_edited_at: LastEditedAt = None
 
 
 class QuestDB(QuestBase):
@@ -69,7 +78,7 @@ class QuestIn(BaseModel):
     title: Title
     description: Description
     tags: Tags
-    quest_type: QuestType
+    quest_type: CreatableQuestType
     created_by: CreatedBy
     objectives: list[ObjectiveIn]
 
@@ -80,7 +89,7 @@ class QuestUpdate(BaseModel):
     title: Optional[Title] = None
     description: Optional[Description] = None
     tags: Optional[Tags] = None
-    quest_type: Optional[QuestType] = None
+    quest_type: Optional[CreatableQuestType] = None
     created_by: Optional[CreatedBy] = None
     objectives: Optional[list[ObjectiveUpdate]] = []
 
@@ -94,6 +103,11 @@ class QuestQuery(BaseModel):
     quest_types: Optional[list[str]] = Field(
         description="Filter by quest type",
         examples=[["side", "main", "minor"]],
+        default=None,
+    )
+    exclude_quest_types: Optional[list[str]] = Field(
+        description="Exclude these quest types, e.g. `daily`",
+        examples=[["daily"]],
         default=None,
     )
     time_start: Optional[datetime] = Field(
